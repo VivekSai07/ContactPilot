@@ -1,0 +1,19 @@
+services:
+  grasp-sim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sir-lab/grasp-sim:latest
+    gpus: all
+    environment:
+      # If EGL fails on your host (some WSL2 setups), override with osmesa:
+      #   MUJOCO_GL=osmesa docker compose up   (CPU rendering, slower)
+      - MUJOCO_GL=${MUJOCO_GL:-egl}
+    volumes:
+      # Results (metrics.json, execution.gif, npz) land on the host:
+      - ./mujoco_grasp_sim/output:/work/mujoco_grasp_sim/output
+      # Calibration is mounted, not baked in — swap the yaml without rebuilding:
+      - ./mujoco_grasp_sim/calibration_result.yaml:/work/mujoco_grasp_sim/calibration_result.yaml:ro
+    # Default run (override by appending args after the service name):
+    #   docker compose run --rm grasp-sim --seed 3 --camera calibrated --execute --top-k 5
+    command: ["--seed", "5", "--camera", "lookat", "--pick-all"]

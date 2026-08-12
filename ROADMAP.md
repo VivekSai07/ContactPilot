@@ -1,0 +1,128 @@
+# ContactPilot Grasping Pipeline — Roadmap
+
+Guiding principle: **maximum practical grasp reliability** for a Franka Panda
+on unseen tabletop objects with calibrated RGB-D — modular, reproducible,
+deployable. No novelty for novelty's sake.
+
+## P0 — Dockerized, reproducible pipeline  [IN PROGRESS]
+- [x] `Dockerfile` + `docker-compose.yml` + `requirements-docker.txt` at repo root
+- [x] Single-command build (`docker compose build`) and run (`docker compose up`)
+- [x] GPU support: CUDA 12.8 image, torch cu128 wheels — one image covers
+      GTX 1650 (sm_75) AND RTX 5090 (sm_120, Blackwell)
+- [x] Docs: `DOCKER.md`
+- [ ] Build verified on this laptop (first build downloads ~4 GB)
+- [ ] Build verified on the RTX 5090 workstation
+
+## P1 — Maximize grasp success rate  [IN PROGRESS]
+- [x] Batch evaluation harness: `mujoco_grasp_sim/benchmark.py` (N seeds ×
+      config → success-rate table; every change must move this number)
+- [x] Failure taxonomy from batch runs: `mujoco_grasp_sim/analyze_failures.py`
+      → taxonomy.json. **Baseline (seeds 0-4, pick-all, lookat, 2026-06-11):
+      15/40 binned (38%)**; failures: closed_on_air 32 (78%!), missed_bin 4,
+      knocked_off_table 4, ik 1. Initial-obs grasp coverage 17/40 objects.
+- [x] Perception: workspace crop + speckle removal (`sim_grasp/perception.py`,
+      `--clean-depth`); table segmentation deferred (sim segmaps are perfect —
+      lab item for the RealSense)
+- [x] Execution: 3-axis grasp re-centering onto the object cloud
+      (`recenter_grasp()`, `--recenter`) + ground-truth offset logging
+      (`gt_offset_grasp_frame` per attempt). Bin release height 0.17→0.15.
+- **A/B verdict (2026-06-11, 2 iterations):** re-centering does NOT move the
+  number (38% → 38% → 32%, within CGN stochastic noise). Ground truth shows
+  why: position offset does not separate success from failure (|x| median
+  4.9 vs 5.7 mm, |y| 10.1 vs 8.9 mm — both groups well-centered). Real
+  failure structure is SHAPE-dependent dynamic escape during closing:
+  cylinders 9 ok/5 fail, boxes 9/16, capsules 1/6, spheres 0/5. All grasps
+  necessarily pinch the object's top sliver (z≈110 of the 66-112 mm sweep —
+  the table blocks deeper approaches), so curved objects squirt out and boxes
+  likely rotate out when the closing line crosses a diagonal. Keep
+  `--recenter`/`--clean-depth` opt-in (harmless, help on real-sensor noise).
+- [x] P1 levers implemented & validated (2026-06-14, seeds 0-4, pick-all,
+      fused camera, 5-10 mixed-shape objects/scene): grasp-yaw-vs-object-face
+      alignment bonus in ranking (`_box_yaw_alignment_bonus`), two-phase
+      gentle closing in executor (fast approach to gripper ctrl=75, then slow
+      squeeze to 0), fingertip-pad friction audit (torsional/rolling friction
+      "1.0 0.01 0.004" patched onto the 5 `fingertip_pad_collision_*` geoms in
+      panda.xml — **later found to be a no-op, see condim fix below**),
+      shape-aware ranking bonus (`_SHAPE_PRIORITY`: cylinder >
+      box > mesh > capsule > sphere). **Result: 21/40 binned (52%)**, up from
+      17/40 (42%) fused baseline (+10pp). Knocked-off-table 10→7. Initial-obs
+      grasp coverage 25/40 (vs 28/40 baseline — reordering changes WHICH
+      grasps are attempted first, not raw coverage).
+- [x] Box-only objects + fixed object count (2026-06-14): scenes now spawn
+      exactly **3 box/cuboid objects** (`SceneConfig.n_objects_range=(3,3)`,
+      `use_meshes=False`) at random reachable XY positions
+      (`_sample_xy_positions`, unchanged). Cylinders/spheres/capsules/meshes
+      removed — motivated by failures observed in lab testing concentrating
+      on cylindrical objects during picking and the transit-to-bin transfer.
+      5-seed fused pick-all (on top of the P1 levers above):
+      **10/15 binned (67%)**, knocked-off-table **0** (was 7-10),
+      initial-obs grasp coverage 14/15 objects, all 5 remaining failures at
+      the `done` stage (closed-on-air / drop-in-transit class). `--n-objects
+      N` or `SceneConfig(use_meshes=True, ...)` restore the old
+      varied-object/varied-count behavior.
+- [x] **Friction audit fix — condim=4 (2026-06-14):** user observed grasped
+      cuboids slowly slipping out of the gripper during lift and during the
+      transit-to-bin move. Root cause: the original friction-audit patch set
+      `friction="1.0 0.01 0.004"` on the fingertip pads but never raised
+      `condim` above MuJoCo's default of 3. With condim=3 only `friction[0]`
+      (sliding) enters the contact's friction cone — and 1.0 is the
+      unpatched global default too, so the patch changed *nothing*;
+      torsional friction[1] was a dead value regardless of its size. Fixed
+      by patching `friction="1.5 0.02 0.004" condim="4"` onto the 5
+      `fingertip_pad_collision_*` geoms in panda.xml — this raises sliding
+      friction above the rigid-body default AND activates torsional
+      friction, which resists the off-center-grasp twisting torque that
+      causes the slow walk-out under lift/transit acceleration. 5-seed fused
+      pick-all (box-only/3-objects, on top of all prior P1 levers):
+      **14/15 binned (93%)**, up from 10/15 (67%) — knocked-off-table stays
+      at 0. The single remaining miss (seed 0) had only 2/3 objects with
+      any feasible grasps to begin with (perception-limited, not grip-limited).
+- [ ] Filtering: neighbor-object collision check (table collision exists),
+      workspace-reachability pre-filter
+
+## P2 — Multi-camera perception  [DONE 2026-06-11 except A/B verdict]
+- New calibrated side camera available: `mujoco_grasp_sim/calibration_result.yaml`
+  (T_cam_to_base, TSAI, 41 samples — beside the Franka at base-frame
+  (0.025, 0.283, 0.647), looking down ~50°; replaces the old top-down pose)
+- [x] Scene supports a second camera (`side_cam`, emitted when
+      `SceneConfig.side_calibration_file` is set; placement from any yaml)
+- [x] Point-cloud fusion in world frame: `sim_grasp/fusion.py`
+      (voxel dedup, per-object id-based segmap fusion)
+- [x] Fused cloud → CGN: `ContactGraspNetPredictor.predict_clouds()` +
+      cloud-mode `cgn_worker` (npz keys pc_full / pcseg_<sid>); grasps return
+      in the primary camera frame, downstream unchanged. `--camera fused`.
+      Validated seed 5: 91k fused pts, 7/7 objects with points (vs 17/40
+      initial-obs coverage single-cam in the baseline bench), first-try-class
+      pick on a previously always-failing cylinder.
+- [x] A/B evaluation single vs fused via the P1 harness (seeds 0-4,
+      pick-all): **fused 17/40 binned (42%) vs single 15/40 (38%)** — and
+      the real, low-noise win is PERCEPTION: initial-observation grasp
+      coverage **28/40 vs 17/40 objects (+65%)**, pick success/attempt 23/52
+      vs 19/52, zero IK failures. The binned rate barely moves because the
+      bottleneck is execution dynamics (see P1 verdict), not perception;
+      knocked_off rose 4→10 since fusion unlocks attempts on harder,
+      previously-occluded objects. Fusion is the right default for the lab
+      (occlusion robustness); pair it with the P1 execution levers.
+
+## P3 — User-directed object selection ("pick THIS object")  [DONE 2026-06-11]
+- [x] Select target by segmentation instance id: `--pick-object SEG_ID`
+      (works in --execute and --pick-all; errors with the list of available
+      ids if the target has no feasible grasps)
+- [ ] Click-on-RGB selection (lab item — sim ids are printed/visualized)
+- Keep interface compatible with future language-conditioned selection
+
+## P4 — User-guided grasp selection  [DONE 2026-06-11]
+- [x] Index-based CLI browse/select: --execute prints a ranked candidate
+      table (object, score, world pos, approach); `--grasp-index I` executes
+      exactly that candidate. Validated seed 5: --pick-object 6
+      --grasp-index 0 → pick success.
+- [ ] Open3D click-picking (optional polish)
+
+## Current state (2026-06-11)
+Working end-to-end in MuJoCo sim: scene gen → RGB-D + segmap → CGN
+(subprocess per round, 8 GB RAM safe) → feasibility filter → ranked execution
+(diff-IK) → pick → place-in-bin → re-observe loop (`--pick-all`).
+Validated: seed 5, lookat camera — run 1: 5/7 in bin; run 2: 3/7 (CGN is
+stochastic; variance is the P1 target). Camera A/B: top-down calibrated is
+hard mode for CGN (sparse, low scores, 0/5 picks) vs inclined lookat
+(dense, first-try pick) — lab camera now remounted inclined (see P2 yaml).

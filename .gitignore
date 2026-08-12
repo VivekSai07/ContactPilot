@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated benchmark outputs (reproducible via mujoco_grasp_sim/benchmark.py)
+mujoco_grasp_sim/output/
+
+# Vendored Pointnet++ example training logs/checkpoints (unrelated to this pipeline)
+contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/log/
+
+# Local tooling state
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
