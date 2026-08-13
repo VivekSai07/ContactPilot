@@ -9,6 +9,8 @@ camera           CameraModule: RGB / metric depth / segmentation rendering,
                  intrinsics + extrinsics (OpenCV convention)
 pointcloud       Depth -> point cloud reconstruction, frame transforms
 grasp_predictor  GraspPredictor interface + ContactGraspNetPredictor implementation
+graspgen_predictor  GraspGenPredictor: GraspPredictor backed by NVlabs/GraspGen
+                     (separate conda env, always subprocess)
 feasibility      Table-collision grasp filter (no motion planning)
 visualizer       Open3D grasp visualization (reuses Contact-GraspNet's drawing code)
 """
@@ -18,5 +20,6 @@ from sim_grasp.scene_generator import SceneConfig, SceneGenerator
 from sim_grasp.camera import CameraModule
 from sim_grasp.pointcloud import depth_to_pointcloud
 from sim_grasp.grasp_predictor import GraspPredictor, GraspPrediction, ContactGraspNetPredictor
+from sim_grasp.graspgen_predictor import GraspGenPredictor
 from sim_grasp.feasibility import GraspFeasibilityChecker
 from sim_grasp.visualizer import Visualizer
