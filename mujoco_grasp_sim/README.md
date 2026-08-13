@@ -74,6 +74,78 @@ git clone --depth 1 --filter=blob:none --sparse --config core.autocrlf=false htt
 git -C mujoco_menagerie sparse-checkout set franka_emika_panda
 ```
 
+**WSL2 note (affects both backends):** running `run_sim_grasp_test.py` /
+`benchmark.py` on WSL2 requires `export MUJOCO_GL=osmesa` (install via
+`sudo apt-get install libosmesa6 libosmesa6-dev`) — without it, MuJoCo's
+segmentation-mask rendering silently returns garbage on WSL2's Mesa/D3D12 GL
+stack (there's no native NVIDIA EGL/GLX passthrough in WSL2).
+
+### GraspGen backend setup (optional, `--backend graspgen`)
+
+[NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) is a second grasp
+backend (diffusion-based, Franka-Panda only) evaluated alongside
+Contact-GraspNet. It needs its own conda env — its dependencies conflict
+with `cgn_torch` — and is invoked as a subprocess, never in-process.
+
+**License note:** NVIDIA Research license, not a permissive open-source
+license — commercial use requires contacting NVIDIA Research Licensing.
+
+The steps below are the confirmed-working WSL2/Linux setup (this backend has
+only ever been validated on this machine under WSL2 — the Franka-Panda
+checkpoint uses a PTv3 backbone requiring `torch_scatter`, which fails to
+compile on Windows/MSVC with a confirmed open upstream
+PyTorch/CUDA/Windows bug; use bash/WSL2 or native Linux, not PowerShell):
+
+```bash
+# 1. Clone GraspGen OUTSIDE this repo (not a submodule — nothing here patches it)
+cd ~ && git clone https://github.com/NVlabs/GraspGen.git
+
+# 2. Install the CUDA Toolkit (needed to compile GraspGen's pointnet2_ops
+#    CUDA extension). On WSL2, use NVIDIA's WSL-Ubuntu apt repo — NOT a
+#    normal Linux driver install, since WSL2 already gets GPU passthrough
+#    from the Windows host:
+wget https://developer.download.nvidia.com/compute/cuda/repos/wsl-ubuntu/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update && sudo apt-get -y install cuda-toolkit-12-8
+export CUDA_HOME=/usr/local/cuda-12.8
+export PATH="$CUDA_HOME/bin:$PATH"
+# (On native Linux, not WSL2: install the CUDA Toolkit + matching NVIDIA
+# driver the normal way for your distro instead of the WSL-Ubuntu repo above.)
+
+# 3. Create the graspgen_torch env and install torch cu128 (needed for
+#    Blackwell/sm_120 GPUs — use cu121 only on older architectures)
+conda create -n graspgen_torch python=3.10 -y
+/path/to/miniconda3/envs/graspgen_torch/bin/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+
+# 4. Install GraspGen.
+#    GOTCHA: `pip install -e .` alone silently DOWNGRADES torch to
+#    GraspGen's own pinned torch==2.1.0 (breaking Blackwell support), even
+#    with --no-build-isolation — that flag only protects the *build* step,
+#    not the final dependency-resolution/install step. Work around it:
+cd ~/GraspGen
+/path/to/graspgen_torch/bin/python -m pip install --no-build-isolation -e .
+# The above downgrades torch — restore it:
+/path/to/graspgen_torch/bin/python -m pip install --force-reinstall torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# It may also bump numpy past this project's numpy<2 requirement — restore that too:
+/path/to/graspgen_torch/bin/python -m pip install --no-deps "numpy==1.26.4"
+
+# 5. Build the pointnet2_ops CUDA extension
+cd ~/GraspGen/pointnet2_ops
+CUDA_HOME=/usr/local/cuda-12.8 /path/to/graspgen_torch/bin/python -m pip install --no-build-isolation --no-deps .
+
+# 6. Fetch the Franka-Panda checkpoint (from ContactPilot's mujoco_grasp_sim/)
+cd ~/ContactPilot/mujoco_grasp_sim
+/path/to/cgn_torch/bin/python scripts/download_graspgen_checkpoint.py
+
+# 7. Point ContactPilot at the graspgen_torch interpreter
+export GRASPGEN_PYTHON=/path/to/miniconda3/envs/graspgen_torch/bin/python
+```
+
+`GRASPGEN_PYTHON` needs to be set (or `--graspgen-python PATH` passed) any
+time `--backend graspgen` is used — `run_sim_grasp_test.py` fails fast with
+a clear error if it's missing, rather than silently trying to run GraspGen
+under `cgn_torch`.
+
 ## Run
 
 ```powershell
@@ -96,6 +168,7 @@ python run_sim_grasp_test.py --camera fused           # P2: fuse lookat + calibr
 python run_sim_grasp_test.py --execute --pick-object 6        # P3: grasp THIS object only
 python run_sim_grasp_test.py --execute --grasp-index 2        # P4: run candidate #2 from the printed list
 python run_sim_grasp_test.py --recenter --clean-depth         # P1 experimental flags (see ROADMAP)
+python run_sim_grasp_test.py --backend graspgen --execute     # NVlabs/GraspGen instead of CGN (needs GRASPGEN_PYTHON — see "GraspGen backend setup")
 ```
 
 `--camera fused` captures BOTH observation cameras (generic lookat as the
@@ -199,7 +272,7 @@ z = 0.750 ± 0.01 in the world frame.
 
 ## Swapping the grasp backend later
 
-Implement `GraspPredictor` (one method) in `sim_grasp/grasp_predictor.py`:
+Implement `GraspPredictor` (one method) in a new `sim_grasp/<name>_predictor.py`:
 
 ```python
 class AnyGraspPredictor(GraspPredictor):
@@ -209,6 +282,12 @@ class AnyGraspPredictor(GraspPredictor):
 
 Everything else (scene, camera, feasibility, metrics, visualization) is
 backend-agnostic. Same goes for GSNet, GIGA, FoundationPose+planner.
+
+`sim_grasp/graspgen_predictor.py` (`GraspGenPredictor`, backing
+`--backend graspgen`) is a realized example of this pattern for a backend
+whose dependencies conflict with `cgn_torch` — it always subprocesses out to
+a separate conda env rather than running in-process, unlike
+`ContactGraspNetPredictor`.
 
 ## Adding mesh objects (YCB etc.)
 

@@ -39,7 +39,9 @@ def parse_seeds(spec: str) -> list[int]:
 def run_one(seed: int, args, run_dir: Path) -> dict:
     cmd = [sys.executable, str(HERE / 'run_sim_grasp_test.py'),
            '--seed', str(seed), '--no-vis', '--camera', args.camera,
-           '--save-dir', str(run_dir)]
+           '--save-dir', str(run_dir), '--backend', args.backend]
+    if args.backend == 'graspgen' and args.graspgen_python:
+        cmd += ['--graspgen-python', args.graspgen_python]
     if args.n_objects:
         cmd += ['--n-objects', str(args.n_objects)]
     if args.recenter:
@@ -100,6 +102,11 @@ def main():
                     help='forward --recenter to the run script')
     ap.add_argument('--clean-depth', action='store_true',
                     help='forward --clean-depth to the run script')
+    ap.add_argument('--backend', choices=['cgn', 'graspgen'], default='cgn',
+                    help='forward --backend to the run script')
+    ap.add_argument('--graspgen-python', default=None,
+                    help='forward --graspgen-python to the run script (or rely '
+                         'on the GRASPGEN_PYTHON env var, same as the run script)')
     ap.add_argument('--tag', default=None, help='output/bench_<tag>/')
     args = ap.parse_args()
 

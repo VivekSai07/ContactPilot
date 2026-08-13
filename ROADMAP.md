@@ -77,6 +77,23 @@ deployable. No novelty for novelty's sake.
       **14/15 binned (93%)**, up from 10/15 (67%) — knocked-off-table stays
       at 0. The single remaining miss (seed 0) had only 2/3 objects with
       any feasible grasps to begin with (perception-limited, not grip-limited).
+- [x] **GraspGen backend added + decisive comparison (2026-08-13, seeds 0-4,
+      pick-all, fused camera, box-only/3-objects):** NVlabs/GraspGen wired in
+      as a second grasp-prediction backend through the `GraspPredictor` ABC
+      extension point (`sim_grasp/graspgen_predictor.py`, run as a subprocess
+      via a separate `GRASPGEN_PYTHON` env — its own conda env, `graspgen_torch`
+      — same off-process-VRAM pattern as the CGN worker), with `--backend
+      {cgn,graspgen}` / `--graspgen-python` added to `run_sim_grasp_test.py`
+      and `benchmark.py`. Run on the exact same seeds/camera/scene config as
+      the recorded CGN baseline above (14/15 binned, 93%): **GraspGen scores
+      15/15 binned (100%)**, knocked-off-table 0, initial-obs grasp coverage
+      15/15 objects. Failure taxonomy (`analyze_failures.py`, 5 failure
+      events across 20 pick attempts): `ik_unreachable` 4 (80%), `missed_bin`
+      1 (20%) — zero `closed_on_air`, a full shift away from CGN's dominant
+      failure mode (78% `closed_on_air` at the original 2026-06-11 baseline).
+      Mean wall time 136s/run (5-seed batch, includes a fresh GraspGen
+      subprocess inference per pick-all round). GraspGen is now the
+      recommended backend for further P1 reliability work.
 - [ ] Filtering: neighbor-object collision check (table collision exists),
       workspace-reachability pre-filter
 

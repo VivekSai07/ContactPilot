@@ -50,20 +50,31 @@ def gpu_vram_gb() -> float:
 
 
 def predict_in_subprocess(depth, K, rgb, segmap, forward_passes, arg_configs,
-                          work_dir) -> GraspPrediction:
-    """Run one CGN prediction in a child process (sim_grasp/cgn_worker.py).
+                          work_dir, backend='cgn', graspgen_python=None) -> GraspPrediction:
+    """Run one grasp prediction in a child process.
 
     PyTorch's multi-GB Windows commit is returned to the OS when the child
     exits, so the sim process keeps enough headroom to render — keeping the
-    model resident here OOMs multi-round pick-and-place on 8 GB machines."""
+    model resident here OOMs multi-round pick-and-place on 8 GB machines.
+    (For backend='graspgen' this isolation is required regardless, since
+    GraspGen needs its own conda env — see GraspGenPredictor.)"""
+    if backend == 'graspgen':
+        from sim_grasp import GraspGenPredictor
+        return GraspGenPredictor(graspgen_python=graspgen_python).predict(
+            depth, K, rgb=rgb, segmap=segmap)
     return _subprocess_predict(dict(depth=depth, K=K, rgb=rgb, segmap=segmap),
                                forward_passes, arg_configs, work_dir)
 
 
 def predict_clouds_in_subprocess(pc_full_cam, pc_segments_cam, forward_passes,
-                                 arg_configs, work_dir) -> GraspPrediction:
+                                 arg_configs, work_dir, backend='cgn',
+                                 graspgen_python=None) -> GraspPrediction:
     """Cloud-mode subprocess prediction (P2 fusion: fused multi-camera cloud
     expressed in the primary camera frame)."""
+    if backend == 'graspgen':
+        from sim_grasp import GraspGenPredictor
+        return GraspGenPredictor(graspgen_python=graspgen_python).predict_clouds(
+            pc_full_cam, pc_segments_cam)
     payload = {'pc_full': np.asarray(pc_full_cam, dtype=np.float32)}
     for sid, pc in pc_segments_cam.items():
         payload[f'pcseg_{float(sid):g}'] = np.asarray(pc, dtype=np.float32)
@@ -215,6 +226,13 @@ def main():
                          '"fused" = BOTH (lookat primary + calibrated side cam, '
                          'point clouds fused in world frame — P2). '
                          'Use this to A/B compare Contact-GraspNet performance.')
+    ap.add_argument('--backend', choices=['cgn', 'graspgen'], default='cgn',
+                    help='grasp-prediction backend: "cgn" = Contact-GraspNet '
+                         '(default), "graspgen" = NVlabs/GraspGen (needs the '
+                         'graspgen_torch env — see README "GraspGen backend setup")')
+    ap.add_argument('--graspgen-python', default=None,
+                    help='path to the graspgen_torch env\'s interpreter; overrides '
+                         'the GRASPGEN_PYTHON environment variable')
     ap.add_argument('--pick-object', type=int, default=None, metavar='SEG_ID',
                     help='only grasp THIS object (segmentation instance id, '
                          'see the printed per-object table / observation.png). '
@@ -338,32 +356,43 @@ def main():
     if args.execute and args.forward_passes < 3:
         vram_gb = gpu_vram_gb()
         if vram_gb >= 6:
-            print('[cgn] --execute: raising forward_passes to 3 for denser candidates')
+            print(f'[{args.backend}] --execute: raising forward_passes to 3 for denser candidates')
             args.forward_passes = 3
         else:
-            print(f'[cgn] --execute: small GPU ({vram_gb:.1f} GB) — lowering '
+            print(f'[{args.backend}] --execute: small GPU ({vram_gb:.1f} GB) — lowering '
                   'confidence thresholds instead of extra forward passes')
             arg_configs = ['TEST.first_thres:0.14', 'TEST.second_thres:0.14']
     t0 = time.time()
     if args.pick_all:
-        # pick-all re-runs CGN every round: keep torch OUT of this process
-        # (see predict_in_subprocess) or MuJoCo rendering OOMs on 8 GB RAM
-        print('[cgn] pick-all: running Contact-GraspNet in a subprocess per round...')
+        # pick-all re-runs the backend every round: keep torch OUT of this
+        # process (see predict_in_subprocess) or MuJoCo rendering OOMs on
+        # 8 GB RAM. For backend='graspgen' this isolation is required
+        # regardless of --pick-all, since it needs its own conda env.
+        print(f'[{args.backend}] pick-all: running in a subprocess per round...')
         predictor = None
         if fused:
             pred = predict_clouds_in_subprocess(pc_fused_cam, seg_fused_cam,
                                                 args.forward_passes, arg_configs,
-                                                save_dir)
+                                                save_dir, backend=args.backend,
+                                                graspgen_python=args.graspgen_python)
         else:
             pred = predict_in_subprocess(depth, K, rgb, segmap,
-                                         args.forward_passes, arg_configs, save_dir)
+                                         args.forward_passes, arg_configs, save_dir,
+                                         backend=args.backend,
+                                         graspgen_python=args.graspgen_python)
+    elif args.backend == 'graspgen':
+        print('[graspgen] loading GraspGen...')
+        from sim_grasp import GraspGenPredictor
+        predictor = GraspGenPredictor(graspgen_python=args.graspgen_python)
+        pred = predictor.predict_clouds(pc_fused_cam, seg_fused_cam) if fused \
+            else predictor.predict(depth, K, rgb=rgb, segmap=segmap)
     else:
         print('[cgn] loading Contact-GraspNet...')
         predictor = ContactGraspNetPredictor(forward_passes=args.forward_passes,
                                              arg_configs=arg_configs)
         pred = predictor.predict_clouds(pc_fused_cam, seg_fused_cam) if fused \
             else predictor.predict(depth, K, rgb=rgb, segmap=segmap)
-    print(f'[cgn] {pred.num_grasps} grasps in {time.time() - t0:.1f}s')
+    print(f'[{args.backend}] {pred.num_grasps} grasps in {time.time() - t0:.1f}s')
 
     # ------------------------------------------------- feasibility filtering
     grasps_cam, scores = pred.grasps_cam, pred.scores
@@ -393,6 +422,7 @@ def main():
             best = (int(seg_id), grasps_cam[seg_id][i], float(s[i]))
 
     metrics = {
+        'backend': args.backend,
         'seed': args.seed,
         'objects_spawned': len(gen.object_names),
         'objects_on_table': len(on_table),
@@ -447,6 +477,8 @@ def main():
         cur = (grasps_cam, scores, T_world_cam)   # round 1 reuses initial CGN run
         obs = (depth, segmap, K)   # observation behind the current grasps
         low_thres = False          # last-resort CGN thresholds for hard objects
+        # (this arg_configs-based escalation only affects --backend cgn; it's a
+        # no-op for --backend graspgen, which has its own --grasp-threshold knob)
 
         for rnd in range(1, max_rounds + 1):
             if cur is not None:
@@ -464,11 +496,13 @@ def main():
                     pc_f, seg_f = capture_fused(
                         (rgb_r, depth_r, segmap_r, K_r, T_wc))
                     pred_r = predict_clouds_in_subprocess(
-                        pc_f, seg_f, args.forward_passes, cfgs_r, save_dir)
+                        pc_f, seg_f, args.forward_passes, cfgs_r, save_dir,
+                        backend=args.backend, graspgen_python=args.graspgen_python)
                 else:
                     pred_r = predict_in_subprocess(depth_r, K_r, rgb_r, segmap_r,
                                                    args.forward_passes, cfgs_r,
-                                                   save_dir)
+                                                   save_dir, backend=args.backend,
+                                                   graspgen_python=args.graspgen_python)
                 g_r, s_r = pred_r.grasps_cam, pred_r.scores
                 if not args.no_feasibility and pred_r.num_grasps > 0:
                     g_r, s_r, _ = filter_feasible(g_r, s_r, pred_r.gripper_openings,
