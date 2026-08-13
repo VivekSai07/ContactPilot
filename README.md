@@ -15,7 +15,7 @@ Franka Panda + eye-to-hand calibrated RealSense D455f, using
 ```
 ContactPilot/
 ├── README.md                      ← this file
-├── mujoco_grasp_sim/              ← MuJoCo tabletop sim (Panda + RGB-D + CGN) — see its README
+├── mujoco_grasp_sim/              ← MuJoCo tabletop sim (Panda + RGB-D + CGN/GraspGen) — see its README
 ├── mujoco_menagerie/              ← sparse clone: franka_emika_panda model only
 └── contact_graspnet_pytorch/      ← git submodule (VivekSai07/contact_graspnet_pytorch, pinned tag)
     ├── checkpoints/contact_graspnet/checkpoints/model.pt   (26 MB, fetched by download_assets.py)
@@ -35,6 +35,46 @@ see the fork's commit history rather than a local diff.
 > Note on `allow_pickle=True`: the repo's `.npy`/`.npz` files store Python dicts,
 > so pickle loading is required by upstream design. All such files here are
 > either shipped with the repo or generated locally by our own scripts — safe.
+
+---
+
+## GraspGen — a second, selectable grasp backend
+
+[NVlabs/GraspGen](https://github.com/NVlabs/GraspGen) (diffusion-based,
+Franka-Panda only) is available as a drop-in alternative to Contact-GraspNet
+inside the MuJoCo sim pipeline (`mujoco_grasp_sim/`), selected with a single
+CLI flag — `--backend graspgen` vs. the default `--backend cgn`. It runs in
+its own conda env (`graspgen_torch`, separate from `cgn_torch`) and is always
+invoked via subprocess, so nothing about the Contact-GraspNet setup above
+needs to change to use it.
+
+**Benchmarked result (seeds 0–4, `--mode pick-all --camera fused`,
+box-only/3-objects — see `ROADMAP.md` for the full write-up):**
+
+| backend | objects binned | knocked off table | dominant failure mode |
+|---|---|---|---|
+| Contact-GraspNet (recorded baseline) | 14/15 (93%) | 0 | `closed_on_air` (78% of failures) |
+| **GraspGen** | **15/15 (100%)** | 0 | none — zero `closed_on_air`; only IK-reachability retries |
+
+This isn't just a slightly better hit rate — it's a shift in failure *mode*:
+GraspGen's proposed grasps are consistently geometrically sound (it isn't
+closing on thin air the way CGN sometimes does); the small remaining friction
+is kinematic (arm workspace/IK), not perception/grasp-quality driven.
+
+**To set it up and run it:** see `mujoco_grasp_sim/README.md`'s
+["GraspGen backend setup"](mujoco_grasp_sim/README.md#graspgen-backend-setup-optional---backend-graspgen)
+section for the full step-by-step (cloning GraspGen, the `graspgen_torch`
+env, a couple of non-obvious install gotchas, and the WSL2-specific
+`MUJOCO_GL=osmesa` note) and the `## Run` section for command examples like:
+
+```bash
+python run_sim_grasp_test.py --backend graspgen --execute
+python benchmark.py --seeds 0-4 --mode pick-all --camera fused --backend graspgen --tag my_run
+```
+
+`GraspGenPredictor` (`mujoco_grasp_sim/sim_grasp/graspgen_predictor.py`) is
+the reference implementation for adding further backends — see
+`mujoco_grasp_sim/README.md`'s "Swapping the grasp backend later" section.
 
 ---
 
