@@ -231,7 +231,7 @@ def main():
                          '(default), "graspgen" = NVlabs/GraspGen (needs the '
                          'graspgen_torch env — see README "GraspGen backend setup")')
     ap.add_argument('--graspgen-python', default=None,
-                    help='path to the graspgen_torch env\'s python.exe; overrides '
+                    help='path to the graspgen_torch env\'s interpreter; overrides '
                          'the GRASPGEN_PYTHON environment variable')
     ap.add_argument('--pick-object', type=int, default=None, metavar='SEG_ID',
                     help='only grasp THIS object (segmentation instance id, '
@@ -356,10 +356,10 @@ def main():
     if args.execute and args.forward_passes < 3:
         vram_gb = gpu_vram_gb()
         if vram_gb >= 6:
-            print('[cgn] --execute: raising forward_passes to 3 for denser candidates')
+            print(f'[{args.backend}] --execute: raising forward_passes to 3 for denser candidates')
             args.forward_passes = 3
         else:
-            print(f'[cgn] --execute: small GPU ({vram_gb:.1f} GB) — lowering '
+            print(f'[{args.backend}] --execute: small GPU ({vram_gb:.1f} GB) — lowering '
                   'confidence thresholds instead of extra forward passes')
             arg_configs = ['TEST.first_thres:0.14', 'TEST.second_thres:0.14']
     t0 = time.time()
@@ -422,6 +422,7 @@ def main():
             best = (int(seg_id), grasps_cam[seg_id][i], float(s[i]))
 
     metrics = {
+        'backend': args.backend,
         'seed': args.seed,
         'objects_spawned': len(gen.object_names),
         'objects_on_table': len(on_table),
@@ -476,6 +477,8 @@ def main():
         cur = (grasps_cam, scores, T_world_cam)   # round 1 reuses initial CGN run
         obs = (depth, segmap, K)   # observation behind the current grasps
         low_thres = False          # last-resort CGN thresholds for hard objects
+        # (this arg_configs-based escalation only affects --backend cgn; it's a
+        # no-op for --backend graspgen, which has its own --grasp-threshold knob)
 
         for rnd in range(1, max_rounds + 1):
             if cur is not None:

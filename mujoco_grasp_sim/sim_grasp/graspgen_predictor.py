@@ -9,7 +9,6 @@ in-process code path here.
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -29,7 +28,7 @@ def resolve_graspgen_python(override: str | None = None) -> Path:
         raise RuntimeError(
             'GraspGen backend requested but no interpreter configured. '
             'Set the GRASPGEN_PYTHON environment variable to the '
-            'graspgen_torch env\'s python.exe, or pass --graspgen-python. '
+            'graspgen_torch env\'s interpreter, or pass --graspgen-python. '
             'See mujoco_grasp_sim/README.md "GraspGen backend setup".')
     path = Path(candidate)
     if not path.is_file():

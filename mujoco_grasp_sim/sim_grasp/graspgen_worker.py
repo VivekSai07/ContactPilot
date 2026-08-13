@@ -13,7 +13,7 @@ obs.npz keys, depth mode:  depth (H,W) float32 m, K (3,3), rgb (H,W,3) uint8,
                            segmap (H,W)
             cloud mode:    pc_full (N,3) float32 in a camera frame, plus
                            pcseg_<sid> (Ni,3) per object (P2 fusion path)
-out.npz keys: grasps_<sid>, scores_<sid>, contacts_<sid>, openings_<sid>.
+out.npz keys: grasps_<sid>, scores_<sid>, contacts_<sid>.
 
 Contact points and gripper openings are not produced by GraspGen (unlike
 CGN) — contacts_<sid> is written as an empty (0,3) array and openings_<sid>
