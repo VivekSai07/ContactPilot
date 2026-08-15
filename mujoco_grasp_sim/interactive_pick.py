@@ -16,6 +16,7 @@ to cancel.
 import argparse
 import json
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -70,6 +71,18 @@ def main():
 
     real_label = None
     mask = None
+    # CGN's predictor loads its checkpoint synchronously in-process the
+    # first time it's constructed. Rather than pay for that after the user
+    # confirms (making the final wait longer), kick it off once in the
+    # background during the idle "reviewing the mask, deciding whether to
+    # confirm" window -- GPU is otherwise unused then, and it's the only
+    # spot in the flow with no other GPU work in flight (unlike the
+    # click->SAM3 window, which is itself GPU-bound). GraspGen isn't
+    # warmed this way: it always spawns a brand-new subprocess per
+    # predict() call, so a speculative warm-up would just pay the same
+    # full load cost twice for uncertain benefit.
+    warm_predictor = {}
+    warmup_thread = None
     print('[interactive] click an object in the window to select it '
           '(close the window to cancel)...')
     while real_label is None:
@@ -80,7 +93,9 @@ def main():
             cam.close()
             return
         print(f'[interactive] click at {xy} — running SAM 3...')
-        result = selector.select(rgb, click=(float(xy[0]), float(xy[1])))
+        result = viewer.run_blocking(
+            rgb, lambda: selector.select(rgb, click=(float(xy[0]), float(xy[1]))),
+            message='Running SAM 3 segmentation...')
         if result.is_empty:
             print('[interactive] no object found at that point — click again')
             continue
@@ -91,6 +106,11 @@ def main():
         best = int(np.argmax(result.scores))
         mask = result.masks[best]
         viewer.show_mask_overlay(rgb, mask)
+        if warmup_thread is None and args.backend == 'cgn':
+            def _warm_cgn():
+                warm_predictor['value'] = ContactGraspNetPredictor(forward_passes=3)
+            warmup_thread = threading.Thread(target=_warm_cgn, daemon=True)
+            warmup_thread.start()
         print(f'[interactive] SAM 3 match, score {float(result.scores[best]):.3f} — '
               'Enter/Space to confirm, Esc/c to retry')
         if not viewer.wait_for_confirm():
@@ -111,15 +131,21 @@ def main():
     new_segmap[mask] = real_label
     print(f'[interactive] confirmed: object {real_label}')
 
-    if args.backend == 'graspgen':
-        print('[graspgen] loading GraspGen...')
-        from sim_grasp import GraspGenPredictor
-        predictor = GraspGenPredictor(graspgen_python=args.graspgen_python)
-    else:
-        print('[cgn] loading Contact-GraspNet...')
-        predictor = ContactGraspNetPredictor(forward_passes=3)
+    def _load_and_predict():
+        if args.backend == 'graspgen':
+            from sim_grasp import GraspGenPredictor
+            p = GraspGenPredictor(graspgen_python=args.graspgen_python)
+        else:
+            if warmup_thread is not None:
+                warmup_thread.join()
+            p = warm_predictor.get('value') or ContactGraspNetPredictor(forward_passes=3)
+        return p.predict(depth, K, rgb=rgb, segmap=new_segmap)
+
+    print(f'[{args.backend}] loading model and predicting grasps...')
     t0 = time.time()
-    pred = predictor.predict(depth, K, rgb=rgb, segmap=new_segmap)
+    pred = viewer.run_blocking(
+        rgb, _load_and_predict,
+        message=f'Loading {args.backend} & predicting grasps...')
     print(f'[{args.backend}] {pred.num_grasps} grasps in {time.time() - t0:.1f}s')
 
     grasps_cam, scores = pred.grasps_cam, pred.scores
@@ -137,27 +163,44 @@ def main():
         cam.close()
         return
 
-    i = int(np.argmax(s))
-    T_cam_grasp = grasps_cam[real_label][i]
-    score = float(s[i])
-    T_world_grasp = T_world_cam @ np.asarray(T_cam_grasp)
+    # Try the top-3 scoring grasps for the selected object, not just the
+    # single best one -- IK for a pre-grasp pose occasionally lands a hair's
+    # breadth outside the convergence tolerance (a real, observed near-miss:
+    # pos_err 8.016mm vs an 8mm cutoff) even though the grasp itself is
+    # perfectly graspable from a different candidate pose. Mirrors
+    # run_sim_grasp_test.py's --execute retry behavior instead of giving up
+    # after one attempt.
+    order = np.argsort(-s)[:3]
     label_to_body = {lbl: gen.object_names[lbl - 1]
                      for lbl in gen.object_body_ids.values()}
     body = label_to_body[real_label]
 
+    import mujoco
     from sim_grasp.executor import GraspExecutor
     rec_cam = CameraModule(model, data, cam_name=cfg.record_cam_name, width=640, height=480)
     executor = GraspExecutor(model, data, camera_module=rec_cam, record_gif=True,
                              record_dir=save_dir / '_gif_frames',
                              on_frame=viewer.show_frame)
-    print(f'[execute] object {real_label} ({body}), score {score:.3f} — watch the window...')
-    res = executor.execute(T_world_grasp, target_body=body)
-    res.update(object=real_label, score=score)
-    print(f'[execute]   -> {res}')
-    if res['success']:
-        print(f"[execute] PICK SUCCESS (object raised {res['object_raised_m']} m)")
-    else:
-        print('[execute] pick failed')
+    # snapshot the settled state so each retry attempt starts identically
+    qpos0, qvel0, ctrl0 = data.qpos.copy(), data.qvel.copy(), data.ctrl.copy()
+    res = None
+    for attempt, i in enumerate(order, 1):
+        data.qpos[:], data.qvel[:], data.ctrl[:] = qpos0, qvel0, ctrl0
+        mujoco.mj_forward(model, data)
+        T_cam_grasp = grasps_cam[real_label][i]
+        score = float(s[i])
+        T_world_grasp = T_world_cam @ np.asarray(T_cam_grasp)
+        print(f'[execute] attempt {attempt}/{len(order)}: object {real_label} '
+              f'({body}), score {score:.3f} — watch the window...')
+        res = executor.execute(T_world_grasp, target_body=body)
+        res.update(object=real_label, score=score)
+        print(f'[execute]   -> {res}')
+        if res['success']:
+            print(f"[execute] PICK SUCCESS on attempt {attempt} "
+                  f"(object raised {res['object_raised_m']} m)")
+            break
+        print(f'[execute] attempt {attempt} failed at stage {res["stage"]}' +
+              (' — trying next candidate' if attempt < len(order) else ' — all attempts failed'))
     executor.save_gif(save_dir / 'execution.gif')
     (save_dir / 'metrics.json').write_text(json.dumps(
         {'seed': args.seed, 'backend': args.backend, 'object': real_label,

@@ -7,8 +7,28 @@ BGR vs RGB: OpenCV's imshow expects BGR pixel order; this project's cameras
 RGB -> BGR internally, so callers always pass RGB, matching every other
 module in sim_grasp — no OpenCV-specific color convention leaks out.
 """
+import threading
+import time
+
 import cv2
 import numpy as np
+
+
+def draw_status_text(rgb: np.ndarray, text: str) -> np.ndarray:
+    """Pure compositing: `rgb` (H,W,3 uint8) with `text` drawn over a
+    full-width translucent dark bar across the top -- deliberately bold
+    and high-contrast so it reads as "clearly alive" at a glance, not just
+    a small corner counter easy to miss. No window/display side effects --
+    safe to unit-test directly."""
+    out = np.ascontiguousarray(rgb).copy()
+    h, w = out.shape[:2]
+    bar_h = min(48, h)
+    overlay = out.copy()
+    cv2.rectangle(overlay, (0, 0), (w, bar_h), (0, 0, 0), thickness=-1)
+    out = cv2.addWeighted(overlay, 0.65, out, 0.35, 0)
+    cv2.putText(out, text, (14, bar_h - 14), cv2.FONT_HERSHEY_SIMPLEX, 0.75,
+               (255, 255, 255), 2, cv2.LINE_AA)
+    return out
 
 
 def compose_mask_overlay(rgb: np.ndarray, mask: np.ndarray,
@@ -87,6 +107,38 @@ class LiveViewer:
             if key in (27, ord('c')):  # Esc, 'c'
                 return False
         return False
+
+    def run_blocking(self, rgb: np.ndarray, fn, message: str = 'Working...'):
+        """Run `fn()` (no args) on a background thread while this thread
+        keeps pumping the window, overlaying `message` + an elapsed-time
+        counter on `rgb` -- otherwise the window sits un-pumped for the
+        whole call (SAM 3 / GraspGen / CGN calls routinely take 5-30s) and
+        the window manager marks it "not responding", indistinguishable
+        from a crash. Returns fn()'s result; re-raises any exception fn()
+        raised. Does not support cancellation mid-call -- these are opaque
+        subprocess/model calls with no cancellation hook, so fn() always
+        runs to completion even if the user closes the window meanwhile."""
+        box = {}
+
+        def _target():
+            try:
+                box['result'] = fn()
+            except Exception as e:
+                box['error'] = e
+
+        spinner_frames = '|/-\\'
+        t = threading.Thread(target=_target, daemon=True)
+        t0 = time.time()
+        t.start()
+        while t.is_alive():
+            elapsed = time.time() - t0
+            spin = spinner_frames[int(elapsed * 6) % len(spinner_frames)]
+            frame = draw_status_text(rgb, f'{spin} {message} {elapsed:.0f}s')
+            self.show_frame(frame)
+        t.join()
+        if 'error' in box:
+            raise box['error']
+        return box['result']
 
     def close(self) -> None:
         cv2.destroyWindow(self.window_name)

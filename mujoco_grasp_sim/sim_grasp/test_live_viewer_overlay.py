@@ -1,7 +1,8 @@
-"""Standalone check for live_viewer.compose_mask_overlay — run directly, no
-pytest (this codebase has no automated test suite), no window needed."""
+"""Standalone check for live_viewer.compose_mask_overlay/draw_status_text —
+run directly, no pytest (this codebase has no automated test suite), no
+window needed."""
 import numpy as np
-from sim_grasp.live_viewer import compose_mask_overlay
+from sim_grasp.live_viewer import compose_mask_overlay, draw_status_text
 
 rgb = np.zeros((10, 10, 3), dtype=np.uint8)
 mask = np.zeros((10, 10), dtype=bool)
@@ -24,4 +25,13 @@ out1 = compose_mask_overlay(rgb, mask, color=(255, 0, 0), alpha=1.0)
 assert tuple(out1[3, 3]) == (255, 0, 0), 'alpha=1 should fully replace masked pixels'
 assert tuple(out1[0, 0]) == (0, 0, 0), 'alpha=1 should not touch unmasked pixels'
 
-print('All compose_mask_overlay checks passed.')
+# draw_status_text changes some pixels (the text banner) without crashing,
+# leaves the input array untouched, and preserves shape/dtype
+big = np.zeros((60, 200, 3), dtype=np.uint8)
+stamped = draw_status_text(big, 'Loading...')
+assert stamped.shape == big.shape and stamped.dtype == big.dtype
+assert not np.array_equal(stamped, big), 'status text should change some pixels'
+assert np.array_equal(big, np.zeros((60, 200, 3), dtype=np.uint8)), \
+    'draw_status_text must not mutate its input'
+
+print('All compose_mask_overlay/draw_status_text checks passed.')
