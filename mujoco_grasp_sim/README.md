@@ -200,6 +200,33 @@ feature useful for experimentation, not yet reliable enough to trust as a
 primary selection path — see `ROADMAP.md` P5 for the full per-seed
 breakdown before relying on it.
 
+### Interactive live pick (`interactive_pick.py`)
+
+A live, click-to-select alternative to `run_sim_grasp_test.py --click X,Y`
+(sub-project 2 above still works exactly as documented — this is an
+additional, separate entry point, not a replacement). Opens a window
+showing the robot's live camera feed; click the object you want, SAM 3
+segments it and shows the mask for confirmation (Enter/Space to confirm,
+Esc/`c` to retry), then GraspGen or CGN predicts a grasp and you watch the
+pick execute live in the same window.
+
+Needs the same `SAM3_PYTHON`/`GRASPGEN_PYTHON` env vars as the setups
+above — see "Promptable selection setup" and "GraspGen backend setup" if
+you haven't configured those yet. No new dependency: uses `opencv-python`,
+already installed in `cgn_torch`.
+
+```bash
+export MUJOCO_GL=osmesa
+export GRASPGEN_PYTHON=/path/to/graspgen_torch/bin/python
+export SAM3_PYTHON=/path/to/sam3_torch/bin/python
+python interactive_pick.py --seed 5 --backend graspgen
+```
+
+Single scene, single click-selected object, single grasp attempt per
+run — unlike `run_sim_grasp_test.py`, this script has no `--pick-all`,
+`--top-k`, or `--camera fused` support; it's built for watching one pick
+happen interactively, not batch runs or benchmarking.
+
 ## Run
 
 ```powershell
@@ -225,6 +252,7 @@ python run_sim_grasp_test.py --recenter --clean-depth         # P1 experimental 
 python run_sim_grasp_test.py --backend graspgen --execute     # NVlabs/GraspGen instead of CGN (needs GRASPGEN_PYTHON — see "GraspGen backend setup")
 python run_sim_grasp_test.py --execute --prompt "the red box" # select the target by text description (needs SAM3_PYTHON — see "Promptable selection setup")
 python run_sim_grasp_test.py --execute --click 320,240        # select the target by clicking a pixel (observation.png coords)
+python interactive_pick.py --seed 5 --backend graspgen        # click live in a window instead of typing coordinates — see "Interactive live pick"
 ```
 
 `--camera fused` captures BOTH observation cameras (generic lookat as the
