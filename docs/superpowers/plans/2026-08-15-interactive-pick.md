@@ -1,6 +1,6 @@
 # Interactive Live Pick Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a new interactive entry point (`interactive_pick.py`) that opens a live camera-feed window, lets the user click an object to select it via SAM 3, shows the segmented mask for confirmation, then runs grasp prediction (CGN or GraspGen) and executes the pick while the window keeps updating live — closing the loop idea 2 was originally motivated by.
 
@@ -31,7 +31,7 @@
 
 This logic already exists, inlined, in `run_sim_grasp_test.py` (added by the promptable-selection sub-project's final-review fix, commit `dbb50eb`) — this task only extracts it into a reusable, independently-testable function. No behavior change.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `mujoco_grasp_sim/sim_grasp/test_resolve_real_label.py`:
 
@@ -66,7 +66,7 @@ assert resolve_real_label(gt3, mask3) is None, 'background-only case failed'
 print('All resolve_real_label checks passed.')
 ```
 
-- [ ] **Step 2: Run it to verify it fails (function doesn't exist yet)**
+- [x] **Step 2: Run it to verify it fails (function doesn't exist yet)**
 
 ```bash
 cd mujoco_grasp_sim
@@ -74,7 +74,7 @@ python sim_grasp/test_resolve_real_label.py
 ```
 Expected: `ImportError: cannot import name 'resolve_real_label' from 'sim_grasp.prompt_selector'` (or similar).
 
-- [ ] **Step 3: Add `resolve_real_label` to `prompt_selector.py`**
+- [x] **Step 3: Add `resolve_real_label` to `prompt_selector.py`**
 
 Add this function to `mujoco_grasp_sim/sim_grasp/prompt_selector.py`, right after the `SelectionResult` dataclass and before `resolve_sam3_python`:
 
@@ -98,7 +98,7 @@ def resolve_real_label(gt_segmap: np.ndarray, mask: np.ndarray) -> int | None:
     return int(np.bincount(overlap_labels.astype(int)).argmax())
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 cd mujoco_grasp_sim
@@ -106,7 +106,7 @@ python sim_grasp/test_resolve_real_label.py
 ```
 Expected: `All resolve_real_label checks passed.`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add mujoco_grasp_sim/sim_grasp/prompt_selector.py mujoco_grasp_sim/sim_grasp/test_resolve_real_label.py
@@ -125,7 +125,7 @@ git commit -m "Extract resolve_real_label as a shared, testable function"
 
 Pure refactor — replaces the inline label-lookup block with a call to the now-shared function. Behavior must be identical; this task is a regression check, not new functionality.
 
-- [ ] **Step 1: Update the import**
+- [x] **Step 1: Update the import**
 
 Current (`run_sim_grasp_test.py`, inside the `if args.prompt or args.click or args.box:` block):
 ```python
@@ -139,7 +139,7 @@ New:
         from sim_grasp.prompt_selector import PromptSelector, resolve_real_label
 ```
 
-- [ ] **Step 2: Replace the inline label-lookup block**
+- [x] **Step 2: Replace the inline label-lookup block**
 
 Current:
 ```python
@@ -174,7 +174,7 @@ New:
         print(f'[prompt] resolved to object {real_label}, score {float(result.scores[idx]):.3f}')
 ```
 
-- [ ] **Step 3: Regression smoke test**
+- [x] **Step 3: Regression smoke test**
 
 ```bash
 cd mujoco_grasp_sim
@@ -185,7 +185,7 @@ export SAM3_PYTHON=/home/vivek/miniconda3/envs/sam3_torch/bin/python
 ```
 Expected: identical behavior to before this refactor — `[prompt] resolved to object N, score X.XXX` printed with a real object label (not always `1`), pipeline proceeds exactly as it did prior to this task.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add mujoco_grasp_sim/run_sim_grasp_test.py
@@ -212,7 +212,7 @@ method can't be exercised standalone.
 
 **This task also includes the spec's flagged risk check**: confirm `cv2.imshow` actually opens a visible window on this WSL2 machine before writing the rest of the class — if it doesn't, escalate rather than guessing around it (same "retire the biggest unknown first" principle as the GraspGen/SAM 3 sub-projects' own Task 1s).
 
-- [ ] **Step 1: Write the failing test for the pure overlay function**
+- [x] **Step 1: Write the failing test for the pure overlay function**
 
 Create `mujoco_grasp_sim/sim_grasp/test_live_viewer_overlay.py`:
 
@@ -246,7 +246,7 @@ assert tuple(out1[0, 0]) == (0, 0, 0), 'alpha=1 should not touch unmasked pixels
 print('All compose_mask_overlay checks passed.')
 ```
 
-- [ ] **Step 2: Run it to verify it fails (module doesn't exist yet)**
+- [x] **Step 2: Run it to verify it fails (module doesn't exist yet)**
 
 ```bash
 cd mujoco_grasp_sim
@@ -254,7 +254,7 @@ python sim_grasp/test_live_viewer_overlay.py
 ```
 Expected: `ModuleNotFoundError: No module named 'sim_grasp.live_viewer'` (or similar import error).
 
-- [ ] **Step 3: Confirm `cv2.imshow` works on this machine**
+- [x] **Step 3: Confirm `cv2.imshow` works on this machine**
 
 ```bash
 cd mujoco_grasp_sim
@@ -271,7 +271,7 @@ print('OK: cv2 window smoke test passed')
 ```
 Expected: a window titled "smoke test" actually appears on screen (via WSLg, same display path `mujoco.viewer.launch()` already uses successfully in this project) showing random-noise colors, and the script prints `OK: cv2 window smoke test passed` after it closes. If no window appears, STOP and report BLOCKED with the exact error/behavior — do not proceed by guessing at a workaround.
 
-- [ ] **Step 4: Write `live_viewer.py`**
+- [x] **Step 4: Write `live_viewer.py`**
 
 Create `mujoco_grasp_sim/sim_grasp/live_viewer.py`:
 
@@ -370,7 +370,7 @@ class LiveViewer:
         cv2.destroyWindow(self.window_name)
 ```
 
-- [ ] **Step 5: Run the pure-function test to verify it now passes**
+- [x] **Step 5: Run the pure-function test to verify it now passes**
 
 ```bash
 cd mujoco_grasp_sim
@@ -378,7 +378,7 @@ python sim_grasp/test_live_viewer_overlay.py
 ```
 Expected: `All compose_mask_overlay checks passed.`
 
-- [ ] **Step 6: Manual smoke test of the class itself**
+- [x] **Step 6: Manual smoke test of the class itself**
 
 ```bash
 cd mujoco_grasp_sim
@@ -405,7 +405,7 @@ v.close()
 ```
 Expected: a window opens, your click is captured and printed, a highlighted box appears around the click point, and pressing Enter/Esc prints the correct `confirmed` value.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add mujoco_grasp_sim/sim_grasp/live_viewer.py mujoco_grasp_sim/sim_grasp/test_live_viewer_overlay.py
@@ -425,7 +425,7 @@ git commit -m "Add LiveViewer for interactive click/confirm/live-frame display"
 
 Purely additive — defaults to `None`, so every existing caller (`run_sim_grasp_test.py`'s two `GraspExecutor(...)` construction sites) is completely unaffected.
 
-- [ ] **Step 1: Add the `on_frame` parameter**
+- [x] **Step 1: Add the `on_frame` parameter**
 
 Current (`mujoco_grasp_sim/sim_grasp/executor.py`, `__init__`):
 ```python
@@ -473,7 +473,7 @@ New:
         self.on_frame = on_frame
 ```
 
-- [ ] **Step 2: Add the `Callable` import**
+- [x] **Step 2: Add the `Callable` import**
 
 Current (top of `executor.py`):
 ```python
@@ -500,7 +500,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 ```
 
-- [ ] **Step 3: Call `on_frame` from `_maybe_record`**
+- [x] **Step 3: Call `on_frame` from `_maybe_record`**
 
 Current:
 ```python
@@ -544,7 +544,7 @@ New:
                 self.on_frame(frame)
 ```
 
-- [ ] **Step 4: Regression smoke test — confirm existing (non-interactive) execution is unaffected**
+- [x] **Step 4: Regression smoke test — confirm existing (non-interactive) execution is unaffected**
 
 ```bash
 cd mujoco_grasp_sim
@@ -554,7 +554,7 @@ export GRASPGEN_PYTHON=/home/vivek/miniconda3/envs/graspgen_torch/bin/python
 ```
 Expected: identical behavior to before this change (this run doesn't pass `on_frame`, so nothing new should happen) — `PICK SUCCESS`/`FAIL` printed, `execution.gif` written, same as always.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add mujoco_grasp_sim/sim_grasp/executor.py
@@ -573,7 +573,7 @@ git commit -m "Add optional live-frame callback to GraspExecutor"
 
 This script deliberately does LESS than `run_sim_grasp_test.py`: single scene, single camera (default `calibrated`, no `--camera fused`), single grasp attempt on the resolved object (no top-k retry loop, no `--pick-all`) — matching the design spec's "no new flag semantics, just fewer of them, since this script is inherently single-object/single-run."
 
-- [ ] **Step 1: Write `interactive_pick.py`**
+- [x] **Step 1: Write `interactive_pick.py`**
 
 Create `mujoco_grasp_sim/interactive_pick.py`:
 
@@ -751,7 +751,7 @@ if __name__ == '__main__':
     main()
 ```
 
-- [ ] **Step 2: Manual end-to-end smoke test**
+- [x] **Step 2: Manual end-to-end smoke test**
 
 ```bash
 cd mujoco_grasp_sim
@@ -770,7 +770,7 @@ Esc/'c' after a click to confirm the retry path works, and once (if you
 can trigger it) clicking empty space away from any object to confirm the
 "no object found" retry message.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add mujoco_grasp_sim/interactive_pick.py
@@ -786,7 +786,7 @@ git commit -m "Add interactive_pick.py: live click-to-select and watch the pick 
 
 **Interfaces:** none (documentation only).
 
-- [ ] **Step 1: Add an "Interactive live pick" section**
+- [x] **Step 1: Add an "Interactive live pick" section**
 
 Insert right after the existing "Promptable selection setup" section (added by the prior sub-project) and before `## Run`:
 
@@ -819,7 +819,7 @@ run — unlike `run_sim_grasp_test.py`, this script has no `--pick-all`,
 happen interactively, not batch runs or benchmarking.
 ```
 
-- [ ] **Step 2: Add a run example to the `## Run` command list**
+- [x] **Step 2: Add a run example to the `## Run` command list**
 
 Current (end of the flag examples list in `mujoco_grasp_sim/README.md`, after the promptable-selection examples added by the prior sub-project):
 ```markdown
@@ -834,14 +834,14 @@ python interactive_pick.py --seed 5 --backend graspgen        # click live in a 
 ```
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 ```bash
 grep -n "interactive_pick\|Interactive live pick" mujoco_grasp_sim/README.md
 ```
 Expected: at least 3 matches (the new section header, the code block usage line, and the Run example).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add mujoco_grasp_sim/README.md
