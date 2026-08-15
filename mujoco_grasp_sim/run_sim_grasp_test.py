@@ -237,6 +237,22 @@ def main():
                     help='only grasp THIS object (segmentation instance id, '
                          'see the printed per-object table / observation.png). '
                          'Works with --execute and --pick-all.')
+    prompt_group = ap.add_mutually_exclusive_group()
+    prompt_group.add_argument('--prompt', type=str, default=None,
+                    help='select the target object by text description '
+                         '(e.g. "the red box"), via SAM 3 on the rendered '
+                         'RGB. Mutually exclusive with --click/--box/--pick-object.')
+    prompt_group.add_argument('--click', type=str, default=None, metavar='X,Y',
+                    help='select the target object by clicking a pixel '
+                         '(observation.png coordinates), via SAM 3.')
+    prompt_group.add_argument('--box', type=str, default=None, metavar='X1,Y1,X2,Y2',
+                    help='select the target object by a pixel bounding box, via SAM 3.')
+    ap.add_argument('--prompt-index', type=int, default=None, metavar='I',
+                    help='with an ambiguous --prompt (multiple matches): pick '
+                         'match #I from the printed ranked list')
+    ap.add_argument('--sam3-python', default=None,
+                    help='path to the sam3_torch env\'s python; overrides '
+                         'the SAM3_PYTHON environment variable')
     ap.add_argument('--grasp-index', type=int, default=None, metavar='I',
                     help='with --execute: run candidate #I from the printed '
                          'ranked candidate list instead of auto-trying top-k')
@@ -254,6 +270,9 @@ def main():
     args = ap.parse_args()
     if args.pick_all:
         args.execute = True   # pick-all implies execution (thresholds, GPU prep)
+    if args.pick_object is not None and (args.prompt or args.click or args.box):
+        sys.exit('[prompt] --pick-object and --prompt/--click/--box are mutually '
+                 'exclusive — both select a single target object, pick one mechanism.')
 
     save_dir = Path(args.save_dir) if args.save_dir else \
         Path(__file__).parent / 'output' / time.strftime('%Y%m%d_%H%M%S')
@@ -307,6 +326,29 @@ def main():
         depth = clean_depth(depth, K, T_world_cam)
         print(f'[perception] workspace crop + speckle removal: '
               f'{n0 - int((depth > 0).sum())} px dropped')
+
+    if args.prompt or args.click or args.box:
+        from sim_grasp.prompt_selector import PromptSelector
+        selector = PromptSelector(sam3_python=args.sam3_python)
+        click_xy = tuple(float(v) for v in args.click.split(',')) if args.click else None
+        box_xyxy = tuple(float(v) for v in args.box.split(',')) if args.box else None
+        result = selector.select(rgb, prompt=args.prompt, click=click_xy, box=box_xyxy)
+        if result.is_empty:
+            sys.exit(f'[prompt] no object matched: '
+                     f'{args.prompt or args.click or args.box!r}')
+        if result.is_ambiguous and args.prompt_index is None:
+            print(f'[prompt] {len(result.scores)} matches for '
+                  f'{args.prompt!r} — pass --prompt-index to disambiguate:')
+            for i, (s, b) in enumerate(zip(result.scores, result.boxes)):
+                print(f'  [{i}] score {float(s):.3f}  box {[round(float(v), 1) for v in b]}')
+            sys.exit(1)
+        idx = args.prompt_index if result.is_ambiguous else 0
+        if not 0 <= idx < len(result.scores):
+            sys.exit(f'[prompt] --prompt-index {idx} out of range (0..{len(result.scores) - 1})')
+        segmap = np.zeros(rgb.shape[:2], dtype=segmap.dtype)
+        segmap[result.masks[idx]] = 1
+        print(f'[prompt] resolved to 1 object, score {float(result.scores[idx]):.3f}')
+
     visible_ids = sorted(int(s) for s in np.unique(segmap) if s > 0)
     print(f'[camera] K diag: fx={K[0,0]:.1f} fy={K[1,1]:.1f}; '
           f'visible object ids: {visible_ids}')
