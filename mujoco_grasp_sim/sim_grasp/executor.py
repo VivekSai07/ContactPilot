@@ -43,6 +43,7 @@ PICK SEQUENCE
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import imageio.v2 as imageio
 import mujoco
@@ -161,7 +162,8 @@ class GraspExecutor:
     """Executes Contact-GraspNet grasps on the simulated Panda."""
 
     def __init__(self, model, data, camera_module=None, record_gif=False,
-                 record_dir=None, gif_frame_interval=0.08):
+                 record_dir=None, gif_frame_interval=0.08,
+                 on_frame: 'Callable[[np.ndarray], None] | None' = None):
         self.model, self.data = model, data
         self.ik = DiffIK(model)
         self.cam = camera_module       # reused for GIF recording (optional)
@@ -176,6 +178,11 @@ class GraspExecutor:
         self._n_frames = 0
         self._frame_interval = gif_frame_interval  # sim seconds between frames
         self._last_frame_t = -1.0
+        # Optional live-display hook (e.g. LiveViewer.show_frame) — called
+        # with the same frame captured for the GIF, at the same cadence.
+        # Requires record_gif=True (the cadence/frame-capture logic lives in
+        # _maybe_record below); this does not change GIF-saving behavior.
+        self.on_frame = on_frame
 
     # -- low-level motion helpers ---------------------------------------------
     def _step_to(self, q_target: np.ndarray, duration: float,
@@ -214,6 +221,8 @@ class GraspExecutor:
                 self.frames.append(frame)
             self._n_frames += 1
             self._last_frame_t = self.data.time
+            if self.on_frame is not None:
+                self.on_frame(frame)
 
     # -- grasp execution --------------------------------------------------------
     def _hand_targets(self, T_world_grasp: np.ndarray, q_seed: np.ndarray):

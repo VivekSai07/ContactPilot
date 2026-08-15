@@ -29,6 +29,25 @@ class SelectionResult:
         return len(self.scores) == 0
 
 
+def resolve_real_label(gt_segmap: np.ndarray, mask: np.ndarray) -> int | None:
+    """Real object label the resolved `mask` (H,W bool) actually overlaps
+    most, per `gt_segmap` (H,W int, 0 = background). Returns None if the
+    mask overlaps no real object (entirely over background).
+
+    Sim-only bookkeeping: maps a SAM 3 mask (real perception, no ground
+    truth involved in producing it) onto the ground-truth body-name/
+    success-detection machinery the rest of the pipeline uses. A real
+    camera deployment has no ground-truth segmap to compare against;
+    success there would be graded some other way. Ground truth here is
+    used ONLY to label an already-SAM3-selected mask, never to influence
+    which mask/object gets selected in the first place."""
+    overlap_labels = gt_segmap[mask]
+    overlap_labels = overlap_labels[overlap_labels > 0]
+    if len(overlap_labels) == 0:
+        return None
+    return int(np.bincount(overlap_labels.astype(int)).argmax())
+
+
 def resolve_sam3_python(override: str | None = None) -> Path:
     """Resolve the sam3_torch interpreter: --sam3-python CLI value, else
     SAM3_PYTHON env var. Fails fast — never falls back to sys.executable

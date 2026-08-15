@@ -332,7 +332,7 @@ def main():
               f'{n0 - int((depth > 0).sum())} px dropped')
 
     if args.prompt or args.click or args.box:
-        from sim_grasp.prompt_selector import PromptSelector
+        from sim_grasp.prompt_selector import PromptSelector, resolve_real_label
         selector = PromptSelector(sam3_python=args.sam3_python)
         click_xy = tuple(float(v) for v in args.click.split(',')) if args.click else None
         box_xyxy = tuple(float(v) for v in args.box.split(',')) if args.box else None
@@ -350,18 +350,9 @@ def main():
         if not 0 <= idx < len(result.scores):
             sys.exit(f'[prompt] --prompt-index {idx} out of range (0..{len(result.scores) - 1})')
         mask = result.masks[idx]
-        # Determine which real object this mask actually overlaps — sim-only
-        # bookkeeping that maps a SAM 3 mask (real perception) onto the
-        # ground-truth body-name/success-detection machinery below. A real
-        # camera deployment has no ground-truth segmap to compare against;
-        # success there would be graded some other way. SAM 3's own mask
-        # still determines WHICH pixels are selected — no ground truth is
-        # used to pick the target, only to label it correctly downstream.
-        overlap_labels = segmap[mask]
-        overlap_labels = overlap_labels[overlap_labels > 0]
-        if len(overlap_labels) == 0:
+        real_label = resolve_real_label(segmap, mask)
+        if real_label is None:
             sys.exit('[prompt] resolved mask does not overlap any known object')
-        real_label = int(np.bincount(overlap_labels.astype(int)).argmax())
         new_segmap = np.zeros(rgb.shape[:2], dtype=segmap.dtype)
         new_segmap[mask] = real_label
         segmap = new_segmap
