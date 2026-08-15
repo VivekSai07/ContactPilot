@@ -146,6 +146,60 @@ time `--backend graspgen` is used — `run_sim_grasp_test.py` fails fast with
 a clear error if it's missing, rather than silently trying to run GraspGen
 under `cgn_torch`.
 
+### Promptable selection setup (optional, `--prompt`/`--click`/`--box`)
+
+[Meta SAM 3](https://github.com/facebookresearch/sam3) resolves a text/
+click/box prompt to a target object mask. Needs its own conda env (Python
+3.12) and, unlike the other dependencies in this repo, its checkpoints are
+**gated on Hugging Face** — request access at
+https://huggingface.co/facebook/sam3 before anything else here will work.
+
+**License note:** custom Meta "SAM License", not a standard permissive
+license — same category of consideration as GraspGen's NVIDIA license.
+
+```bash
+# 1. Request access at https://huggingface.co/facebook/sam3, then:
+hf auth login
+
+# 2. Clone SAM 3 OUTSIDE this repo
+cd ~
+git clone https://github.com/facebookresearch/sam3.git
+
+# 3. Create its env (separate from cgn_torch and graspgen_torch)
+conda create -n sam3_torch python=3.12 -y
+conda activate sam3_torch
+pip install torch==2.10.0 torchvision --index-url https://download.pytorch.org/whl/cu128
+cd ~/sam3
+
+# 4. Install SAM 3.
+#    GOTCHA: `pip install -e .` alone fails two ways — a bare
+#    ModuleNotFoundError for pkg_resources (fresh setuptools no longer
+#    bundles it), and later ModuleNotFoundError for einops/pycocotools
+#    (SAM 3's pyproject.toml only lists those under the optional
+#    notebooks/train extras even though core code imports them
+#    unconditionally). Work around both:
+pip install "setuptools<81"
+pip install -e ".[notebooks,train]"
+# do NOT install the optional flash-attn-3/cc_torch extras — unnecessary,
+# and they're compiled extensions this repo has otherwise avoided needing
+
+# 5. Point ContactPilot at the sam3_torch interpreter
+export SAM3_PYTHON=$(which python)   # while sam3_torch is still active
+```
+
+`SAM3_PYTHON` needs to be set (or `--sam3-python PATH` passed) any time
+`--prompt`/`--click`/`--box` is used — fails fast with a clear error if
+missing, same as `GRASPGEN_PYTHON`.
+
+**Accuracy (P5 baseline, seeds 0-4, `benchmark_prompt_selection.py`):
+3/5 correct selections (60%), mean IoU 0.733 on the seeds SAM 3 returned a
+match for.** When SAM 3 finds the target, localization is excellent
+(~0.98 IoU on hits); the failure mode is prompt/color mismatches — it
+missed one color entirely and mis-selected on another. This is a working
+feature useful for experimentation, not yet reliable enough to trust as a
+primary selection path — see `ROADMAP.md` P5 for the full per-seed
+breakdown before relying on it.
+
 ## Run
 
 ```powershell
@@ -169,6 +223,8 @@ python run_sim_grasp_test.py --execute --pick-object 6        # P3: grasp THIS o
 python run_sim_grasp_test.py --execute --grasp-index 2        # P4: run candidate #2 from the printed list
 python run_sim_grasp_test.py --recenter --clean-depth         # P1 experimental flags (see ROADMAP)
 python run_sim_grasp_test.py --backend graspgen --execute     # NVlabs/GraspGen instead of CGN (needs GRASPGEN_PYTHON — see "GraspGen backend setup")
+python run_sim_grasp_test.py --execute --prompt "the red box" # select the target by text description (needs SAM3_PYTHON — see "Promptable selection setup")
+python run_sim_grasp_test.py --execute --click 320,240        # select the target by clicking a pixel (observation.png coords)
 ```
 
 `--camera fused` captures BOTH observation cameras (generic lookat as the

@@ -135,6 +135,33 @@ deployable. No novelty for novelty's sake.
       --grasp-index 0 → pick success.
 - [ ] Open3D click-picking (optional polish)
 
+## P5 — Promptable object selection (Meta SAM 3)  [BASELINE RECORDED 2026-08-15]
+- [x] `PromptSelector` (`sim_grasp/prompt_selector.py`) wraps SAM 3 text/
+      click/box prompting, run as a subprocess via a separate `SAM3_PYTHON`
+      env (its own conda env, `sam3_torch`) — same off-process-VRAM pattern
+      as the CGN/GraspGen workers. `--prompt`/`--click`/`--box` flags added
+      to `run_sim_grasp_test.py`; `rgb_to_color_name` (`sim_grasp/color_utils.py`)
+      derives ground-truth color names from `model.geom_rgba` for benchmark
+      grading only (never fed into the selection pipeline).
+- [x] **Decisive accuracy benchmark (2026-08-15, seeds 0-4,
+      `benchmark_prompt_selection.py --seeds 0-4 --tag baseline`):** for each
+      seed, one on-table object's real spawned color drives a genuine
+      ground-truth prompt ("the {color} box"), SAM 3's best-scoring match is
+      graded against that object's ground-truth segmap mask via IoU
+      (`matched` = IoU > 0.5). Result: **3/5 correct selections (60%)**,
+      mean IoU **0.733** over the 4 seeds SAM 3 returned any match for.
+      Per-seed: seed 0 "brown" → IoU 0.983 (correct); seed 1 "yellow" → SAM 3
+      returned 0 matches (ungraded, counts as incorrect); seed 2 "blue" → IoU
+      0.975 (correct, despite 3 candidate matches); seed 3 "blue" → IoU 0.973
+      (correct); seed 4 "pink" → IoU 0.0 (incorrect — best match locked onto
+      the wrong object despite 2 candidates). Full detail in
+      `mujoco_grasp_sim/output/bench_prompt_baseline/summary.json`. Takeaway:
+      when SAM 3 finds the object, localization is excellent (mean IoU ~0.98
+      on hits); the failure mode is prompt/color-name mismatches (missed
+      "yellow" entirely, mis-selected on "pink") rather than segmentation
+      quality — worth revisiting the color-name vocabulary and/or prompt
+      phrasing before this is trusted as a primary selection path.
+
 ## Current state (2026-06-11)
 Working end-to-end in MuJoCo sim: scene gen → RGB-D + segmap → CGN
 (subprocess per round, 8 GB RAM safe) → feasibility filter → ranked execution
