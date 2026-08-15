@@ -273,6 +273,10 @@ def main():
     if args.pick_object is not None and (args.prompt or args.click or args.box):
         sys.exit('[prompt] --pick-object and --prompt/--click/--box are mutually '
                  'exclusive — both select a single target object, pick one mechanism.')
+    if args.pick_all and (args.prompt or args.click or args.box):
+        sys.exit('[prompt] --pick-all and --prompt/--click/--box are mutually '
+                 'exclusive — promptable selection targets a single object; '
+                 '"pick all objects matching X" is not supported.')
 
     save_dir = Path(args.save_dir) if args.save_dir else \
         Path(__file__).parent / 'output' / time.strftime('%Y%m%d_%H%M%S')
@@ -345,9 +349,23 @@ def main():
         idx = args.prompt_index if result.is_ambiguous else 0
         if not 0 <= idx < len(result.scores):
             sys.exit(f'[prompt] --prompt-index {idx} out of range (0..{len(result.scores) - 1})')
-        segmap = np.zeros(rgb.shape[:2], dtype=segmap.dtype)
-        segmap[result.masks[idx]] = 1
-        print(f'[prompt] resolved to 1 object, score {float(result.scores[idx]):.3f}')
+        mask = result.masks[idx]
+        # Determine which real object this mask actually overlaps — sim-only
+        # bookkeeping that maps a SAM 3 mask (real perception) onto the
+        # ground-truth body-name/success-detection machinery below. A real
+        # camera deployment has no ground-truth segmap to compare against;
+        # success there would be graded some other way. SAM 3's own mask
+        # still determines WHICH pixels are selected — no ground truth is
+        # used to pick the target, only to label it correctly downstream.
+        overlap_labels = segmap[mask]
+        overlap_labels = overlap_labels[overlap_labels > 0]
+        if len(overlap_labels) == 0:
+            sys.exit('[prompt] resolved mask does not overlap any known object')
+        real_label = int(np.bincount(overlap_labels.astype(int)).argmax())
+        new_segmap = np.zeros(rgb.shape[:2], dtype=segmap.dtype)
+        new_segmap[mask] = real_label
+        segmap = new_segmap
+        print(f'[prompt] resolved to object {real_label}, score {float(result.scores[idx]):.3f}')
 
     visible_ids = sorted(int(s) for s in np.unique(segmap) if s > 0)
     print(f'[camera] K diag: fx={K[0,0]:.1f} fy={K[1,1]:.1f}; '
