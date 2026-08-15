@@ -227,6 +227,53 @@ run — unlike `run_sim_grasp_test.py`, this script has no `--pick-all`,
 `--top-k`, or `--camera fused` support; it's built for watching one pick
 happen interactively, not batch runs or benchmarking.
 
+While waiting on SAM 3 / GraspGen / CGN (each can take several seconds to
+~30s — subprocess startup + model/checkpoint loading), the window shows a
+bold status banner + spinner (`LiveViewer.run_blocking`, `draw_status_text`
+in `sim_grasp/live_viewer.py`) instead of sitting unpumped and looking
+frozen/"not responding". For the `cgn` backend specifically, the predictor
+is also pre-warmed in the background during the idle "review the mask,
+decide whether to confirm" pause, so its checkpoint load doesn't add to
+the wait after you confirm (`graspgen` isn't pre-warmed this way — it
+always spawns a fresh subprocess per prediction, so warming up early would
+just pay the same load cost twice). It also retries the top-3 scoring
+grasps for the selected object if the first attempt's IK doesn't converge,
+same as `run_sim_grasp_test.py --execute --top-k`.
+
+### Testing
+
+No automated test suite — these are standalone pure-function scripts, run
+directly (always with `PYTHONPATH=.` from `mujoco_grasp_sim/`, and any
+Python with the `cgn_torch` deps — no MuJoCo/GPU/model needed):
+
+```bash
+cd mujoco_grasp_sim
+PYTHONPATH=. python sim_grasp/test_color_utils.py
+PYTHONPATH=. python sim_grasp/test_resolve_real_label.py
+PYTHONPATH=. python sim_grasp/test_live_viewer_overlay.py
+```
+
+For an end-to-end regression check after touching `interactive_pick.py`,
+`run_sim_grasp_test.py`, or anything in `sim_grasp/`, run a real pick (needs
+MuJoCo + the env vars from above) and confirm `PICK SUCCESS` / a `true`
+`execution.success` in `metrics.json`:
+
+```bash
+export MUJOCO_GL=osmesa
+export GRASPGEN_PYTHON=/path/to/graspgen_torch/bin/python
+export SAM3_PYTHON=/path/to/sam3_torch/bin/python
+
+# headless, deterministic, no click needed — fastest smoke test
+python run_sim_grasp_test.py --seed 5 --execute --backend graspgen --no-vis --pick-object 1
+
+# fuller reliability check across seeds (only trustworthy basis for judging
+# any change — CGN/GraspGen inference is stochastic, never trust one run)
+python benchmark.py --seeds 0-4 --mode pick-all --camera fused --backend graspgen --tag smoke
+
+# interactive window, needs a real display + a manual click to confirm
+python interactive_pick.py --seed 5 --backend graspgen
+```
+
 ## Run
 
 ```powershell
