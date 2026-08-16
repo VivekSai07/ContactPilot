@@ -71,11 +71,18 @@ class LiveViewer:
     def closed(self) -> bool:
         return self._closed
 
-    def show_frame(self, rgb: np.ndarray) -> None:
-        """Display an RGB frame; pumps the event loop once (non-blocking)."""
+    def show_frame(self, rgb: np.ndarray, delay_ms: int = 1) -> None:
+        """Display an RGB frame; pumps the event loop once (non-blocking).
+        `delay_ms` throttles the redraw rate -- keep the default (1) for
+        live video (e.g. watching a pick execute), but callers looping for
+        a long time with a mostly-static frame (waiting for a click,
+        showing a status banner) should pass a larger value: repeatedly
+        hammering cv2.imshow/waitKey as fast as possible has been observed
+        to segfault Mesa's software rasterizer (swrast_dri.so) under WSL2,
+        especially with a concurrent CUDA subprocess also running."""
         bgr = cv2.cvtColor(np.ascontiguousarray(rgb), cv2.COLOR_RGB2BGR)
         cv2.imshow(self.window_name, bgr)
-        self._pump()
+        self._pump(delay_ms=delay_ms)
 
     def wait_for_click(self, rgb: np.ndarray) -> tuple[int, int] | None:
         """Display rgb and block (repeatedly re-showing it, pumping the
@@ -83,7 +90,7 @@ class LiveViewer:
         (x, y) pixel coordinates, or None if the window was closed."""
         self._click_xy = None
         while not self._closed:
-            self.show_frame(rgb)
+            self.show_frame(rgb, delay_ms=30)
             if self._click_xy is not None:
                 xy, self._click_xy = self._click_xy, None
                 return xy
@@ -134,7 +141,11 @@ class LiveViewer:
             elapsed = time.time() - t0
             spin = spinner_frames[int(elapsed * 6) % len(spinner_frames)]
             frame = draw_status_text(rgb, f'{spin} {message} {elapsed:.0f}s')
-            self.show_frame(frame)
+            # delay_ms=100: this loop runs for the entire subprocess call
+            # (5-30s) -- redrawing as fast as possible buys nothing visually
+            # and is what triggered the swrast_dri.so segfault (see
+            # show_frame's docstring).
+            self.show_frame(frame, delay_ms=100)
         t.join()
         if 'error' in box:
             raise box['error']
