@@ -146,4 +146,9 @@ class PromptSelector:
         this project's scenes only spawn box-shaped objects (see
         ROADMAP.md); pass a different category if that changes."""
         result = self.select(rgb, prompt=category, work_dir=work_dir)
-        return filter_selection_by_click(result, click)
+        filtered = filter_selection_by_click(result, click)
+        if filtered.is_empty and not result.is_empty:
+            print(f"[prompt] category {category!r} matched {len(result.scores)} "
+                  f"instance(s), but none contain click {click} -- try a "
+                  "different --category or click location")
+        return filtered

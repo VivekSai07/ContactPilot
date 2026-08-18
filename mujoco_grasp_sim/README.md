@@ -266,6 +266,7 @@ Python with the `cgn_torch` deps — no MuJoCo/GPU/model needed):
 cd mujoco_grasp_sim
 PYTHONPATH=. python sim_grasp/test_color_utils.py
 PYTHONPATH=. python sim_grasp/test_resolve_real_label.py
+PYTHONPATH=. python sim_grasp/test_filter_selection_by_click.py
 PYTHONPATH=. python sim_grasp/test_live_viewer_overlay.py
 ```
 

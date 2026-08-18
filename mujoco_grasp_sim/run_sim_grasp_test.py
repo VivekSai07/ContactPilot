@@ -340,20 +340,28 @@ def main():
         selector = PromptSelector(sam3_python=args.sam3_python)
         click_xy = tuple(float(v) for v in args.click.split(',')) if args.click else None
         box_xyxy = tuple(float(v) for v in args.box.split(',')) if args.box else None
+        target_desc = f'click {click_xy}' if click_xy is not None else (args.prompt or args.box)
         if click_xy is not None:
             result = selector.click_to_select(rgb, click_xy, category=args.category)
         else:
             result = selector.select(rgb, prompt=args.prompt, box=box_xyxy)
         if result.is_empty:
-            sys.exit(f'[prompt] no object matched: '
-                     f'{args.prompt or args.click or args.box!r}')
-        if result.is_ambiguous and args.prompt_index is None:
+            sys.exit(f'[prompt] no object matched: {target_desc!r}')
+        if click_xy is not None:
+            # a click already disambiguated a specific location -- unlike a
+            # --prompt match spanning the whole image, there's no useful
+            # index to ask the user for here. Match interactive_pick.py's
+            # existing click-loop behavior: take the highest-scoring
+            # candidate among whichever instance(s) contain the click.
+            idx = int(np.argmax(result.scores))
+        elif result.is_ambiguous and args.prompt_index is None:
             print(f'[prompt] {len(result.scores)} matches for '
-                  f'{args.prompt!r} — pass --prompt-index to disambiguate:')
+                  f'{target_desc!r} — pass --prompt-index to disambiguate:')
             for i, (s, b) in enumerate(zip(result.scores, result.boxes)):
                 print(f'  [{i}] score {float(s):.3f}  box {[round(float(v), 1) for v in b]}')
             sys.exit(1)
-        idx = args.prompt_index if result.is_ambiguous else 0
+        else:
+            idx = args.prompt_index if result.is_ambiguous else 0
         if not 0 <= idx < len(result.scores):
             sys.exit(f'[prompt] --prompt-index {idx} out of range (0..{len(result.scores) - 1})')
         mask = result.masks[idx]
