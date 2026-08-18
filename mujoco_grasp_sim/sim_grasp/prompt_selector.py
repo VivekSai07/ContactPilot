@@ -128,3 +128,22 @@ class PromptSelector:
         rgb_f.unlink(missing_ok=True)
         out_f.unlink(missing_ok=True)
         return result
+
+    def click_to_select(self, rgb: np.ndarray, click: tuple[float, float],
+                        category: str = 'a block',
+                        work_dir: str | Path = '.') -> SelectionResult:
+        """Click-based selection that returns a full-object mask, not just
+        the locally-clicked face/color: a click-as-box-exemplar prompt
+        (the old `select(rgb, click=...)` path) makes SAM 3 match the
+        clicked region's *appearance*, which on a uniformly-lit cuboid
+        face returns only that face (measured IoU ~0.29 against the true
+        full-object mask on a real repro case, 2026-08-18). Instead, this
+        runs a category-wide text-prompt detection pass -- genuine
+        per-instance object detection, measured IoU 0.89-0.99 against the
+        true full-object masks for every instance in the same scene --
+        then keeps only the instance(s) whose mask contains the click
+        pixel. `category` currently defaults to box/cuboid wording since
+        this project's scenes only spawn box-shaped objects (see
+        ROADMAP.md); pass a different category if that changes."""
+        result = self.select(rgb, prompt=category, work_dir=work_dir)
+        return filter_selection_by_click(result, click)
