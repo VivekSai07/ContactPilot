@@ -48,6 +48,32 @@ def resolve_real_label(gt_segmap: np.ndarray, mask: np.ndarray) -> int | None:
     return int(np.bincount(overlap_labels.astype(int)).argmax())
 
 
+def filter_selection_by_click(result: SelectionResult,
+                              click: tuple[float, float]) -> SelectionResult:
+    """Pure filter: keep only candidates in `result` whose mask contains
+    the `click` pixel (x, y). No subprocess/model call here -- safe to
+    unit-test directly with synthetic SelectionResult objects.
+
+    Used to turn a category-wide detection pass (`select(rgb, prompt=...)`,
+    which returns one mask per object instance in the scene) into a
+    click-disambiguated selection: the click no longer needs to localize
+    the object geometrically (SAM 3's click-as-box-exemplar mode only
+    matches the locally clicked face's appearance -- measured IoU ~0.29
+    against the true full-object mask, see prompt_selector click_to_select
+    docstring), it only needs to land on the intended instance's mask."""
+    if result.is_empty:
+        return result
+    x, y = int(click[0]), int(click[1])
+    keep = np.where(result.masks[:, y, x])[0]
+    if len(keep) == 0:
+        return SelectionResult(
+            masks=np.zeros((0,) + result.masks.shape[1:], dtype=bool),
+            scores=np.zeros((0,), dtype=np.float32),
+            boxes=np.zeros((0, 4), dtype=np.float32))
+    return SelectionResult(masks=result.masks[keep], scores=result.scores[keep],
+                           boxes=result.boxes[keep])
+
+
 def resolve_sam3_python(override: str | None = None) -> Path:
     """Resolve the sam3_torch interpreter: --sam3-python CLI value, else
     SAM3_PYTHON env var. Fails fast — never falls back to sys.executable
