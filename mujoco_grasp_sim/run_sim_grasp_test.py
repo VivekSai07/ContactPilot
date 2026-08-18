@@ -250,6 +250,10 @@ def main():
     ap.add_argument('--prompt-index', type=int, default=None, metavar='I',
                     help='with an ambiguous --prompt (multiple matches): pick '
                          'match #I from the printed ranked list')
+    ap.add_argument('--category', type=str, default='a block',
+                    help='text category for click-based whole-object detection '
+                         "(e.g. 'a block', 'a cube'); only applies to --click, "
+                         'not --prompt/--box (default: a block)')
     ap.add_argument('--sam3-python', default=None,
                     help='path to the sam3_torch env\'s python; overrides '
                          'the SAM3_PYTHON environment variable')
@@ -336,7 +340,10 @@ def main():
         selector = PromptSelector(sam3_python=args.sam3_python)
         click_xy = tuple(float(v) for v in args.click.split(',')) if args.click else None
         box_xyxy = tuple(float(v) for v in args.box.split(',')) if args.box else None
-        result = selector.select(rgb, prompt=args.prompt, click=click_xy, box=box_xyxy)
+        if click_xy is not None:
+            result = selector.click_to_select(rgb, click_xy, category=args.category)
+        else:
+            result = selector.select(rgb, prompt=args.prompt, box=box_xyxy)
         if result.is_empty:
             sys.exit(f'[prompt] no object matched: '
                      f'{args.prompt or args.click or args.box!r}')
