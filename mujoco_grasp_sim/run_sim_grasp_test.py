@@ -727,11 +727,19 @@ def main():
                   f'({body}), score {score:.3f}')
             res = executor.execute(T_world_grasp, target_body=body)
             res.update(object=int(sid), score=score, recenter_shift_m=round(shift, 4))
+            if res['success']:
+                res['place'] = executor.place(gen.bin_drop_point())
+                res['in_bin'] = body in gen.objects_in_bin()
             exec_results.append(res)
             print(f'[execute]   -> {res}')
             if res['success']:
                 print(f'[execute] PICK SUCCESS on attempt {attempt} '
                       f"(object raised {res['object_raised_m']} m)")
+                if res['in_bin']:
+                    print('[execute] placed in bin')
+                else:
+                    print('[execute] picked but missed the bin '
+                          f"(place stage: {res['place']['stage']})")
                 break
         executor.save_gif(save_dir / 'execution.gif')
         rec_cam.close()

@@ -198,10 +198,18 @@ def main():
               f'({body}), score {score:.3f} — watch the window...')
         res = executor.execute(T_world_grasp, target_body=body)
         res.update(object=real_label, score=score)
+        if res['success']:
+            res['place'] = executor.place(gen.bin_drop_point())
+            res['in_bin'] = body in gen.objects_in_bin()
         print(f'[execute]   -> {res}')
         if res['success']:
             print(f"[execute] PICK SUCCESS on attempt {attempt} "
                   f"(object raised {res['object_raised_m']} m)")
+            if res['in_bin']:
+                print('[execute] placed in bin')
+            else:
+                print('[execute] picked but missed the bin '
+                      f"(place stage: {res['place']['stage']})")
             break
         print(f'[execute] attempt {attempt} failed at stage {res["stage"]}' +
               (' — trying next candidate' if attempt < len(order) else ' — all attempts failed'))
