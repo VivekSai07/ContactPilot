@@ -161,12 +161,62 @@ deployable. No novelty for novelty's sake.
       "yellow" entirely, mis-selected on "pink") rather than segmentation
       quality — worth revisiting the color-name vocabulary and/or prompt
       phrasing before this is trusted as a primary selection path.
+- [x] **Whole-object click selection fix (2026-08-18):** `--click`'s original
+      implementation fed the click to SAM 3 as a small geometric-exemplar
+      box, which only segments the locally-clicked face of an object —
+      measured IoU **~0.29** against the true full-object mask (a real bug:
+      a grasp predictor fed only a thin surface sliver produces
+      push-not-grasp poses, not pick poses). Growing the box made it WORSE,
+      not better. Fix: run a generic category text-detection pass (`"a
+      block"`) for genuine whole-object instance masks (measured **IoU
+      0.89–0.99** across every object in a real scene), then use the click
+      only to pick which detected instance was meant — click as
+      disambiguation, not a segmentation input
+      (`PromptSelector.click_to_select`, `filter_selection_by_click`,
+      `sim_grasp/prompt_selector.py`). This does **not** invalidate the
+      decisive-accuracy-benchmark numbers above (60% / IoU 0.733) — that
+      benchmark exercises the `--prompt` (text) path, not `--click`.
 
-## Current state (2026-06-11)
-Working end-to-end in MuJoCo sim: scene gen → RGB-D + segmap → CGN
-(subprocess per round, 8 GB RAM safe) → feasibility filter → ranked execution
-(diff-IK) → pick → place-in-bin → re-observe loop (`--pick-all`).
-Validated: seed 5, lookat camera — run 1: 5/7 in bin; run 2: 3/7 (CGN is
-stochastic; variance is the P1 target). Camera A/B: top-down calibrated is
-hard mode for CGN (sparse, low scores, 0/5 picks) vs inclined lookat
-(dense, first-try pick) — lab camera now remounted inclined (see P2 yaml).
+## P6 — Interactive live pick (click-to-select, live execution)  [DONE 2026-08-18]
+- [x] `interactive_pick.py`: opens a live camera window, click an object to
+      select it (via the P5 whole-object click-selection path above), SAM 3
+      resolves and shows the mask for confirmation, then GraspGen/CGN
+      predicts a grasp and the pick executes live in the same window
+      (`sim_grasp/live_viewer.py`'s `LiveViewer`, `GraspExecutor`'s optional
+      `on_frame` callback). Design:
+      `docs/superpowers/plans/2026-08-15-interactive-pick.md`.
+- [x] Retries the top-3 scoring grasps if the first IK-to-pregrasp attempt
+      doesn't converge; pre-warms the CGN predictor in the background during
+      the idle mask-review pause (GraspGen isn't pre-warmed — always a fresh
+      subprocess per call, warming early would just double the cost).
+- [x] **Real crash found & fixed (2026-08-16):** an unthrottled cv2 redraw
+      loop (showing a "still working" status banner during SAM3/GraspGen's
+      5-30s subprocess calls) segfaulted in Mesa's software rasterizer
+      (`swrast_dri.so`) under this machine's WSL2 GPU passthrough, taking
+      down the whole VM — confirmed via `journalctl -k` showing the segfault
+      right after a burst of `dxg` ioctl failures, while a concurrent CUDA
+      subprocess was also running. Fixed by throttling the redraw rate to
+      ~10-30Hz (still smooth for a status banner, far less driver pressure)
+      — see `/memories/repo/wsl2-gpu-display.md` for the general lesson.
+- [x] **Place-in-bin gap found & fixed (2026-08-18):** both
+      `interactive_pick.py` and `run_sim_grasp_test.py`'s single-object
+      `--execute` mode stopped right after lifting the object —
+      `--pick-all` was the only mode that carried it to the bin. Fixed by
+      wiring both call sites to `GraspExecutor.place()` +
+      `SceneGenerator.objects_in_bin()` (already proven by `--pick-all`),
+      reported the same way (`res['place']`, `res['in_bin']`). Live-verified:
+      click → pick → carry to bin → release, human-confirmed.
+
+## Current state (2026-08-18)
+Working end-to-end in MuJoCo sim, two grasp backends (CGN, GraspGen — P1) and
+four object-selection paths (`--pick-object` ids, `--grasp-index` candidate
+browsing, SAM 3 `--prompt`/`--click`/`--box`, P3-P5): scene gen → RGB-D +
+segmap (single or fused, P2) → grasp prediction (subprocess, 8 GB RAM safe) →
+feasibility filter → ranked execution (diff-IK) → pick → place-in-bin →
+re-observe loop (`--pick-all`), or a single click-to-pick with live visual
+feedback and the same pick → place-in-bin ending (`interactive_pick.py`, P6).
+GraspGen is the recommended backend for further P1 reliability work (100%
+binned vs CGN's 93% on the current box-only/3-object scene config, see P1
+2026-08-13 entry). Camera A/B: top-down calibrated is hard mode for CGN
+(sparse, low scores) vs inclined lookat/fused (dense, higher success) — lab
+camera remounted inclined (P2).
