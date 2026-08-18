@@ -200,6 +200,17 @@ feature useful for experimentation, not yet reliable enough to trust as a
 primary selection path — see `ROADMAP.md` P5 for the full per-seed
 breakdown before relying on it.
 
+**2026-08-18 update:** click-based selection (`--click`) no longer uses the
+click as a SAM 3 box exemplar (that mode only matches the locally-clicked
+face's appearance -- e.g. clicking a cuboid's top face returned just that
+face, IoU ~0.29 against the true object). It now runs a category-wide text
+detection pass (`--category`, default `'a block'`) and uses the click only
+to pick which detected instance you meant, giving full-object masks
+(IoU 0.89-0.99 measured across a real scene). `--category` assumes
+box/cuboid-shaped objects, matching this project's current scene
+generation (see `ROADMAP.md`) -- pass a different category if that changes.
+`--prompt`/`--box` selection modes are unchanged.
+
 ### Interactive live pick (`interactive_pick.py`)
 
 A live, click-to-select alternative to `run_sim_grasp_test.py --click X,Y`
@@ -240,6 +251,11 @@ just pay the same load cost twice). It also retries the top-3 scoring
 grasps for the selected object if the first attempt's IK doesn't converge,
 same as `run_sim_grasp_test.py --execute --top-k`.
 
+Click-based selection uses the same whole-object category detection as
+`run_sim_grasp_test.py --click` (see "Promptable selection" above,
+2026-08-18 update) -- pass `--category` to override the default `'a block'`
+if your scene uses different-shaped objects.
+
 ### Testing
 
 No automated test suite — these are standalone pure-function scripts, run
@@ -250,6 +266,7 @@ Python with the `cgn_torch` deps — no MuJoCo/GPU/model needed):
 cd mujoco_grasp_sim
 PYTHONPATH=. python sim_grasp/test_color_utils.py
 PYTHONPATH=. python sim_grasp/test_resolve_real_label.py
+PYTHONPATH=. python sim_grasp/test_filter_selection_by_click.py
 PYTHONPATH=. python sim_grasp/test_live_viewer_overlay.py
 ```
 

@@ -43,6 +43,9 @@ def main():
                     help='path to sam3_torch\'s python; overrides SAM3_PYTHON')
     ap.add_argument('--click-radius-px', type=int, default=15,
                     help='half-width of the box synthesized around your click for SAM 3')
+    ap.add_argument('--category', type=str, default='a block',
+                    help='text category for whole-object detection '
+                         "(e.g. 'a block', 'a cube'); default: a block")
     ap.add_argument('--save-dir', default=None, help='output dir (default: output/<timestamp>)')
     args = ap.parse_args()
 
@@ -94,7 +97,8 @@ def main():
             return
         print(f'[interactive] click at {xy} — running SAM 3...')
         result = viewer.run_blocking(
-            rgb, lambda: selector.select(rgb, click=(float(xy[0]), float(xy[1]))),
+            rgb, lambda: selector.click_to_select(
+                rgb, (float(xy[0]), float(xy[1])), category=args.category),
             message='Running SAM 3 segmentation...')
         if result.is_empty:
             print('[interactive] no object found at that point — click again')

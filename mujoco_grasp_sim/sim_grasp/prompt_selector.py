@@ -48,6 +48,32 @@ def resolve_real_label(gt_segmap: np.ndarray, mask: np.ndarray) -> int | None:
     return int(np.bincount(overlap_labels.astype(int)).argmax())
 
 
+def filter_selection_by_click(result: SelectionResult,
+                              click: tuple[float, float]) -> SelectionResult:
+    """Pure filter: keep only candidates in `result` whose mask contains
+    the `click` pixel (x, y). No subprocess/model call here -- safe to
+    unit-test directly with synthetic SelectionResult objects.
+
+    Used to turn a category-wide detection pass (`select(rgb, prompt=...)`,
+    which returns one mask per object instance in the scene) into a
+    click-disambiguated selection: the click no longer needs to localize
+    the object geometrically (SAM 3's click-as-box-exemplar mode only
+    matches the locally clicked face's appearance -- measured IoU ~0.29
+    against the true full-object mask, see prompt_selector click_to_select
+    docstring), it only needs to land on the intended instance's mask."""
+    if result.is_empty:
+        return result
+    x, y = int(click[0]), int(click[1])
+    keep = np.where(result.masks[:, y, x])[0]
+    if len(keep) == 0:
+        return SelectionResult(
+            masks=np.zeros((0,) + result.masks.shape[1:], dtype=bool),
+            scores=np.zeros((0,), dtype=np.float32),
+            boxes=np.zeros((0, 4), dtype=np.float32))
+    return SelectionResult(masks=result.masks[keep], scores=result.scores[keep],
+                           boxes=result.boxes[keep])
+
+
 def resolve_sam3_python(override: str | None = None) -> Path:
     """Resolve the sam3_torch interpreter: --sam3-python CLI value, else
     SAM3_PYTHON env var. Fails fast — never falls back to sys.executable
@@ -102,3 +128,27 @@ class PromptSelector:
         rgb_f.unlink(missing_ok=True)
         out_f.unlink(missing_ok=True)
         return result
+
+    def click_to_select(self, rgb: np.ndarray, click: tuple[float, float],
+                        category: str = 'a block',
+                        work_dir: str | Path = '.') -> SelectionResult:
+        """Click-based selection that returns a full-object mask, not just
+        the locally-clicked face/color: a click-as-box-exemplar prompt
+        (the old `select(rgb, click=...)` path) makes SAM 3 match the
+        clicked region's *appearance*, which on a uniformly-lit cuboid
+        face returns only that face (measured IoU ~0.29 against the true
+        full-object mask on a real repro case, 2026-08-18). Instead, this
+        runs a category-wide text-prompt detection pass -- genuine
+        per-instance object detection, measured IoU 0.89-0.99 against the
+        true full-object masks for every instance in the same scene --
+        then keeps only the instance(s) whose mask contains the click
+        pixel. `category` currently defaults to box/cuboid wording since
+        this project's scenes only spawn box-shaped objects (see
+        ROADMAP.md); pass a different category if that changes."""
+        result = self.select(rgb, prompt=category, work_dir=work_dir)
+        filtered = filter_selection_by_click(result, click)
+        if filtered.is_empty and not result.is_empty:
+            print(f"[prompt] category {category!r} matched {len(result.scores)} "
+                  f"instance(s), but none contain click {click} -- try a "
+                  "different --category or click location")
+        return filtered
