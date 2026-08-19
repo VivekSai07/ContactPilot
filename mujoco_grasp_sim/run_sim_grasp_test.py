@@ -453,11 +453,24 @@ def main():
         pred = predictor.predict_clouds(pc_fused_cam, seg_fused_cam) if fused \
             else predictor.predict(depth, K, rgb=rgb, segmap=segmap)
     else:
-        print('[cgn] loading Contact-GraspNet...')
-        predictor = ContactGraspNetPredictor(forward_passes=args.forward_passes,
-                                             arg_configs=arg_configs)
-        pred = predictor.predict_clouds(pc_fused_cam, seg_fused_cam) if fused \
-            else predictor.predict(depth, K, rgb=rgb, segmap=segmap)
+        # in-process ContactGraspNetPredictor imports pyrender, which
+        # creates its own OSMesa context via PyOpenGL -- if MuJoCo's
+        # renderer (CameraModule, already constructed above) created ITS
+        # OSMesa context first in this same process, PyOpenGL's context
+        # bookkeeping breaks (`TypeError: unhashable type` deep in
+        # OpenGL.contextdata, real repro: 2026-08-19). --pick-all already
+        # avoids this by running CGN in a subprocess every round; do the
+        # same here for the single-shot path instead of reordering
+        # construction (which would still fail the moment MuJoCo needs to
+        # render again, e.g. --view-sim or a second capture).
+        print('[cgn] loading Contact-GraspNet (subprocess, avoids an OSMesa '
+              "context conflict with MuJoCo's own renderer)...")
+        predictor = None
+        pred = predict_clouds_in_subprocess(
+            pc_fused_cam, seg_fused_cam, args.forward_passes, arg_configs,
+            save_dir, backend='cgn') if fused else predict_in_subprocess(
+            depth, K, rgb, segmap, args.forward_passes, arg_configs,
+            save_dir, backend='cgn')
     print(f'[{args.backend}] {pred.num_grasps} grasps in {time.time() - t0:.1f}s')
 
     # ------------------------------------------------- feasibility filtering
