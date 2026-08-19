@@ -16,6 +16,12 @@ Every backend/selection-mode combination below was run fresh (current code,
 2026-08-19) to produce these — not cherry-picked from old recordings. Full
 write-up and real per-run numbers in `ROADMAP.md`.
 
+**One curated reel with all 8, each with its own title card:**
+
+<video src="docs/media/full-demo-reel.mp4" controls width="560"></video>
+
+Or individually:
+
 <table>
 <tr>
 <td width="50%">
