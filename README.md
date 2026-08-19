@@ -20,6 +20,10 @@ write-up and real per-run numbers in `ROADMAP.md`.
 
 <video src="docs/media/full-demo-reel.mp4" controls width="560"></video>
 
+**All 8 side by side, playing at once (grid, each panel labeled):**
+
+<video src="docs/media/demo-grid.mp4" controls width="640"></video>
+
 Or individually:
 
 <table>
