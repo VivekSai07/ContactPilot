@@ -10,6 +10,96 @@ Franka Panda + eye-to-hand calibrated RealSense D455f, using
 
 ---
 
+## Demo videos
+
+Every backend/selection-mode combination below was run fresh (current code,
+2026-08-19) to produce these — not cherry-picked from old recordings. Full
+write-up and real per-run numbers in `ROADMAP.md`.
+
+<table>
+<tr>
+<td width="50%">
+
+**Contact-GraspNet — single pick + place**
+<br>Lower, noisier confidence scores (~0.15–0.21); several retries typical.
+<video src="docs/media/cgn-single-pick.mp4" controls width="380"></video>
+</td>
+<td width="50%">
+
+**GraspGen — single pick + place**
+<br>High-confidence grasps (~0.85–0.98); usually succeeds on attempt 1.
+<video src="docs/media/graspgen-single-pick.mp4" controls width="380"></video>
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**GraspGen — multi-object `--pick-all`**
+<br>3/3 objects binned in 3 clean rounds, fused camera. The flagship 100% run.
+<video src="docs/media/graspgen-pick-all.mp4" controls width="380"></video>
+</td>
+<td width="50%">
+
+**Contact-GraspNet — multi-object `--pick-all`**
+<br>Same task, same seed: also 3/3 binned, but needed 6 rounds/retries at
+much lower confidence — a direct efficiency contrast with GraspGen.
+<video src="docs/media/cgn-pick-all.mp4" controls width="380"></video>
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**SAM 3 — text-prompt selection**
+<br>`--prompt "the brown box"`: real ground-truth-color prompt, correctly
+resolved and picked.
+<video src="docs/media/sam3-prompt-selection.mp4" controls width="380"></video>
+</td>
+<td width="50%">
+
+**SAM 3 — click selection, the bug (before the fix)**
+<br>Clicking a box's top face only segments that face (IoU ~0.29) — the
+grasp predictor sees a thin sliver and pushes the object instead of
+grasping it.
+<video src="docs/media/sam3-click-before-fix.mp4" controls width="380"></video>
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**SAM 3 — click selection, fixed**
+<br>Same click, same object: category-detection + click-disambiguation now
+gives a full-object mask (IoU 0.89–0.99) and a correct grasp.
+<video src="docs/media/sam3-click-after-fix.mp4" controls width="380"></video>
+</td>
+<td width="50%">
+
+**`interactive_pick.py` — live click-to-pick**
+<br>Click an object in a live camera window, confirm the SAM 3 mask, watch
+GraspGen pick it and place it in the bin — all in one window.
+<video src="docs/media/interactive-pick-live.mp4" controls width="380"></video>
+</td>
+</tr>
+</table>
+
+## Progress at a glance
+
+Real, measured numbers recorded as the project went — full detail (per-seed
+breakdowns, A/B methodology, taxonomy) lives in `ROADMAP.md`.
+
+| Date | Milestone | Result |
+|---|---|---|
+| 2026-06-11 | First working baseline (CGN, lookat camera, `--pick-all`) | **15/40 objects binned (38%)** |
+| 2026-06-14 | + Perception/execution levers (yaw-alignment ranking, two-phase gentle closing, shape-aware priority) | **21/40 binned (52%)** |
+| 2026-06-14 | + Box-only scenes, fixed 3-object count | **10/15 binned (67%)**, knocked-off-table 7→0 |
+| 2026-06-14 | + Friction/`condim` physics fix (real bug: torsional friction was a dead value) | **14/15 binned (93%)** |
+| 2026-08-13 | + GraspGen backend added (same seeds/config as the CGN 93% run) | **15/15 binned (100%)**, zero `closed_on_air` failures |
+| 2026-06-11 | Multi-camera fusion (P2) vs single camera | initial-observation grasp coverage **28/40 vs 17/40 objects (+65%)** |
+| 2026-08-15 | SAM 3 promptable (text) selection — decisive accuracy benchmark | **60% correct selections**, mean IoU **0.733** (0.98 on hits) |
+| 2026-08-18 | SAM 3 click-selection whole-object fix (real bug found & fixed) | mask IoU **0.29 → 0.89–0.99** |
+| 2026-08-18 | Place-in-bin gap closed for single-pick flows (`interactive_pick.py`, single `--execute`) | now match `--pick-all`'s full pick→place cycle |
+
+---
+
 ## Layout
 
 ```
