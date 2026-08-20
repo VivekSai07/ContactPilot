@@ -131,6 +131,14 @@ GraspGen pick it and place it in the bin — all in one window.
 Real, measured numbers recorded as the project went — full detail (per-seed
 breakdowns, A/B methodology, taxonomy) lives in `ROADMAP.md`.
 
+```mermaid
+xychart-beta
+    title "Pick Success Rate Over Time"
+    x-axis ["Baseline", "Perception+Exec", "Box-only", "Friction fix", "GraspGen"]
+    y-axis "Objects binned (%)" 0 --> 100
+    bar [38, 52, 67, 93, 100]
+```
+
 | Date | Milestone | Result |
 |---|---|---|
 | 2026-06-11 | First working baseline (CGN, lookat camera, `--pick-all`) | **15/40 objects binned (38%)** |
