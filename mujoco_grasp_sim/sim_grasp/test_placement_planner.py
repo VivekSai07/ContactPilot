@@ -105,3 +105,53 @@ assert float(np.nanmax(heightmap_excl.heights)) < 0.01, \
     'excluding the bump object should leave a flat heightmap'
 
 print('All placement_planner heightmap checks passed.')
+
+# ============================================================================
+# Placement search tests (Task 3)
+# ============================================================================
+
+from sim_grasp.placement_planner import (
+    OccupancyPlacementPlanner, ObjectFootprint, BinHeightmap, compute_release_z)
+
+# An empty 24x24cm bin (matches the project's default SceneConfig), cell
+# size 5mm -> 48x48 grid, all at floor height 0.75 (table height).
+n = 48
+empty_heights = np.full((n, n), 0.75, dtype=np.float32)
+empty_map = BinHeightmap(heights=empty_heights, origin_xy=(0.33, -0.42),
+                          cell_size=0.005, floor_z=0.75)
+
+small_footprint = ObjectFootprint(center_xy=(0.0, 0.0), size_xy=(0.03, 0.03),
+                                   yaw=0.0, z_bottom=0.75, z_top=0.80)
+
+planner = OccupancyPlacementPlanner(bin_center=(0.45, -0.30), bin_inner_half=0.12)
+pose = planner.plan(small_footprint, empty_map)
+assert pose is not None, 'a 3cm object must fit in an empty 24cm bin'
+assert abs(pose.release_z - 0.75) < 1e-6, f'release_z={pose.release_z}'
+assert abs(pose.x - 0.45) < 0.12 and abs(pose.y - (-0.30)) < 0.12
+
+# Occupy the whole left half of the bin (col < n/2) at height 0.80 (5cm
+# stack) -- planner must choose a slot on the right (unoccupied) side.
+occupied_heights = empty_heights.copy()
+occupied_heights[:, : n // 2] = 0.80
+occupied_map = BinHeightmap(heights=occupied_heights, origin_xy=(0.33, -0.42),
+                            cell_size=0.005, floor_z=0.75)
+pose2 = planner.plan(small_footprint, occupied_map)
+assert pose2 is not None
+right_half_x_min = 0.33 + (n // 2) * 0.005
+assert pose2.x >= right_half_x_min - 0.01, \
+    f'expected a slot on the unoccupied side, got x={pose2.x}'
+
+# A footprint bigger than the whole bin can never fit -> fallback path still
+# returns SOME pose (never crashes), not None, per the design's fallback.
+huge_footprint = ObjectFootprint(center_xy=(0, 0), size_xy=(0.5, 0.5),
+                                 yaw=0.0, z_bottom=0.75, z_top=0.9)
+pose3 = planner.plan(huge_footprint, empty_map)
+assert pose3 is None, 'a footprint that cannot fit at all must return None'
+
+# compute_release_z: grasp_offset = T_world_grasp z - footprint.z_bottom
+T_world_grasp = np.eye(4)
+T_world_grasp[2, 3] = 0.95   # hand origin 0.20m above the object's bottom (0.75)
+release_z = compute_release_z(pose, T_world_grasp, small_footprint, safety_buffer=0.005)
+assert abs(release_z - (0.75 + 0.20 + 0.005)) < 1e-6, f'release_z={release_z}'
+
+print('All placement_planner search checks passed.')
