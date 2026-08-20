@@ -192,11 +192,14 @@ def main():
     footprint = compute_object_footprint(depth, new_segmap, real_label, K, T_world_cam)
     place_pose = None
     if footprint is not None:
-        heightmap = build_bin_heightmap(
-            depth, new_segmap, K, T_world_cam, cfg.bin_center, cfg.bin_inner_half,
-            exclude_seg_id=real_label)
-        place_pose = OccupancyPlacementPlanner(
-            cfg.bin_center, cfg.bin_inner_half).plan(footprint, heightmap)
+        try:
+            heightmap = build_bin_heightmap(
+                depth, new_segmap, K, T_world_cam, cfg.bin_center, cfg.bin_inner_half,
+                exclude_seg_id=real_label)
+            place_pose = OccupancyPlacementPlanner(
+                cfg.bin_center, cfg.bin_inner_half).plan(footprint, heightmap)
+        except ValueError as e:
+            print(f'[placement] heightmap build failed: {e}')
     if place_pose is None:
         print('[placement] footprint/slot search failed — falling back to '
               'the fixed bin drop point')
@@ -214,7 +217,7 @@ def main():
         res = executor.execute(T_world_grasp, target_body=body)
         res.update(object=real_label, score=score)
         if res['success']:
-            if place_pose is not None and footprint is not None:
+            if place_pose is not None:
                 release_z = compute_release_z(place_pose, T_world_grasp, footprint)
                 res['place'] = executor.place(
                     place_pose.x, place_pose.y, release_z, place_pose.yaw)

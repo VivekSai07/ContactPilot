@@ -636,10 +636,13 @@ def main():
             footprint = compute_object_footprint(d_o, seg_o, int(sid), K_o, T_wc)
             place_pose = None
             if footprint is not None:
-                heightmap = build_bin_heightmap(
-                    d_o, seg_o, K_o, T_wc, cfg.bin_center, cfg.bin_inner_half,
-                    exclude_seg_id=int(sid))
-                place_pose = placement_planner.plan(footprint, heightmap)
+                try:
+                    heightmap = build_bin_heightmap(
+                        d_o, seg_o, K_o, T_wc, cfg.bin_center, cfg.bin_inner_half,
+                        exclude_seg_id=int(sid))
+                    place_pose = placement_planner.plan(footprint, heightmap)
+                except ValueError as e:
+                    print(f'[placement] heightmap build failed: {e}')
             if place_pose is None:
                 print('[placement] footprint/slot search failed for object '
                       f'{int(sid)} — falling back to the fixed bin drop point')
@@ -762,11 +765,17 @@ def main():
             footprint = compute_object_footprint(depth, segmap, int(sid), K, T_world_cam)
             place_pose = None
             if footprint is not None:
-                heightmap = build_bin_heightmap(
-                    depth, segmap, K, T_world_cam, cfg.bin_center,
-                    cfg.bin_inner_half, exclude_seg_id=int(sid))
-                place_pose = OccupancyPlacementPlanner(
-                    cfg.bin_center, cfg.bin_inner_half).plan(footprint, heightmap)
+                try:
+                    heightmap = build_bin_heightmap(
+                        depth, segmap, K, T_world_cam, cfg.bin_center,
+                        cfg.bin_inner_half, exclude_seg_id=int(sid))
+                    place_pose = OccupancyPlacementPlanner(
+                        cfg.bin_center, cfg.bin_inner_half).plan(footprint, heightmap)
+                except ValueError as e:
+                    print(f'[placement] heightmap build failed: {e}')
+            if place_pose is None:
+                print('[placement] footprint/slot search failed for object '
+                      f'{int(sid)} — falling back to the fixed bin drop point')
             body = label_to_body[int(sid)]
             print(f'[execute] attempt {attempt}/{len(ranked)}: object {int(sid)} '
                   f'({body}), score {score:.3f}')

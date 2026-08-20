@@ -95,13 +95,13 @@ heightmap = build_bin_heightmap(depth2, segmap2, K2, T_world_cam2,
                                  exclude_seg_id=None, cell_size=0.01)
 assert heightmap.heights.shape[0] > 0 and heightmap.heights.shape[1] > 0
 assert abs(heightmap.floor_z - 0.0) < 0.01, f'floor_z={heightmap.floor_z}'
-assert float(np.nanmax(heightmap.heights)) > 0.02, 'the bump should show up'
+assert float(np.max(heightmap.heights)) > 0.02, 'the bump should show up'
 
 # Excluding seg_id=2 should make the heightmap look flat/empty everywhere.
 heightmap_excl = build_bin_heightmap(depth2, segmap2, K2, T_world_cam2,
                                       bin_center=(0.5, 0.5), bin_inner_half=0.1,
                                       exclude_seg_id=2, cell_size=0.01)
-assert float(np.nanmax(heightmap_excl.heights)) < 0.01, \
+assert float(np.max(heightmap_excl.heights)) < 0.01, \
     'excluding the bump object should leave a flat heightmap'
 
 print('All placement_planner heightmap checks passed.')

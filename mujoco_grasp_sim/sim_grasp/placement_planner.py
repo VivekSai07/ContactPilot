@@ -77,8 +77,9 @@ def build_bin_heightmap(depth: np.ndarray, segmap: np.ndarray, K: np.ndarray,
     bx, by = bin_center
     n = int(np.ceil(2 * bin_inner_half / cell_size))
     origin_x, origin_y = bx - bin_inner_half, by - bin_inner_half
-    # Initialize with -inf to make maximum.at work correctly; cells that never
-    # get a point will stay -inf and become NaN in the result.
+    # Initialize with -inf (not NaN -- np.maximum propagates NaN, which would
+    # silently discard every real height measurement). Cells that never get a
+    # point stay -inf and are filled with the self-calibrated floor_z below.
     heights = np.full((n, n), -np.inf, dtype=np.float32)
 
     if len(pts_world):
@@ -91,7 +92,13 @@ def build_bin_heightmap(depth: np.ndarray, segmap: np.ndarray, K: np.ndarray,
             np.maximum.at(heights, (rows, cols), pw[:, 2])
 
     valid = np.isfinite(heights)
-    floor_z = float(np.percentile(heights[valid], 10)) if np.any(valid) else 0.0
+    if not np.any(valid):
+        raise ValueError(
+            'build_bin_heightmap: no depth points landed in the bin region '
+            '-- bin is out of view or fully occluded; callers should treat '
+            'this the same as a degenerate compute_object_footprint() (fall '
+            'back to the legacy fixed drop point).')
+    floor_z = float(np.percentile(heights[valid], 10))
     heights = np.where(valid, heights, floor_z).astype(np.float32)
 
     return BinHeightmap(heights=heights, origin_xy=(origin_x, origin_y),
@@ -110,6 +117,7 @@ class PlacementPose:
     y: float
     yaw: float           # radians
     release_z: float     # world Z the object's BOTTOM should end up at
+    fallback: bool = False   # True if no fully-clear slot existed (least-bad pick)
 
 
 def _aabb_half_extent(size_xy: tuple, yaw: float) -> tuple:
@@ -202,8 +210,10 @@ class OccupancyPlacementPlanner(PlacementPlanner):
         if best_fallback is None:
             return None
         max_h, x, y = best_fallback
+        print('[placement] no fully-clear slot found in the bin -- using the '
+              'least-occupied region as a fallback')
         return PlacementPose(x=float(x), y=float(y), yaw=footprint.yaw,
-                             release_z=max_h)
+                             release_z=max_h, fallback=True)
 
 
 def compute_release_z(pose: PlacementPose, T_world_grasp: np.ndarray,
