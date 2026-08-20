@@ -171,13 +171,14 @@ ContactPilot/
 ├── README.md                      ← this file
 ├── mujoco_grasp_sim/              ← MuJoCo tabletop sim (Panda + RGB-D + CGN/GraspGen) — see its README
 ├── mujoco_menagerie/              ← sparse clone: franka_emika_panda model only
-└── contact_graspnet_pytorch/      ← git submodule (VivekSai07/contact_graspnet_pytorch, pinned tag)
-    ├── checkpoints/contact_graspnet/checkpoints/model.pt   (26 MB, fetched by download_assets.py)
-    ├── test_data/0.npy … 13.npy   (14 test scenes: rgb, depth[m], K, seg @ 1280×720; fetched by download_assets.py)
-    ├── test_inference_headless.py (headless driver — no GUI, prints stats)
-    ├── scripts/download_assets.py (fetches checkpoint + test_data from Hugging Face Hub)
-    ├── results/                   (predictions land here as .npz)
-    └── contact_graspnet_pytorch/  (source)
+├── GraspGen/                      ← git submodule (NVlabs/GraspGen upstream, pinned commit, unpatched)
+├── contact_graspnet_pytorch/      ← git submodule (VivekSai07/contact_graspnet_pytorch, pinned tag)
+│   ├── checkpoints/contact_graspnet/checkpoints/model.pt   (26 MB, fetched by download_assets.py)
+│   ├── test_data/0.npy … 13.npy   (14 test scenes: rgb, depth[m], K, seg @ 1280×720; fetched by download_assets.py)
+│   ├── test_inference_headless.py (headless driver — no GUI, prints stats)
+│   ├── scripts/download_assets.py (fetches checkpoint + test_data from Hugging Face Hub)
+│   ├── results/                   (predictions land here as .npz)
+│   └── contact_graspnet_pytorch/  (source)
 ```
 
 `contact_graspnet_pytorch/` tracks its own patches as normal commits on the
@@ -217,8 +218,8 @@ is kinematic (arm workspace/IK), not perception/grasp-quality driven.
 
 **To set it up and run it:** see `mujoco_grasp_sim/README.md`'s
 ["GraspGen backend setup"](mujoco_grasp_sim/README.md#graspgen-backend-setup-optional---backend-graspgen)
-section for the full step-by-step (cloning GraspGen, the `graspgen_torch`
-env, a couple of non-obvious install gotchas, and the WSL2-specific
+section for the full step-by-step (initializing the GraspGen submodule, the
+`graspgen_torch` env, a couple of non-obvious install gotchas, and the WSL2-specific
 `MUJOCO_GL=osmesa` note) and the `## Run` section for command examples like:
 
 ```bash
@@ -234,12 +235,18 @@ the reference implementation for adding further backends — see
 
 ## Environment
 
-### Getting `contact_graspnet_pytorch` (submodule + assets)
+### Getting the submodules (+ CGN assets)
 
 `contact_graspnet_pytorch/` is a git submodule pointing at
 [`VivekSai07/contact_graspnet_pytorch`](https://github.com/VivekSai07/contact_graspnet_pytorch)
-(pinned to a tag). The checkpoint and test scenes are hosted on Hugging Face
-Hub and fetched by a script — neither is committed to git.
+(pinned to a tag). `GraspGen/` is a second git submodule, pointing directly
+at [`NVlabs/GraspGen`](https://github.com/NVlabs/GraspGen) upstream (pinned
+to a commit, not a fork — nothing in this project patches GraspGen's
+source). The command below initializes both. The checkpoint and test
+scenes for `contact_graspnet_pytorch` are hosted on Hugging Face Hub and
+fetched by a script — neither is committed to git; GraspGen's own
+checkpoint is fetched separately, see `mujoco_grasp_sim/README.md`'s
+"GraspGen backend setup".
 
 ```powershell
 git submodule update --init --depth 1
@@ -248,9 +255,9 @@ python contact_graspnet_pytorch\scripts\download_assets.py
 ```
 
 Run this once after cloning ContactPilot (or after any `git submodule update`
-that moves the pinned commit). The download script is idempotent — safe to
-re-run. `huggingface_hub` is also included below in "Recreate the env from
-scratch" for fresh conda environments.
+that moves either pinned commit). The download script is idempotent — safe
+to re-run. `huggingface_hub` is also included below in "Recreate the env
+from scratch" for fresh conda environments.
 
 Conda env **`cgn_torch`** — Python 3.10, PyTorch 2.12.0+cu126, numpy 1.26 (**must stay < 2**).
 

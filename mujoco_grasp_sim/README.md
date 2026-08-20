@@ -97,8 +97,9 @@ compile on Windows/MSVC with a confirmed open upstream
 PyTorch/CUDA/Windows bug; use bash/WSL2 or native Linux, not PowerShell):
 
 ```bash
-# 1. Clone GraspGen OUTSIDE this repo (not a submodule — nothing here patches it)
-cd ~ && git clone https://github.com/NVlabs/GraspGen.git
+# 1. GraspGen is a git submodule of this repo (NVlabs/GraspGen upstream,
+#    pinned to a validated commit) — initialize it if you haven't already:
+cd ~/ContactPilot && git submodule update --init GraspGen
 
 # 2. Install the CUDA Toolkit (needed to compile GraspGen's pointnet2_ops
 #    CUDA extension). On WSL2, use NVIDIA's WSL-Ubuntu apt repo — NOT a
@@ -122,7 +123,7 @@ conda create -n graspgen_torch python=3.10 -y
 #    GraspGen's own pinned torch==2.1.0 (breaking Blackwell support), even
 #    with --no-build-isolation — that flag only protects the *build* step,
 #    not the final dependency-resolution/install step. Work around it:
-cd ~/GraspGen
+cd ~/ContactPilot/GraspGen
 /path/to/graspgen_torch/bin/python -m pip install --no-build-isolation -e .
 # The above downgrades torch — restore it:
 /path/to/graspgen_torch/bin/python -m pip install --force-reinstall torch torchvision --index-url https://download.pytorch.org/whl/cu128
@@ -130,7 +131,7 @@ cd ~/GraspGen
 /path/to/graspgen_torch/bin/python -m pip install --no-deps "numpy==1.26.4"
 
 # 5. Build the pointnet2_ops CUDA extension
-cd ~/GraspGen/pointnet2_ops
+cd ~/ContactPilot/GraspGen/pointnet2_ops
 CUDA_HOME=/usr/local/cuda-12.8 /path/to/graspgen_torch/bin/python -m pip install --no-build-isolation --no-deps .
 
 # 6. Fetch the Franka-Panda checkpoint (from ContactPilot's mujoco_grasp_sim/)

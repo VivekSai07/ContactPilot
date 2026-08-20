@@ -1,3 +1,6 @@
 [submodule "contact_graspnet_pytorch"]
 	path = contact_graspnet_pytorch
 	url = https://github.com/VivekSai07/contact_graspnet_pytorch.git
+[submodule "GraspGen"]
+	path = GraspGen
+	url = https://github.com/NVlabs/GraspGen.git
