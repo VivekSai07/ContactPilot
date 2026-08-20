@@ -198,6 +198,54 @@ deployable. No novelty for novelty's sake.
       reported the same way (`res['place']`, `res['in_bin']`). Live-verified:
       click → pick → carry to bin → release, human-confirmed.
 
+## P7 — Intelligent bin placement (vision-only)  [DONE 2026-08-21]
+- [x] Problem: `--pick-all`/`--execute`/`interactive_pick.py` all released
+      every object at the same hardcoded world point
+      (`SceneGenerator.bin_drop_point()`) at a fixed release height
+      (`executor.PLACE_RELEASE`) — no XY offset between placements (2nd/3rd
+      object risks landing on the 1st) and no per-object height accounting
+      (a tall object could jam against the bin floor). Fix must be
+      vision-only (depth/segmap/K/T_world_cam only, no MuJoCo internal-state
+      queries) so it ports to a real RealSense camera later. Design:
+      `docs/superpowers/specs/2026-08-20-intelligent-bin-placement-design.md`,
+      plan: `docs/superpowers/plans/2026-08-20-intelligent-bin-placement.md`.
+- [x] New `sim_grasp/placement_planner.py`: `compute_object_footprint()`
+      (world XY size/yaw/height of the object about to be placed, from its
+      own segmap mask) + `build_bin_heightmap()` (top-down occupancy grid of
+      the bin's current contents) → `OccupancyPlacementPlanner.plan()`
+      (free-space + 4-yaw-offset search over the heightmap) →
+      `compute_release_z()` (release height from the *measured* grasp
+      offset, not a fixed constant). Wired into all three entry points
+      (`run_sim_grasp_test.py`'s `--pick-all` and single `--execute` paths,
+      `interactive_pick.py`); `GraspExecutor.place()` signature changed from
+      `place(drop_pos)` to `place(x, y, release_z, yaw=0.0)`.
+- [x] **Real bug found & fixed during implementation:** the plan's own
+      literal code for `build_bin_heightmap` used `np.maximum.at()` on a
+      `NaN`-initialized grid — `np.maximum` propagates NaN (unlike
+      `np.fmax`), so every touched cell degenerated to NaN and silently
+      discarded every real height measurement. Fixed by initializing with
+      `-inf` and checking `np.isfinite()` instead. Verified by reproducing
+      both failure modes directly (the brief's original code fails its own
+      test; the fix passes).
+- [x] **Validation (2026-08-21, GraspGen backend, fused camera, seeds 0-9,
+      box-only/3-object scenes — same config as the P1 100% baseline):**
+      **29/30 binned (96.7%)**, zero knocked-off-table, zero stacking- or
+      crushing-type failures across all 10 seeds. The 3 failures (all
+      `missed_bin`, all in one seed) were confirmed non-systematic: (a) a
+      same-day re-run of that exact seed with no code change succeeded 3/3,
+      and (b) a same-day 10-seed run of the pre-change code (fixed drop
+      point, isolated worktree at commit `529d673`) also hit one transient
+      GraspGen-worker subprocess crash on an unrelated seed that likewise
+      vanished on retry — both point to this sim's known CGN/GraspGen
+      run-to-run stochasticity (see `CLAUDE.md`), not a placement-planner
+      regression. Pre-change baseline over the same 10 seeds: 30/30 (100%,
+      counting the retried crash). Net effect at this 3-object bin size:
+      statistically indistinguishable aggregate success rate, with the
+      original design-target failure modes (stacking, crushing) not
+      observed in either condition — the 3-object/24cm-bin scene rarely
+      exercises them either way; a larger `--n-objects` scene would be a
+      sharper differentiator for future validation.
+
 ## Current state (2026-08-18)
 Working end-to-end in MuJoCo sim, two grasp backends (CGN, GraspGen — P1) and
 four object-selection paths (`--pick-object` ids, `--grasp-index` candidate

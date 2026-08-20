@@ -143,12 +143,12 @@ breakdowns, A/B methodology, taxonomy) lives in `ROADMAP.md`.
 ```mermaid
 xychart-beta
     title "Pick Success Rate Over Time"
-    x-axis ["Baseline", "Perception+Exec", "Box-only", "Friction fix", "GraspGen"]
+    x-axis ["Baseline", "Perception+Exec", "Box-only", "Friction fix", "GraspGen", "Smart placement"]
     y-axis "Objects binned (%)" 0 --> 100
-    bar [38, 52, 67, 93, 100]
+    bar [38, 52, 67, 93, 100, 97]
 ```
 
-*First two bars: /40 objects on mixed-shape scenes. Last three: /15 objects on box-only, fixed-3-object scenes -- see the table below for exact denominators.*
+*First two bars: /40 objects on mixed-shape scenes. Last four: /15 (or /30 for the last) objects on box-only, fixed-3-object scenes -- see the table below for exact denominators.*
 
 | Date | Milestone | Result |
 |---|---|---|
@@ -161,6 +161,7 @@ xychart-beta
 | 2026-08-15 | SAM 3 promptable (text) selection — decisive accuracy benchmark | **60% correct selections**, mean IoU **0.733** (0.98 on hits) |
 | 2026-08-18 | SAM 3 click-selection whole-object fix (real bug found & fixed) | mask IoU **0.29 → 0.89–0.99** |
 | 2026-08-18 | Place-in-bin gap closed for single-pick flows (`interactive_pick.py`, single `--execute`) | now match `--pick-all`'s full pick→place cycle |
+| 2026-08-21 | Intelligent (vision-only) bin placement — replaces the fixed drop-point/release-height with a footprint+heightmap free-space search | **29/30 binned (97%)** over 10 seeds, zero knocked-off-table, zero stacking/crushing failures (statistically on par with the fixed-point baseline at this 3-object bin size — see `ROADMAP.md` P7) |
 
 ---
 
