@@ -37,12 +37,6 @@ Commands in this file assume that env is active. Full from-scratch recreation
 steps (including the CUDA wheel index caveat for RTX 5090/Blackwell, which
 needs cu128 instead of cu126) are in `README.md` under "Environment".
 
-There is also a Docker path (`Dockerfile` + `docker-compose.yml`, CUDA 12.8 /
-torch cu128, covers both GTX 1650 sm_75 and RTX 5090 sm_120 with one image) —
-see `DOCKER.md`. Use it for a reproducible run on a machine without the conda
-env set up; it always runs `mujoco_grasp_sim` headless (`--no-vis` baked into
-the entrypoint).
-
 ## Common commands
 
 ### CGN inference on saved/test frames (`contact_graspnet_pytorch/`)
@@ -167,8 +161,7 @@ either repo; they're hosted on Hugging Face Hub and fetched by
 
 - **numpy must stay < 2** across the whole stack.
 - **RTX 5090 / Blackwell (sm_120) needs cu128 torch wheels** — cu126 has no
-  sm_120 kernels. The Docker image is pinned to cu128 for this reason; the
-  conda env doc has separate laptop/lab instructions.
+  sm_120 kernels; the conda env doc has separate laptop/lab instructions.
 - Depth must always be **float32 meters**, never uint16 millimeters (a
   RealSense D455 native output needs `/1000.0` conversion first).
 - `mujoco.Renderer` with `enable_depth_rendering()` already returns
