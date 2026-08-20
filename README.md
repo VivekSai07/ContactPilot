@@ -10,6 +10,41 @@ Franka Panda + eye-to-hand calibrated RealSense D455f, using
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart TD
+    A["MuJoCo Scene: Panda + table + objects"] --> B["Physics settle"]
+    B --> C["CameraModule: RGB-D + segmap (single or fused cameras)"]
+    C --> D{"How is the target object chosen?"}
+    D -->|"--pick-object SEG_ID / --grasp-index"| E["Direct ID / candidate browsing"]
+    D -->|"--prompt / --click / --box (CLI)"| F["PromptSelector (SAM 3)"]
+    D -->|"click in a live window"| G["interactive_pick.py"]
+    G --> F
+    F --> H["click_to_select: whole-object detection + click disambiguation"]
+    E --> P["Selected object mask"]
+    H --> P
+    P --> Q{"Grasp backend (pluggable via GraspPredictor)"}
+    Q -->|"--backend cgn"| R["Contact-GraspNet (subprocess worker)"]
+    Q -->|"--backend graspgen"| S["GraspGen (subprocess worker)"]
+    R --> T["GraspFeasibilityChecker: table-collision + underhand filter"]
+    S --> T
+    T --> U["GraspExecutor: ranked diff-IK execution"]
+    U --> V["Pick"]
+    V --> W["Place in bin"]
+    W -->|"--pick-all: objects remain"| C
+    U --> X[("metrics.json / execution.gif")]
+    W --> X
+```
+
+Two entry points share this same pipeline: `run_sim_grasp_test.py` (CLI —
+`--pick-object`/`--grasp-index`/`--prompt`/`--click`/`--box`, single-shot
+`--execute` or looping `--pick-all`) and `interactive_pick.py` (a live camera
+window — click an object, confirm the SAM 3 mask, watch it get picked and
+placed, one object per run).
+
+---
+
 ## Demo videos
 
 Every backend/selection-mode combination below was run fresh (current code,
