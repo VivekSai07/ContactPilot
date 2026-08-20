@@ -10,26 +10,34 @@ Franka Panda + eye-to-hand calibrated RealSense D455f, using
 
 ---
 
-## Architecture
+## Architecture — MuJoCo simulation pipeline
+
+The standalone Contact-GraspNet inference path (saved/real RGB-D frames, no
+sim, no robot) is covered separately under "Headless inference" below --
+this diagram covers `mujoco_grasp_sim/`, the full sim-to-pick-and-place
+pipeline.
 
 ```mermaid
 flowchart TD
     A["MuJoCo Scene: Panda + table + objects"] --> B["Physics settle"]
     B --> C["CameraModule: RGB-D + segmap (single or fused cameras)"]
-    C --> D{"How is the target object chosen?"}
-    D -->|"--pick-object SEG_ID / --grasp-index"| E["Direct ID / candidate browsing"]
+    C --> D{"Pre-prediction object selection?"}
     D -->|"--prompt / --click / --box (CLI)"| F["PromptSelector (SAM 3)"]
     D -->|"click in a live window"| G["interactive_pick.py"]
     G --> F
     F --> H["click_to_select: whole-object detection + click disambiguation"]
-    E --> P["Selected object mask"]
+    D -->|"none -- predict for every object"| P["Segmap for prediction"]
     H --> P
     P --> Q{"Grasp backend (pluggable via GraspPredictor)"}
     Q -->|"--backend cgn"| R["Contact-GraspNet (subprocess worker)"]
     Q -->|"--backend graspgen"| S["GraspGen (subprocess worker)"]
     R --> T["GraspFeasibilityChecker: table-collision + underhand filter"]
     S --> T
-    T --> U["GraspExecutor: ranked diff-IK execution"]
+    T --> RK["Rank candidates across all predicted objects"]
+    RK --> PF{"--pick-object SEG_ID / --grasp-index I?"}
+    PF -->|"yes"| PF2["Filter to that object / candidate"]
+    PF -->|"no"| U["GraspExecutor: ranked diff-IK execution"]
+    PF2 --> U
     U --> V["Pick"]
     V --> W["Place in bin"]
     W -->|"--pick-all: objects remain"| C
@@ -138,6 +146,8 @@ xychart-beta
     y-axis "Objects binned (%)" 0 --> 100
     bar [38, 52, 67, 93, 100]
 ```
+
+*First two bars: /40 objects on mixed-shape scenes. Last three: /15 objects on box-only, fixed-3-object scenes -- see the table below for exact denominators.*
 
 | Date | Milestone | Result |
 |---|---|---|
