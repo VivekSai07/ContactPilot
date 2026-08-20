@@ -218,8 +218,8 @@ is kinematic (arm workspace/IK), not perception/grasp-quality driven.
 
 **To set it up and run it:** see `mujoco_grasp_sim/README.md`'s
 ["GraspGen backend setup"](mujoco_grasp_sim/README.md#graspgen-backend-setup-optional---backend-graspgen)
-section for the full step-by-step (cloning GraspGen, the `graspgen_torch`
-env, a couple of non-obvious install gotchas, and the WSL2-specific
+section for the full step-by-step (initializing the GraspGen submodule, the
+`graspgen_torch` env, a couple of non-obvious install gotchas, and the WSL2-specific
 `MUJOCO_GL=osmesa` note) and the `## Run` section for command examples like:
 
 ```bash
@@ -235,7 +235,7 @@ the reference implementation for adding further backends — see
 
 ## Environment
 
-### Getting `contact_graspnet_pytorch` (submodule + assets)
+### Getting the submodules (+ CGN assets)
 
 `contact_graspnet_pytorch/` is a git submodule pointing at
 [`VivekSai07/contact_graspnet_pytorch`](https://github.com/VivekSai07/contact_graspnet_pytorch)
