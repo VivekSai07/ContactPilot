@@ -61,17 +61,17 @@ write-up and real per-run numbers in `ROADMAP.md`.
 
 **One curated reel with all 8, each with its own title card:**
 
-[![Full demo reel (click to play, mp4)](docs/media/previews/full-demo-reel-poster.jpg)](docs/media/full-demo-reel.mp4)
+[![Full demo reel (click to play, mp4)](docs/media/previews/full-demo-reel.gif)](docs/media/full-demo-reel.mp4)
 
 **All 8 side by side, playing at once (grid, each panel labeled):**
 
-[![Demo grid, 4x2 (click to play, mp4)](docs/media/previews/demo-grid-poster.jpg)](docs/media/demo-grid.mp4)
+[![Demo grid, 4x2 (click to play, mp4)](docs/media/previews/demo-grid.gif)](docs/media/demo-grid.mp4)
 
-> GitHub doesn't render `<video>` tags in READMEs, so the images above are
-> posters -- click either one to play the real video (opens GitHub's file
-> view with a native player, full quality/length). Same for the previews
-> below: each GIF is a fast-forwarded preview of the whole clip; click it
-> for the real, full-quality, full-speed mp4.
+> GitHub doesn't render `<video>` tags in READMEs, so the animations above
+> are GIF previews, each fast-forwarded to cover the whole clip -- click
+> either one to play the real video at full quality/length/speed (opens
+> GitHub's file view with a native player). Same pattern for the previews
+> below.
 
 Or individually:
 
