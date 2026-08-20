@@ -61,11 +61,17 @@ write-up and real per-run numbers in `ROADMAP.md`.
 
 **One curated reel with all 8, each with its own title card:**
 
-<video src="docs/media/full-demo-reel.mp4" controls width="560"></video>
+[![Full demo reel (click to play, mp4)](docs/media/previews/full-demo-reel-poster.jpg)](docs/media/full-demo-reel.mp4)
 
 **All 8 side by side, playing at once (grid, each panel labeled):**
 
-<video src="docs/media/demo-grid.mp4" controls width="640"></video>
+[![Demo grid, 4x2 (click to play, mp4)](docs/media/previews/demo-grid-poster.jpg)](docs/media/demo-grid.mp4)
+
+> GitHub doesn't render `<video>` tags in READMEs, so the images above are
+> posters -- click either one to play the real video (opens GitHub's file
+> view with a native player, full quality/length). Same for the previews
+> below: each GIF is a fast-forwarded preview of the whole clip; click it
+> for the real, full-quality, full-speed mp4.
 
 Or individually:
 
@@ -75,13 +81,13 @@ Or individually:
 
 **Contact-GraspNet — single pick + place**
 <br>Lower, noisier confidence scores (~0.15–0.21); several retries typical.
-<video src="docs/media/cgn-single-pick.mp4" controls width="380"></video>
+<a href="docs/media/cgn-single-pick.mp4"><img src="docs/media/previews/cgn-single-pick.gif" width="380"></a>
 </td>
 <td width="50%">
 
 **GraspGen — single pick + place**
 <br>High-confidence grasps (~0.85–0.98); usually succeeds on attempt 1.
-<video src="docs/media/graspgen-single-pick.mp4" controls width="380"></video>
+<a href="docs/media/graspgen-single-pick.mp4"><img src="docs/media/previews/graspgen-single-pick.gif" width="380"></a>
 </td>
 </tr>
 <tr>
@@ -89,14 +95,14 @@ Or individually:
 
 **GraspGen — multi-object `--pick-all`**
 <br>3/3 objects binned in 3 clean rounds, fused camera. The flagship 100% run.
-<video src="docs/media/graspgen-pick-all.mp4" controls width="380"></video>
+<a href="docs/media/graspgen-pick-all.mp4"><img src="docs/media/previews/graspgen-pick-all.gif" width="380"></a>
 </td>
 <td width="50%">
 
 **Contact-GraspNet — multi-object `--pick-all`**
 <br>Same task, same seed: also 3/3 binned, but needed 6 rounds/retries at
 much lower confidence — a direct efficiency contrast with GraspGen.
-<video src="docs/media/cgn-pick-all.mp4" controls width="380"></video>
+<a href="docs/media/cgn-pick-all.mp4"><img src="docs/media/previews/cgn-pick-all.gif" width="380"></a>
 </td>
 </tr>
 <tr>
@@ -105,7 +111,7 @@ much lower confidence — a direct efficiency contrast with GraspGen.
 **SAM 3 — text-prompt selection**
 <br>`--prompt "the brown box"`: real ground-truth-color prompt, correctly
 resolved and picked.
-<video src="docs/media/sam3-prompt-selection.mp4" controls width="380"></video>
+<a href="docs/media/sam3-prompt-selection.mp4"><img src="docs/media/previews/sam3-prompt-selection.gif" width="380"></a>
 </td>
 <td width="50%">
 
@@ -113,7 +119,7 @@ resolved and picked.
 <br>Clicking a box's top face only segments that face (IoU ~0.29) — the
 grasp predictor sees a thin sliver and pushes the object instead of
 grasping it.
-<video src="docs/media/sam3-click-before-fix.mp4" controls width="380"></video>
+<a href="docs/media/sam3-click-before-fix.mp4"><img src="docs/media/previews/sam3-click-before-fix.gif" width="380"></a>
 </td>
 </tr>
 <tr>
@@ -122,14 +128,14 @@ grasping it.
 **SAM 3 — click selection, fixed**
 <br>Same click, same object: category-detection + click-disambiguation now
 gives a full-object mask (IoU 0.89–0.99) and a correct grasp.
-<video src="docs/media/sam3-click-after-fix.mp4" controls width="380"></video>
+<a href="docs/media/sam3-click-after-fix.mp4"><img src="docs/media/previews/sam3-click-after-fix.gif" width="380"></a>
 </td>
 <td width="50%">
 
 **`interactive_pick.py` — live click-to-pick**
 <br>Click an object in a live camera window, confirm the SAM 3 mask, watch
 GraspGen pick it and place it in the bin — all in one window.
-<video src="docs/media/interactive-pick-live.mp4" controls width="380"></video>
+<a href="docs/media/interactive-pick-live.mp4"><img src="docs/media/previews/interactive-pick-live.gif" width="380"></a>
 </td>
 </tr>
 </table>
