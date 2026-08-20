@@ -59,21 +59,14 @@ Every backend/selection-mode combination below was run fresh (current code,
 2026-08-19) to produce these — not cherry-picked from old recordings. Full
 write-up and real per-run numbers in `ROADMAP.md`.
 
-**One curated reel with all 8, each with its own title card:**
-
-[![Full demo reel (click to play, mp4)](docs/media/previews/full-demo-reel.gif)](docs/media/full-demo-reel.mp4)
-
 **All 8 side by side, playing at once (grid, each panel labeled):**
 
 [![Demo grid, 4x2 (click to play, mp4)](docs/media/previews/demo-grid.gif)](docs/media/demo-grid.mp4)
 
-> GitHub doesn't render `<video>` tags in READMEs, so the animations above
-> are GIF previews. The curated reel's preview samples eight real-speed
-> ~1s snippets spread across the whole reel (so the action is actually
-> readable); the grid preview is fast-forwarded to cover its whole clip.
-> Click either one to play the real video at full quality/length/speed
-> (opens GitHub's file view with a native player). Same pattern for the previews
-> below.
+> GitHub doesn't render `<video>` tags in READMEs, so the animation above is
+> a GIF preview, fast-forwarded to cover the whole clip -- click it to play
+> the real video at full quality/length/speed (opens GitHub's file view
+> with a native player). Same pattern for the previews below.
 
 Or individually:
 
