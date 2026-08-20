@@ -4,15 +4,6 @@ Guiding principle: **maximum practical grasp reliability** for a Franka Panda
 on unseen tabletop objects with calibrated RGB-D — modular, reproducible,
 deployable. No novelty for novelty's sake.
 
-## P0 — Dockerized, reproducible pipeline  [IN PROGRESS]
-- [x] `Dockerfile` + `docker-compose.yml` + `requirements-docker.txt` at repo root
-- [x] Single-command build (`docker compose build`) and run (`docker compose up`)
-- [x] GPU support: CUDA 12.8 image, torch cu128 wheels — one image covers
-      GTX 1650 (sm_75) AND RTX 5090 (sm_120, Blackwell)
-- [x] Docs: `DOCKER.md`
-- [ ] Build verified on this laptop (first build downloads ~4 GB)
-- [ ] Build verified on the RTX 5090 workstation
-
 ## P1 — Maximize grasp success rate  [IN PROGRESS]
 - [x] Batch evaluation harness: `mujoco_grasp_sim/benchmark.py` (N seeds ×
       config → success-rate table; every change must move this number)
