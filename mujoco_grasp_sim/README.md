@@ -53,7 +53,7 @@ mujoco_grasp_sim/
 
 Sibling dependencies (already in the repo root):
 - `../contact_graspnet_pytorch/` — network, checkpoint, visualization (pip-installed editable)
-- `../mujoco_menagerie/franka_emika_panda/` — robot model (sparse clone)
+- `../mujoco_menagerie/franka_emika_panda/` — robot model (git submodule, sparse-checked-out)
 
 ## Setup
 
@@ -67,12 +67,9 @@ pip install mujoco          # 3.9.0 — modern API, NOT mujoco-py
 (Full env recreation: see `../README.md` — torch cu126/cu128, numpy<2,
 open3d, etc., then `pip install mujoco`.)
 
-If the Menagerie assets are missing:
-
-```powershell
-git clone --depth 1 --filter=blob:none --sparse --config core.autocrlf=false https://github.com/google-deepmind/mujoco_menagerie.git
-git -C mujoco_menagerie sparse-checkout set franka_emika_panda
-```
+The Menagerie submodule is initialized as part of the repo-level setup
+— see the root `../README.md`'s "Getting the submodules (+ CGN assets)"
+section for the full setup instructions.
 
 **WSL2 note (affects both backends):** running `run_sim_grasp_test.py` /
 `benchmark.py` on WSL2 requires `export MUJOCO_GL=osmesa` (install via
