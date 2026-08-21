@@ -16,6 +16,15 @@ obs.npz keys, depth mode:  depth (H,W) float32 m, K (3,3), rgb (H,W,3) uint8,
                            pcseg_<sid> (Ni,3) per object (P2 fusion path)
 out.npz keys: grasps_<sid>, scores_<sid>, contacts_<sid>, openings_<sid>.
 """
+import logging
+import os
+import warnings
+
+if not os.environ.get('SIM_GRASP_VERBOSE'):
+    warnings.filterwarnings('ignore', category=FutureWarning)
+    warnings.filterwarnings('ignore', category=UserWarning)
+    for _name in ('grasp_gen', 'OpenGL', 'torch', 'timm', 'spconv', 'sam3'):
+        logging.getLogger(_name).setLevel(logging.ERROR)
 
 import argparse
 import sys

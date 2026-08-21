@@ -19,6 +19,15 @@ Contact points and gripper openings are not produced by GraspGen (unlike
 CGN) — contacts_<sid> is written as an empty (0,3) array and openings_<sid>
 is omitted, matching GraspPrediction's documented defaults.
 """
+import logging
+import os
+import warnings
+
+if not os.environ.get('SIM_GRASP_VERBOSE'):
+    warnings.filterwarnings('ignore', category=FutureWarning)
+    warnings.filterwarnings('ignore', category=UserWarning)
+    for _name in ('grasp_gen', 'OpenGL', 'torch', 'timm', 'spconv', 'sam3'):
+        logging.getLogger(_name).setLevel(logging.ERROR)
 
 import argparse
 from pathlib import Path
