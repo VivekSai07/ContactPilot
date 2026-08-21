@@ -213,10 +213,10 @@ class SceneGenerator:
 
         if not MENAGERIE_PANDA_DIR.is_dir():
             raise FileNotFoundError(
-                f'Menagerie Panda not found at {MENAGERIE_PANDA_DIR}. Clone with:\n'
-                'git clone --depth 1 --filter=blob:none --sparse '
-                '--config core.autocrlf=false '
-                'https://github.com/google-deepmind/mujoco_menagerie.git\n'
+                f'Menagerie Panda not found at {MENAGERIE_PANDA_DIR}. '
+                'mujoco_menagerie is a git submodule -- set it up with:\n'
+                'git submodule update --init --depth 1\n'
+                'git -C mujoco_menagerie sparse-checkout init --cone\n'
                 'git -C mujoco_menagerie sparse-checkout set franka_emika_panda')
 
     # -- panda.xml patching --------------------------------------------------

@@ -385,7 +385,7 @@ Inspect the last generated scene standalone (objects re-drop and settle live —
 the XML stores spawn poses, not the settled state):
 
 ```powershell
-python -m mujoco.viewer --mjcf="..\mujoco_menagerie\franka_emika_panda\_generated_scene.xml"
+python -m mujoco.viewer --mjcf="assets\_generated_scene.xml"
 ```
 
 Re-visualize any saved run later (uses the CGN repo's viewer):
