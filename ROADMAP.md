@@ -211,3 +211,38 @@ binned vs CGN's 93% on the current box-only/3-object scene config, see P1
 2026-08-13 entry). Camera A/B: top-down calibrated is hard mode for CGN
 (sparse, low scores) vs inclined lookat/fused (dense, higher success) — lab
 camera remounted inclined (P2).
+
+## P8 — Natural-language task instructions (reasoning layer)  [PLANNED, not started]
+
+Full exploration/rationale in `docs/research/2026-08-20-reasoning-layer-reflectvlm.md`.
+Goal: instructions like "pick the blue cube first and put it on the left,
+then the red one on the right" — controls both pick order and placement
+destination. Explicitly **not** about physical-stability lookahead (that's
+already solved deterministically by the intelligent bin-placement work,
+expected to land as P7 — do not confuse the two).
+
+Two-phase plan, strictly sequential — **do not start Phase 2 until Phase 1
+is verified robust end-to-end**:
+
+- **Phase 1 (start now, once P7 is verified robust end-to-end) — Option A:**
+  a lightweight text-only LLM parses the instruction into an ordered step
+  list (`{object_description, spatial_relation, reference}`).
+  `object_description` resolves via the existing SAM 3 `PromptSelector`
+  (unchanged, P5). `spatial_relation` becomes a directional bias fed into
+  the existing `OccupancyPlacementPlanner` free-space search (P7) — still
+  collision-safe, just region-preferring. Minimal VRAM footprint (small
+  local model or a one-shot cloud API call), reuses everything already
+  built.
+- **Phase 2 (only after Phase 1 is proven robust) — Option C:** upgrade the
+  text-only parser to a small combined vision+language model (e.g.
+  Qwen2-VL 2B/7B) that sees the current camera image alongside the
+  instruction — only pursue this if Phase 1's text-only grounding proves
+  insufficient for attribute references like "the tallest one" that
+  benefit from actually seeing the scene.
+
+Explicitly rejected: adopting ReflectVLM as originally proposed (13B VLM +
+diffusion dynamics model, ~26GB fp16 / would consume this machine's entire
+8GB budget even 4-bit quantized; needs a goal *image* not text; trained on
+a different task domain with no fine-tuning support yet) — see the research
+note for the full reality-check.
+

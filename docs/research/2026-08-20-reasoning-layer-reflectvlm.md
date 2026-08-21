@@ -1,6 +1,7 @@
 # Reasoning layer: natural-language task instructions
 
-**Status:** brainstorming in progress (approaches proposed, not yet approved).
+**Status:** sequencing decided, tracked as `ROADMAP.md` P8. Phase 1 (Option A)
+architecture not yet fully fleshed out/approved as a formal spec.
 
 ## Origin
 
@@ -74,8 +75,23 @@ together (helps with attribute references like "the tallest one"). Noted
 as a possible later upgrade if plain-text parsing + SAM3 grounding proves
 insufficient for tricky references — not needed to start.
 
+## Sequencing decision (2026-08-21)
+
+Strictly two-phase, sequential — full detail in `ROADMAP.md` P8:
+
+1. **Phase 1 = Option A** (lightweight text-only LLM parser + geometric
+   spatial resolver, reusing SAM 3 + the occupancy placement planner) —
+   start once the intelligent bin-placement work (P7) is verified robust
+   end-to-end.
+2. **Phase 2 = Option C** (upgrade to a small vision+language model like
+   Qwen2-VL) — only if Phase 1's text-only grounding proves insufficient
+   for tricky attribute references. Do not start this before Phase 1 is
+   proven robust.
+
+Option B (ReflectVLM as originally proposed) remains rejected.
+
 ## Next step (not yet done)
 
-Flesh out Approach A's architecture in detail (exact module boundaries,
-data flow, error handling, testing) and get it approved as a proper design
-before writing a spec/plan under `docs/superpowers/`.
+Flesh out Phase 1 (Option A)'s architecture in detail (exact module
+boundaries, data flow, error handling, testing) and get it approved as a
+proper design before writing a spec/plan under `docs/superpowers/`.
