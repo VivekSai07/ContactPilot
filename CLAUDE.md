@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Read `AGENTS.md` too** — it defines the project's mandatory documentation-sync
+workflow (when a bug/fix/new integration requires updating `ROADMAP.md`,
+`docs/research/`, or `docs/superpowers/specs/`, and how) plus branch/commit
+hygiene. It applies to every task here, for every agent, not just this one.
+
 ## What this repo is
 
 ContactPilot picks up **unseen tabletop objects** (no CAD models, no markers)

@@ -16,8 +16,8 @@ and this file should say so (with a link) rather than duplicating it.
 
 - [2026-08-20-reasoning-layer-reflectvlm.md](2026-08-20-reasoning-layer-reflectvlm.md) —
   natural-language task instructions (pick order + relative placement) for
-  the MuJoCo pick-and-place pipeline. Status: sequencing decided (see
-  `ROADMAP.md` P8), Phase 1 architecture not yet fully fleshed out.
+  the MuJoCo pick-and-place pipeline. Status: Phase 1 implemented (see
+  `ROADMAP.md` P8), Phase 2 not started.
 - [2026-08-21-short-object-finger-table-collision.md](2026-08-21-short-object-finger-table-collision.md) —
   root cause + fix for fingers hitting the table on short objects during
   grasp closing. Status: fixed (see `ROADMAP.md` P1).

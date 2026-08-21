@@ -1,10 +1,13 @@
 """Nearest-named-color matching for scene objects.
 
-Scene objects get uniform-random RGB in [0.15, 0.95]^3 (see
-scene_generator.py's _rand_rgba) — not perceptually distributed. This maps
-an arbitrary RGB to the closest name in a small curated table, used only to
-build ground-truth prompts for the promptable-selection benchmark. It is
-never part of the runtime selection pipeline.
+Scene objects get a fixed, clearly distinguishable color per spawn index
+(see scene_generator.py's object_color()) rather than a random one -- so a
+--instruction description like "the red cube" reliably refers to the same
+object every run of the same seed. This module's `_NAMED_COLORS` table is
+the single source of truth both for that fixed assignment and for
+`rgb_to_color_name`, used to build ground-truth prompts for the
+promptable-selection benchmark; it is never part of the runtime selection
+pipeline.
 """
 import numpy as np
 
@@ -20,6 +23,22 @@ _NAMED_COLORS = {
     'brown': (0.5, 0.35, 0.2),
     'gray': (0.55, 0.55, 0.55),
 }
+
+# Fixed per-object-index assignment order, most mutually-distinguishable
+# first (red/green/blue) since the default scene spawns exactly 3 objects.
+_FIXED_ORDER = ['red', 'green', 'blue', 'yellow', 'purple', 'cyan',
+               'orange', 'pink', 'brown', 'gray']
+
+
+def object_color(index: int) -> 'tuple[str, str]':
+    """Fixed (name, "r g b 1" rgba string) for the index-th spawned object
+    in a scene -- deterministic across runs (not randomized), cycling
+    through `_FIXED_ORDER` for scenes with more objects than colors. Uses
+    the exact same reference RGB `rgb_to_color_name` matches against, so
+    the assigned color is always named back correctly (distance 0)."""
+    name = _FIXED_ORDER[index % len(_FIXED_ORDER)]
+    r, g, b = _NAMED_COLORS[name]
+    return name, f'{r:.3f} {g:.3f} {b:.3f} 1'
 
 
 def rgb_to_color_name(rgb) -> str:
