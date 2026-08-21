@@ -198,6 +198,97 @@ deployable. No novelty for novelty's sake.
       reported the same way (`res['place']`, `res['in_bin']`). Live-verified:
       click → pick → carry to bin → release, human-confirmed.
 
+## P7 — Intelligent bin placement (vision-only)  [DONE 2026-08-21]
+- [x] Problem: `--pick-all`/`--execute`/`interactive_pick.py` all released
+      every object at the same hardcoded world point
+      (`SceneGenerator.bin_drop_point()`) at a fixed release height
+      (`executor.PLACE_RELEASE`) — no XY offset between placements (2nd/3rd
+      object risks landing on the 1st) and no per-object height accounting
+      (a tall object could jam against the bin floor). Fix must be
+      vision-only (depth/segmap/K/T_world_cam only, no MuJoCo internal-state
+      queries) so it ports to a real RealSense camera later. Design:
+      `docs/superpowers/specs/2026-08-20-intelligent-bin-placement-design.md`,
+      plan: `docs/superpowers/plans/2026-08-20-intelligent-bin-placement.md`.
+- [x] New `sim_grasp/placement_planner.py`: `compute_object_footprint()`
+      (world XY size/yaw/height of the object about to be placed, from its
+      own segmap mask) + `build_bin_heightmap()` (top-down occupancy grid of
+      the bin's current contents) → `OccupancyPlacementPlanner.plan()`
+      (free-space + 4-yaw-offset search over the heightmap) →
+      `compute_release_z()` (release height from the *measured* grasp
+      offset, not a fixed constant). Wired into all three entry points
+      (`run_sim_grasp_test.py`'s `--pick-all` and single `--execute` paths,
+      `interactive_pick.py`); `GraspExecutor.place()` signature changed from
+      `place(drop_pos)` to `place(x, y, release_z, yaw=0.0)`.
+- [x] **Real bug found & fixed during implementation:** the plan's own
+      literal code for `build_bin_heightmap` used `np.maximum.at()` on a
+      `NaN`-initialized grid — `np.maximum` propagates NaN (unlike
+      `np.fmax`), so every touched cell degenerated to NaN and silently
+      discarded every real height measurement. Fixed by initializing with
+      `-inf` and checking `np.isfinite()` instead. Verified by reproducing
+      both failure modes directly (the brief's original code fails its own
+      test; the fix passes).
+- [x] **Validation (2026-08-21, GraspGen backend, fused camera, seeds 0-9,
+      box-only/3-object scenes — same config as the P1 100% baseline):**
+      **29/30 binned (96.7%)**, zero knocked-off-table, zero stacking- or
+      crushing-type failures across all 10 seeds. The 3 failures (all
+      `missed_bin`, all in one seed) were confirmed non-systematic: (a) a
+      same-day re-run of that exact seed with no code change succeeded 3/3,
+      and (b) a same-day 10-seed run of the pre-change code (fixed drop
+      point, isolated worktree at commit `529d673`) also hit one transient
+      GraspGen-worker subprocess crash on an unrelated seed that likewise
+      vanished on retry — both point to this sim's known CGN/GraspGen
+      run-to-run stochasticity (see `CLAUDE.md`), not a placement-planner
+      regression. Pre-change baseline over the same 10 seeds: 30/30 (100%,
+      counting the retried crash). Net effect at this 3-object bin size:
+      statistically indistinguishable aggregate success rate, with the
+      original design-target failure modes (stacking, crushing) not
+      observed in either condition — the 3-object/24cm-bin scene rarely
+      exercises them either way; a larger `--n-objects` scene would be a
+      sharper differentiator for future validation.
+- [x] **Placement pose robustness fixes (2026-08-21), found via live/manual
+      testing feedback (not caught by the benchmark's success/failure
+      taxonomy, since neither symptom below always caused an outright
+      `missed_bin`/failure — just a near-miss or visible instability)**:
+      plan `docs/superpowers/plans/2026-08-21-placement-pose-robustness.md`.
+  - **Bug 1 — corner-lock:** `OccupancyPlacementPlanner.plan()`'s
+    clearance-scoring tie-break measured only distance to *other objects*,
+    which is `inf` for every candidate when the bin is empty (true for the
+    first object placed every round) — the tie-break silently defaulted to
+    the first-scanned candidate, the near-corner of the search region,
+    every single time. This is exactly why every run showed the first
+    object landing in the same bin corner, touching the wall. Fixed by
+    adding a wall-clearance term (`clearance = min(wall_clearance,
+    occ_clearance)`), restoring what the design spec always said the
+    objective should be. Regression-tested (`test_placement_planner.py`'s
+    empty-bin case now asserts a near-center placement, not just "somewhere
+    in the bin").
+  - **Bug 2 — transit slip:** `GraspExecutor._step_to()` used pure linear
+    interpolation for joint targets, which has an instantaneous velocity
+    jump at the start of every motion — a classic cause of a held object
+    slipping right as `place()`'s transit-to-hover move begins. Fixed by
+    adding an optional smoothstep ease-in-ease-out profile (`_ease()`,
+    zero velocity at both ends), applied only to `place()`'s two
+    object-carrying motions (transit, lower); the already-tuned pick
+    sequence in `execute()` and the open-handed release/retract steps are
+    untouched.
+  - **Deferred (separate future plan, not fixed here):** a third symptom
+    (short objects' fingers hitting the table during closing) was
+    root-caused to a *different* subsystem —
+    `GraspFeasibilityChecker` validates the grasp pose before
+    `execute()`'s `EXTRA_APPROACH` (12mm) deepens it further, unchecked.
+    Logged at
+    `docs/research/2026-08-21-short-object-finger-table-collision.md`.
+  - **Re-validation (2026-08-21, same 10-seed GraspGen/fused config as
+    above): 30/30 binned (100%)**, zero knocked-off-table, zero
+    `missed_bin` failures (down from 3, all clustered in one seed, in the
+    pre-fix run) — only 3 `ik_unreachable` pre-grasp retries (unrelated to
+    placement, resolved on the next round each time). A clean improvement
+    over the prior 29/30 (96.7%), though at this 3-object bin size the
+    small failure count makes it hard to call the delta itself
+    statistically decisive — the qualitative fix (no more corner-touching,
+    smoother carries) is the more meaningful result here, confirmed via
+    the live-testing feedback that motivated this fix in the first place.
+
 ## Current state (2026-08-18)
 Working end-to-end in MuJoCo sim, two grasp backends (CGN, GraspGen — P1) and
 four object-selection paths (`--pick-object` ids, `--grasp-index` candidate

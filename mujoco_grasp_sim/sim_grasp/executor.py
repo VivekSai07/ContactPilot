@@ -66,13 +66,37 @@ GIF_MAX_FRAMES = 1500  # hard cap on recorded frames
 # Place sequence (heights of the HAND ORIGIN above the drop point;
 # fingertips are ~0.10 m below the hand origin)
 PLACE_HOVER = 0.24     # transit / retract height
-PLACE_RELEASE = 0.15   # height at which the fingers open — fingertips are
-                       # ~0.10 m below the hand origin, so the object drops
-                       # ~5 cm; at 0.17 it dropped ~7 cm and bounced out of
-                       # the 5 cm bin walls (taxonomy: missed_bin x4)
+PLACE_RELEASE = 0.15   # legacy fixed release height, kept only as a fallback
+                       # constant for callers whose vision-based placement
+                       # planner fails (see placement_planner.py) — fingertips
+                       # are ~0.10 m below the hand origin, so the object
+                       # drops ~5 cm; at 0.17 it dropped ~7 cm and bounced out
+                       # of the 5 cm bin walls (taxonomy: missed_bin x4)
+_HOVER_ABOVE_RELEASE = PLACE_HOVER - PLACE_RELEASE  # 0.09 m transit clearance,
+                                                     # now anchored to whatever
+                                                     # release_z callers pass in
 TOPDOWN_HAND_R = np.array([[1.0, 0.0, 0.0],    # canonical hand-down pose,
                            [0.0, -1.0, 0.0],   # fallback orientation for the
                            [0.0, 0.0, -1.0]])  # place IK
+
+
+def _ease(t: float, smooth: bool) -> float:
+    """Interpolation parameter for _step_to: linear (smooth=False) or a
+    smoothstep ease-in-ease-out curve (smooth=True, zero velocity at t=0
+    and t=1) -- pulled out as its own function so the easing math is
+    unit-testable without a live MuJoCo model."""
+    return (3 * t ** 2 - 2 * t ** 3) if smooth else t
+
+
+def _candidate_hand_orientations(R_cur: np.ndarray, yaw: float) -> tuple:
+    """Ordered hand-orientation candidates for place(): (1) current hand
+    orientation as-is, (2) canonical top-down rotated by `yaw` about world
+    Z -- a top-down grasp preserves the object's on-table yaw through the
+    pick, so this reliably rotates the placed object -- (3) canonical
+    top-down with yaw=0, as a last resort matching the pre-existing
+    unconditional fallback."""
+    Rz_yaw = R.from_euler('z', yaw).as_matrix()
+    return (R_cur, Rz_yaw @ TOPDOWN_HAND_R, TOPDOWN_HAND_R)
 
 _RZ_P90 = np.eye(4); _RZ_P90[:3, :3] = R.from_euler('z', np.pi / 2).as_matrix()
 _RZ_M90 = np.eye(4); _RZ_M90[:3, :3] = R.from_euler('z', -np.pi / 2).as_matrix()
@@ -186,14 +210,19 @@ class GraspExecutor:
 
     # -- low-level motion helpers ---------------------------------------------
     def _step_to(self, q_target: np.ndarray, duration: float,
-                 gripper_ctrl: float | None = None):
-        """Linearly interpolate joint position references over `duration`
-        seconds of sim time; the position servos do the tracking."""
+                 gripper_ctrl: float | None = None, smooth: bool = False):
+        """Interpolate joint position references over `duration` seconds of
+        sim time; the position servos do the tracking. `smooth=True` uses
+        a smoothstep ease-in-ease-out profile (zero velocity at both ends)
+        instead of linear interpolation -- linear interpolation has an
+        instantaneous velocity jump at t=0, a real cause of a held object
+        slipping right as a transit move begins."""
         model, data = self.model, self.data
         n = max(1, int(duration / model.opt.timestep))
         q_start = data.ctrl[:7].copy()
         for i in range(n):
-            a = (i + 1) / n
+            t = (i + 1) / n
+            a = _ease(t, smooth)
             data.ctrl[:7] = (1 - a) * q_start + a * q_target
             if gripper_ctrl is not None:
                 data.ctrl[7] = gripper_ctrl
@@ -293,25 +322,26 @@ class GraspExecutor:
                                  round(ik_lift.pos_err * 1e3, 1)]}
 
     # -- place & housekeeping ---------------------------------------------------
-    def place(self, drop_pos) -> dict:
-        """Carry the held object above `drop_pos` (world), lower, open the
-        fingers, retract. Keeps the current hand orientation if IK reaches the
-        bin with it, else falls back to a canonical top-down orientation."""
+    def place(self, x: float, y: float, release_z: float, yaw: float = 0.0) -> dict:
+        """Carry the held object above (x, y), lower until the hand origin
+        reaches `release_z`, open the fingers, retract. Tries, in order:
+        (1) the current hand orientation as-is, (2) a canonical top-down
+        orientation rotated by `yaw`, (3) a canonical top-down orientation
+        with no yaw (last resort) -- see _candidate_hand_orientations."""
         data = self.data
-        drop_pos = np.asarray(drop_pos, dtype=float)
         q_now = data.qpos[self.ik.qpos_idx].copy()
         R_cur = data.xmat[self.ik.hand_bid].reshape(3, 3).copy()
 
         plan = None
-        for R_hand in (R_cur, TOPDOWN_HAND_R):
+        for R_hand in _candidate_hand_orientations(R_cur, yaw):
             T_pre = np.eye(4)
             T_pre[:3, :3] = R_hand
-            T_pre[:3, 3] = drop_pos + [0.0, 0.0, PLACE_HOVER]
+            T_pre[:3, 3] = [x, y, release_z + _HOVER_ABOVE_RELEASE]
             ik_pre = self.ik.solve(T_pre, q_now)
             if not ik_pre.converged:
                 continue
             T_rel = T_pre.copy()
-            T_rel[2, 3] = drop_pos[2] + PLACE_RELEASE
+            T_rel[2, 3] = release_z
             ik_rel = self.ik.solve(T_rel, ik_pre.qpos)
             if ik_rel.converged:
                 plan = (ik_pre, ik_rel)
@@ -324,8 +354,12 @@ class GraspExecutor:
             return {'placed': False, 'stage': 'ik_place'}
 
         ik_pre, ik_rel = plan
-        self._step_to(ik_pre.qpos, 2.2, gripper_ctrl=GRIPPER_CLOSED)   # transit
-        self._step_to(ik_rel.qpos, 1.0, gripper_ctrl=GRIPPER_CLOSED)   # lower
+        # smooth=True only for the two motions performed while still
+        # holding the object -- linear interpolation's instant velocity
+        # jump at the start of a move is a real cause of slip; release and
+        # retract happen open-handed, so they're left as linear.
+        self._step_to(ik_pre.qpos, 2.2, gripper_ctrl=GRIPPER_CLOSED, smooth=True)   # transit
+        self._step_to(ik_rel.qpos, 1.0, gripper_ctrl=GRIPPER_CLOSED, smooth=True)   # lower
         self._hold(0.2)
         self._step_to(ik_rel.qpos, 0.6, gripper_ctrl=GRIPPER_OPEN)     # release
         self._hold(0.4)

@@ -33,6 +33,10 @@ from sim_grasp.frames import transform_grasps, transform_points, invert_se3
 from sim_grasp.grasp_predictor import GraspPrediction
 from sim_grasp.perception import clean_depth, recenter_grasp
 from sim_grasp.pointcloud import depth_to_pointcloud
+from sim_grasp.placement_planner import (
+    compute_object_footprint, build_bin_heightmap, OccupancyPlacementPlanner,
+    compute_release_z)
+from sim_grasp.executor import PLACE_RELEASE
 
 
 def gpu_vram_gb() -> float:
@@ -548,7 +552,8 @@ def main():
                                  record_dir=save_dir / '_gif_frames',
                                  gif_frame_interval=0.2)
         label_of = {name: i + 1 for i, name in enumerate(gen.object_names)}
-        drop = gen.bin_drop_point()
+        drop = gen.bin_drop_point()   # kept only as the legacy fallback target
+        placement_planner = OccupancyPlacementPlanner(cfg.bin_center, cfg.bin_inner_half)
         n_total = len(on_table)
         fail_count: dict[str, int] = {}
         rounds_log = []
@@ -626,6 +631,21 @@ def main():
                 if shift:
                     print(f'[recenter] grasp shifted {shift * 1e3:+.1f} mm '
                           'along the closing axis')
+
+            d_o, seg_o, K_o = obs
+            footprint = compute_object_footprint(d_o, seg_o, int(sid), K_o, T_wc)
+            place_pose = None
+            if footprint is not None:
+                try:
+                    heightmap = build_bin_heightmap(
+                        d_o, seg_o, K_o, T_wc, cfg.bin_center, cfg.bin_inner_half,
+                        exclude_seg_id=int(sid))
+                    place_pose = placement_planner.plan(footprint, heightmap)
+                except ValueError as e:
+                    print(f'[placement] heightmap build failed: {e}')
+            if place_pose is None:
+                print('[placement] footprint/slot search failed for object '
+                      f'{int(sid)} — falling back to the fixed bin drop point')
             # ground-truth grasp offset (sim-only diagnostic): where the
             # target body ACTUALLY is in the grasp frame at execution time —
             # x=closing, y=across fingers, z=approach (fingers sweep
@@ -640,7 +660,13 @@ def main():
                      'score': score, 'recenter_shift_m': round(shift, 4),
                      'gt_offset_grasp_frame': gt_off, 'pick': res}
             if res['success']:
-                entry['place'] = executor.place(drop)
+                if place_pose is not None:
+                    release_z = compute_release_z(place_pose, T_world_grasp, footprint)
+                    entry['place'] = executor.place(
+                        place_pose.x, place_pose.y, release_z, place_pose.yaw)
+                else:
+                    entry['place'] = executor.place(
+                        drop[0], drop[1], drop[2] + PLACE_RELEASE)
                 entry['in_bin'] = body in gen.objects_in_bin()
                 if entry['in_bin']:
                     print(f"[pick-all]   pick OK (raised {res['object_raised_m']} m)"
@@ -735,13 +761,35 @@ def main():
                 if shift:
                     print(f'[recenter] grasp shifted {shift * 1e3:+.1f} mm '
                           'along the closing axis')
+
+            footprint = compute_object_footprint(depth, segmap, int(sid), K, T_world_cam)
+            place_pose = None
+            if footprint is not None:
+                try:
+                    heightmap = build_bin_heightmap(
+                        depth, segmap, K, T_world_cam, cfg.bin_center,
+                        cfg.bin_inner_half, exclude_seg_id=int(sid))
+                    place_pose = OccupancyPlacementPlanner(
+                        cfg.bin_center, cfg.bin_inner_half).plan(footprint, heightmap)
+                except ValueError as e:
+                    print(f'[placement] heightmap build failed: {e}')
+            if place_pose is None:
+                print('[placement] footprint/slot search failed for object '
+                      f'{int(sid)} — falling back to the fixed bin drop point')
             body = label_to_body[int(sid)]
             print(f'[execute] attempt {attempt}/{len(ranked)}: object {int(sid)} '
                   f'({body}), score {score:.3f}')
             res = executor.execute(T_world_grasp, target_body=body)
             res.update(object=int(sid), score=score, recenter_shift_m=round(shift, 4))
             if res['success']:
-                res['place'] = executor.place(gen.bin_drop_point())
+                if place_pose is not None:
+                    release_z = compute_release_z(place_pose, T_world_grasp, footprint)
+                    res['place'] = executor.place(
+                        place_pose.x, place_pose.y, release_z, place_pose.yaw)
+                else:
+                    drop = gen.bin_drop_point()
+                    res['place'] = executor.place(
+                        drop[0], drop[1], drop[2] + PLACE_RELEASE)
                 res['in_bin'] = body in gen.objects_in_bin()
             exec_results.append(res)
             print(f'[execute]   -> {res}')
