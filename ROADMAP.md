@@ -110,8 +110,43 @@ deployable. No novelty for novelty's sake.
       of the short-object case specifically — the qualitative result (a
       real, previously-unvalidated 12mm blind spot is now checked) is the
       more meaningful takeaway.
+- [x] **DiffIK elbow-flip fix (2026-08-21), found via live/manual testing
+      feedback ("some poses are reached so weirdly"):**
+      `DiffIK.solve()` tries 4 seeds per solve (the caller's actual current
+      joint config, a canonical elbow-down pose, two random perturbations)
+      and picked whichever *converged* result had the lowest position
+      error — with no penalty for jumping to a very different
+      elbow/shoulder posture. Since "converged" already means "good
+      enough" (within 2x the tight tolerance), this silently discarded
+      perfectly fine continuity with the arm's current pose whenever a
+      differently-postured seed happened to be marginally more accurate,
+      causing a visible elbow flip between waypoints (pre-grasp → grasp →
+      lift → transit → release) within the same pick sequence. Fixed:
+      extracted the seed-selection decision into
+      `_pick_best_seed_result()` — if the current-pose-seeded (`q_init`)
+      result converges at all, it wins unconditionally; only fall through
+      to comparing the other seeds if `q_init` itself fails to converge.
+      Regression-tested with 5 synthetic scenarios in the new
+      `test_executor_seed_selection.py` (tight convergence, loose
+      convergence with a more-accurate competitor present, q_init failing
+      entirely, nothing converging, single-result list), mirroring how
+      `_ease()` was already pulled out of `_step_to` for unit-testability
+      without a live MuJoCo model. **Validation (2026-08-21, same 10-seed
+      GraspGen/fused config as the last recorded baseline): 30/30 binned
+      (100%)**, 0 knocked off table — matches the prior
+      placement-pose-robustness baseline exactly, so the fix costs no
+      throughput. Visually confirmed the actual symptom is gone: sampled
+      7 frames spanning a full 5-round `--pick-all` sequence (seed 2, the
+      run with the most retries) and the elbow stayed in a consistent
+      posture throughout, with no flip to a mirrored/different
+      configuration at any waypoint transition.
 - [ ] Filtering: neighbor-object collision check (table collision exists),
       workspace-reachability pre-filter
+- [ ] Nullspace redundancy resolution for DiffIK (continuous joint-space
+      bias toward the current posture throughout DLS iteration, not just
+      at seed selection) — considered as a follow-up to the elbow-flip fix
+      above but deferred pending confirmation the seed-selection fix alone
+      is sufficient in practice.
 
 ## P2 — Multi-camera perception  [DONE 2026-06-11 except A/B verdict]
 - New calibrated side camera available: `mujoco_grasp_sim/calibration_result.yaml`
