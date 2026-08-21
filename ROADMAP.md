@@ -390,7 +390,13 @@ note for the full reality-check.
       cuboids in one seed) only checked SAM 3's single top-scoring match,
       which could be an object a prior step already placed — fixed by
       trying every match by descending score until one resolves to an
-      object still on the table.
+      object still on the table. A third bug, found by task review rather
+      than live testing, was fixed the same way: the `near` relation's
+      first-pass implementation dropped the design's location filter,
+      taking SAM 3's top-scoring match unconditionally instead of first
+      restricting to candidates whose centroid is actually inside the bin
+      — fixed with a regression test covering the exact failure mode (see
+      the design spec's Implementation notes for detail).
       **Live smoke test results:** a single-step instruction ("Pick up any
       cube and place it in the center of the bin.", seed 0, GraspGen/fused)
       parsed to exactly one step and picked exactly one object, then
