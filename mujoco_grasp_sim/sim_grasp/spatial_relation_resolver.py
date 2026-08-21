@@ -63,15 +63,23 @@ def resolve(place_relation: str, place_reference: 'str | None',
             print(f'[spatial-relation] no match for "near {place_reference}" -- '
                  'falling back to unbiased placement')
             return None
-        idx = int(np.argmax(result.scores))
-        mask = result.masks[idx]
-        pts_cam = depth_to_pointcloud(depth, K, mask=mask)
-        if len(pts_cam) == 0:
-            print(f'[spatial-relation] "near {place_reference}" matched a mask with '
-                 'no valid depth -- falling back to unbiased placement')
+        # Only consider matches whose centroid is actually inside the bin --
+        # otherwise an identical-looking object still on the table could be
+        # mistaken for the already-placed reference object.
+        in_bin_candidates = []
+        for i in range(len(result.scores)):
+            pts_cam = depth_to_pointcloud(depth, K, mask=result.masks[i])
+            if len(pts_cam) == 0:
+                continue
+            pts_world = transform_points(T_world_cam, pts_cam)
+            ccx, ccy = float(pts_world[:, 0].mean()), float(pts_world[:, 1].mean())
+            if np.hypot(ccx - bx, ccy - by) <= bin_inner_half:
+                in_bin_candidates.append((float(result.scores[i]), ccx, ccy))
+        if not in_bin_candidates:
+            print(f'[spatial-relation] no in-bin match for "near {place_reference}" '
+                 '-- falling back to unbiased placement')
             return None
-        pts_world = transform_points(T_world_cam, pts_cam)
-        cx, cy = float(pts_world[:, 0].mean()), float(pts_world[:, 1].mean())
+        _, cx, cy = max(in_bin_candidates, key=lambda c: c[0])
         # Clamp so the sub-region stays fully inside the full bin's own bounds
         # -- unlike left_of/right_of/center, an arbitrary detected centroid
         # near an edge needs this explicit clamp (see design spec).

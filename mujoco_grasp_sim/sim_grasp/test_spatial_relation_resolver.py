@@ -108,4 +108,31 @@ planner = resolve('near', 'nonexistent object', BIN_CENTER, BIN_INNER_HALF,
                   prompt_selector=_EmptyFakeSelector())
 assert planner is None
 
+# "near" must reject a higher-scoring match whose centroid is OUTSIDE the
+# bin (an identical-looking object still on the table) in favor of a
+# lower-scoring match actually inside the bin -- regression test for a
+# review finding: the first implementation picked the single top-scoring
+# match unconditionally, with no location filter.
+fx2 = fy2 = 10.0
+K2 = np.array([[fx2, 0, cx], [0, fy2, cy], [0, 0, 1]], dtype=np.float32)
+depth2 = np.full((H, W), 0.25, dtype=np.float32)
+mask_outside = np.zeros((H, W), dtype=bool)
+mask_outside[9:11, 15:17] = True   # world x offset ~0.125-0.15m -> outside bin_inner_half=0.12
+mask_inside = mask                # reused: world offset ~0.01m under K2 -> inside the bin
+
+class _TwoCandidateSelector:
+    def select(self, rgb, prompt=None, work_dir='.'):
+        return _FakeSelectionResult(
+            masks=np.array([mask_outside, mask_inside]),
+            scores=np.array([0.99, 0.80], dtype=np.float32))  # outside scores HIGHER
+
+planner = resolve('near', 'blue cube', BIN_CENTER, BIN_INNER_HALF,
+                  T_world_cam_topdown, rgb=rgb, depth=depth2, K=K2,
+                  prompt_selector=_TwoCandidateSelector())
+assert planner is not None
+pose = planner.plan(small_footprint, empty_map)
+assert pose is not None
+assert abs(pose.x - BIN_CENTER[0]) < 0.03 and abs(pose.y - BIN_CENTER[1]) < 0.03, \
+    f'expected the in-bin (lower-scoring) match to win, got ({pose.x}, {pose.y})'
+
 print('All spatial_relation_resolver near-relation checks passed.')

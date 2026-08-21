@@ -276,9 +276,10 @@ contract stays simple: "a scoped planner, or None."
 Implementation matched this design's module boundaries and interfaces
 exactly (`instruction_parser.py`, `spatial_relation_resolver.py`, and the
 `--pick-all` wiring all landed as specified, including the square-only
-sub-region geometry and the 3-attempt retry budget). Two behaviors were
-refined beyond what this doc originally described, both found via the
-mandatory live smoke test (Testing item 3) rather than anticipated here:
+sub-region geometry and the 3-attempt retry budget). Three behaviors were
+refined beyond what this doc's first-pass implementation did, two found
+via the mandatory live smoke test (Testing item 3) and one found by task
+review reading the diff against this doc:
 
 - **Step advancement was underspecified.** This doc's round-loop
   description covered *failing* to match a step (advance after 3 misses)
@@ -296,8 +297,20 @@ mandatory live smoke test (Testing item 3) rather than anticipated here:
   score, taking the first that resolves to an object still on the table,
   rather than only the single highest-scoring one — otherwise the
   top match can be an object a *previous* step already placed.
+- **The `near` relation's first-pass implementation dropped this doc's
+  location filter.** This doc specifies keeping only masks whose
+  centroid falls inside the bin before ranking by score; the first
+  implementation instead took the single top-scoring match
+  unconditionally, which could resolve to an identical-looking object
+  still on the table rather than the actually-placed reference (found by
+  task review, not the original unit tests, which only exercised a
+  single in-bin candidate). Fixed to match this doc: candidates are
+  filtered to those within `bin_inner_half` of `bin_center` first, then
+  the highest-scoring survivor is used. A regression test (two
+  candidates, the out-of-bin one scored higher) was added to
+  `test_spatial_relation_resolver.py`.
 
-Both are refinements of the specified behavior, not departures from it
-(the design's stated *intent* — one step per object, resolved against the
-current table state — is what the fixes actually enforce); no other
-divergence was found.
+All three are refinements toward the specified behavior, not accepted
+departures from it (the design's stated *intent* — one step per object,
+resolved against the current table state, with `near` matching only
+already-placed objects — is what the fixes actually enforce).
