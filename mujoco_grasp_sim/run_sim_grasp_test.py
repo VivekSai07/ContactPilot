@@ -242,6 +242,13 @@ def main():
                     help='only grasp THIS object (segmentation instance id, '
                          'see the printed per-object table / observation.png). '
                          'Works with --execute and --pick-all.')
+    ap.add_argument('--instruction', type=str, default=None,
+                    help='natural-language pick-and-place instruction '
+                         '(e.g. "pick the blue cube first and put it on '
+                         'the left, then the red one on the right"). '
+                         'Requires --pick-all and NVIDIA_API_KEY (see '
+                         '.env.example). Parsed once via NIM before the '
+                         'round loop starts.')
     prompt_group = ap.add_mutually_exclusive_group()
     prompt_group.add_argument('--prompt', type=str, default=None,
                     help='select the target object by text description '
@@ -286,6 +293,11 @@ def main():
         sys.exit('[prompt] --pick-all and --prompt/--click/--box are mutually '
                  'exclusive — promptable selection targets a single object; '
                  '"pick all objects matching X" is not supported.')
+    if args.instruction is not None and not args.pick_all:
+        sys.exit('[instruction] --instruction requires --pick-all')
+    if args.instruction is not None and (args.prompt or args.click or args.box):
+        sys.exit('[instruction] --instruction and --prompt/--click/--box are '
+                 'mutually exclusive — the instruction itself selects objects.')
 
     save_dir = Path(args.save_dir) if args.save_dir else \
         Path(__file__).parent / 'output' / time.strftime('%Y%m%d_%H%M%S')
@@ -555,12 +567,27 @@ def main():
         label_of = {name: i + 1 for i, name in enumerate(gen.object_names)}
         drop = gen.bin_drop_point()   # kept only as the legacy fallback target
         placement_planner = OccupancyPlacementPlanner(cfg.bin_center, cfg.bin_inner_half)
+        steps = None
+        if args.instruction:
+            from sim_grasp.instruction_parser import parse_instruction
+            steps = parse_instruction(args.instruction)
+            print(f'[instruction] parsed {len(steps)} step(s):')
+            for s in steps:
+                print(f'  [{s.step}] pick {s.pick_target!r} -> '
+                     f'{s.place_relation} {s.place_reference!r}')
+        step_idx = 0            # index into `steps` of the currently-active step
+        step_miss_count = 0     # consecutive rounds the active step failed to match
+        instr_selector = None
+        if steps is not None:
+            from sim_grasp.prompt_selector import PromptSelector, resolve_real_label
+            instr_selector = PromptSelector(sam3_python=args.sam3_python)
         n_total = len(on_table)
         fail_count: dict[str, int] = {}
         rounds_log = []
         max_rounds = n_total + 3   # each round costs a CGN subprocess (~30 s)
         cur = (grasps_cam, scores, T_world_cam)   # round 1 reuses initial CGN run
         obs = (depth, segmap, K)   # observation behind the current grasps
+        cur_rgb = rgb              # this round's RGB (for --instruction SAM 3 matching)
         low_thres = False          # last-resort CGN thresholds for hard objects
         # (this arg_configs-based escalation only affects --backend cgn; it's a
         # no-op for --backend graspgen, which has its own --grasp-threshold knob)
@@ -575,6 +602,7 @@ def main():
                 if args.clean_depth:
                     depth_r = clean_depth(depth_r, K_r, T_wc)
                 obs = (depth_r, segmap_r, K_r)
+                cur_rgb = rgb_r
                 cfgs_r = (['TEST.first_thres:0.08', 'TEST.second_thres:0.08']
                           if low_thres else arg_configs)
                 if fused:
@@ -602,7 +630,47 @@ def main():
             if not remaining:
                 print(f'[pick-all] round {rnd}: nothing left to pick')
                 break
-            allowed = {label_of[n] for n in remaining}
+
+            active_step = None
+            if steps is not None:
+                while step_idx < len(steps):
+                    active_step = steps[step_idx]
+                    result = instr_selector.select(cur_rgb, prompt=active_step.pick_target)
+                    matched_label = None
+                    if not result.is_empty:
+                        # multiple matches for an ambiguous description (e.g.
+                        # several identical-looking objects) are common --
+                        # try candidates by descending score until one is
+                        # still on the table, rather than only checking the
+                        # single top match (which could be an object this
+                        # same description already matched and placed).
+                        remaining_labels = {label_of[n] for n in remaining}
+                        for idx in np.argsort(result.scores)[::-1]:
+                            candidate_label = resolve_real_label(obs[1], result.masks[idx])
+                            if candidate_label is not None and candidate_label in remaining_labels:
+                                matched_label = candidate_label
+                                break
+                    if matched_label is not None:
+                        allowed = {matched_label}
+                        step_miss_count = 0
+                        break
+                    step_miss_count += 1
+                    print(f'[instruction] step {active_step.step} '
+                         f'({active_step.pick_target!r}) not matched — '
+                         f'attempt {step_miss_count}/3')
+                    if step_miss_count < 3:
+                        allowed = set()   # retry the same step next round
+                        break
+                    step_miss_count = 0
+                    step_idx += 1         # give up on this step, try the next
+                    active_step = None
+                else:
+                    print(f'[pick-all] round {rnd}: no instruction steps left to resolve')
+                    break
+                if not allowed:
+                    continue   # retry the same (still-active) step next round
+            else:
+                allowed = {label_of[n] for n in remaining}
             cand = [(rk, sid, i) for rk, sid, i in
                     rank_candidates(g_r, s_r, T_wc, model, data, label_to_body)
                     if int(sid) in allowed]
@@ -641,7 +709,17 @@ def main():
                     heightmap = build_bin_heightmap(
                         d_o, seg_o, K_o, T_wc, cfg.bin_center, cfg.bin_inner_half,
                         exclude_seg_id=int(sid))
-                    place_pose = placement_planner.plan(footprint, heightmap)
+                    if active_step is not None and active_step.place_relation != 'none':
+                        from sim_grasp.spatial_relation_resolver import resolve as resolve_relation
+                        scoped_planner = resolve_relation(
+                            active_step.place_relation, active_step.place_reference,
+                            cfg.bin_center, cfg.bin_inner_half, T_wc,
+                            rgb=cur_rgb, depth=d_o, K=K_o,
+                            prompt_selector=instr_selector, work_dir=save_dir)
+                        if scoped_planner is not None:
+                            place_pose = scoped_planner.plan(footprint, heightmap)
+                    if place_pose is None:
+                        place_pose = placement_planner.plan(footprint, heightmap)
                 except ValueError as e:
                     print(f'[placement] heightmap build failed: {e}')
             if place_pose is None:
@@ -682,6 +760,13 @@ def main():
                       f"{res.get('object_raised_m', 'n/a')}) — attempt "
                       f'{fail_count[body]}/3 for {body}')
             rounds_log.append(entry)
+            if active_step is not None and entry.get('in_bin'):
+                # this step's target is successfully binned -- move on to
+                # the next instruction step; a failed pick/miss instead
+                # retries the SAME step next round via the existing
+                # per-body fail_count budget above.
+                step_idx += 1
+                step_miss_count = 0
 
         in_bin = gen.objects_in_bin()
         left = [n for n in gen.objects_on_table() if n not in in_bin]

@@ -725,9 +725,19 @@ Replace it with:
                     result = instr_selector.select(cur_rgb, prompt=active_step.pick_target)
                     matched_label = None
                     if not result.is_empty:
-                        idx = int(np.argmax(result.scores))
-                        matched_label = resolve_real_label(obs[1], result.masks[idx])
-                    if matched_label is not None and matched_label in {label_of[n] for n in remaining}:
+                        # multiple matches for an ambiguous description (e.g.
+                        # several identical-looking objects) are common --
+                        # try candidates by descending score until one is
+                        # still on the table, rather than only checking the
+                        # single top match (which could be an object this
+                        # same description already matched and placed).
+                        remaining_labels = {label_of[n] for n in remaining}
+                        for idx in np.argsort(result.scores)[::-1]:
+                            candidate_label = resolve_real_label(obs[1], result.masks[idx])
+                            if candidate_label is not None and candidate_label in remaining_labels:
+                                matched_label = candidate_label
+                                break
+                    if matched_label is not None:
                         allowed = {matched_label}
                         step_miss_count = 0
                         break
@@ -752,10 +762,17 @@ Replace it with:
 
 This mirrors the existing `fail_count`-based 3-attempt retry budget:
 `step_miss_count` increments per round the active step's `pick_target`
-doesn't resolve to an object still on the table; after 3 misses the
-pointer permanently advances to the next step (a transient miss — one
-round's occlusion — gets retried on the next round's fresh observation
-first). With no `--instruction`, `steps is None` and this is exactly
+doesn't resolve to any *remaining* object; after 3 misses the pointer
+permanently advances to the next step (a transient miss — one round's
+occlusion — gets retried on the next round's fresh observation first).
+Trying every match by descending score (not just the top one) matters in
+practice: this project's scenes can spawn multiple objects with the same
+short description (e.g. three green cuboids), so SAM 3 legitimately
+returns several matches for one `pick_target`, and the single
+highest-scoring one can be an object a *previous* step already picked and
+placed — found via this task's own Step 7 live smoke test, not the unit
+tests, since ambiguous-description scenes need a real multi-object run to
+surface. With no `--instruction`, `steps is None` and this is exactly
 today's `allowed = {label_of[n] for n in remaining}` — unchanged.
 
 - [ ] **Step 4 done**
@@ -802,6 +819,25 @@ Replace it with:
 
 (When `steps is None`, `active_step` is always `None`, so this is exactly
 today's single `placement_planner.plan(...)` call — unchanged.)
+
+Find `rounds_log.append(entry)` (right after the pick/place
+success/failure logging) and add immediately after it:
+
+```python
+            rounds_log.append(entry)
+            if active_step is not None and entry.get('in_bin'):
+                # this step's target is successfully binned -- move on to
+                # the next instruction step; a failed pick/miss instead
+                # retries the SAME step next round via the existing
+                # per-body fail_count budget above.
+                step_idx += 1
+                step_miss_count = 0
+```
+
+Without this, `step_idx` never advances after a *successful* pick — the
+same step would be retried forever against whatever objects remain on the
+table (this was caught by Step 7's live smoke test, not by the earlier
+unit tests, since none of them exercise more than one round).
 
 - [ ] **Step 5 done**
 
