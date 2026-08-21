@@ -8,7 +8,6 @@ in-process code path here.
 """
 
 import os
-import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -75,9 +74,10 @@ class GraspGenPredictor(GraspPredictor):
                '--gripper-config', str(self.gripper_config),
                '--num-grasps', str(self.num_grasps),
                '--grasp-threshold', str(self.grasp_threshold)]
-        r = subprocess.run(cmd)
-        if r.returncode != 0 or not out_f.exists():
-            raise RuntimeError(f'GraspGen worker failed (exit code {r.returncode})')
+        from sim_grasp.subprocess_utils import run_worker
+        returncode = run_worker(cmd)
+        if returncode != 0 or not out_f.exists():
+            raise RuntimeError(f'GraspGen worker failed (exit code {returncode})')
         parts = {'grasps': {}, 'scores': {}, 'contacts': {}}
         with np.load(out_f) as z:
             for k in z.files:

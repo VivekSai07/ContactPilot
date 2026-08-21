@@ -7,7 +7,6 @@ no in-process code path here, matching GraspGenPredictor's isolation
 pattern in sim_grasp/graspgen_predictor.py.
 """
 import os
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -119,9 +118,10 @@ class PromptSelector:
             cmd += ['--box', f'{box[0]},{box[1]},{box[2]},{box[3]}']
         cmd += ['--click-radius-px', str(self.click_radius_px)]
 
-        r = subprocess.run(cmd)
-        if r.returncode != 0 or not out_f.exists():
-            raise RuntimeError(f'SAM 3 worker failed (exit code {r.returncode})')
+        from sim_grasp.subprocess_utils import run_worker
+        returncode = run_worker(cmd)
+        if returncode != 0 or not out_f.exists():
+            raise RuntimeError(f'SAM 3 worker failed (exit code {returncode})')
 
         with np.load(out_f) as z:
             result = SelectionResult(masks=z['masks'], scores=z['scores'], boxes=z['boxes'])
