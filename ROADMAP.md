@@ -439,4 +439,28 @@ note for the full reality-check.
     grounded and picked both (2/3 binned, 152-frame `execution.gif` —
     previously a 2-frame no-op when the instruction's color didn't exist
     in the scene).
+  - **Quiet worker subprocess output (2026-08-21, found via the user
+    manually running `--instruction` and reporting the terminal was
+    "fully messy"):** `cgn_worker.py`/`graspgen_worker.py`/
+    `sam3_worker.py` ran with no output capture and no suppression before
+    importing their heavy third-party dependencies, so a normal
+    successful run was flooded with `FutureWarning`/`UserWarning`
+    deprecation noise (timm, spconv, `pkg_resources`, GraspGen's tensor
+    construction) and INFO-level third-party logging (`grasp_gen.*`,
+    `OpenGL.acceleratesupport`, `torch.fx._symbolic_trace`'s one-time
+    warning), interleaved with this project's own `[bracket]` prints.
+    Confirmed by direct source inspection that all of it is plain
+    `warnings.warn()`/stdlib `logging` (no PyTorch C++/glog env var
+    needed, despite the glog-style timestamp prefix on the `torch.fx`
+    line). Fixed: a shared `sim_grasp/subprocess_utils.run_worker()`
+    replaces the three near-identical `subprocess.run(cmd)` call sites,
+    capturing output and only surfacing it on a nonzero exit code; each
+    worker script gets a suppression guard (filters the known warning
+    categories, raises the known noisy logger namespaces to `ERROR`)
+    before any other import. A new `run_sim_grasp_test.py --verbose` flag
+    sets `SIM_GRASP_VERBOSE`, restoring the original full output for
+    debugging. Live-verified: the exact instruction that originally
+    produced ~250 lines of noise now prints only this project's own
+    `[bracket]` lines by default, and `--verbose` reproduces the original
+    full output unchanged.
 
