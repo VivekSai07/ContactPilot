@@ -176,7 +176,23 @@ deployable. No novelty for novelty's sake.
       considered during the same brainstorming session but deferred as
       more invasive (requires a real geometric check of what "in the
       frustum" means) and better proven-in-need after this smoothing fix
-      is confirmed sufficient in practice.
+      is confirmed sufficient in practice. Note: `go_observe()` isn't only
+      about frustum clearance — it also resets the arm to a known posture
+      that becomes the IK seed (`q_now`) for the next pick's pre-grasp
+      solve, which directly interacts with the DiffIK elbow-flip fix above
+      (continuity-first seed selection). Skipping the detour would change
+      what that seed is, so this follow-up needs to account for IK-seeding
+      behavior, not just visibility.
+- [ ] Audit the remaining linear (non-`smooth`) `_step_to()` call sites in
+      `GraspExecutor.execute()` (the pre-grasp→grasp→lift sequence) for the
+      same abrupt-junction pattern just fixed for the retract→observe
+      transition — in particular the pre-grasp move directly into the
+      grasp-approach move (no hold between them, both linear today) is the
+      clearest remaining instance and may be more visually noticeable than
+      the one just fixed, since both are large arm motions. Not fixed here
+      because these motions have their own established anti-slip rationale
+      (2026-06-14 P1 friction/gentle-closing work) that a smoothing change
+      should be validated against separately, not bundled into this fix.
 - [ ] Filtering: neighbor-object collision check (table collision exists),
       workspace-reachability pre-filter
 - [ ] Nullspace redundancy resolution for DiffIK (continuous joint-space
