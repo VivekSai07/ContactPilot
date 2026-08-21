@@ -90,8 +90,59 @@ Strictly two-phase, sequential — full detail in `ROADMAP.md` P8:
 
 Option B (ReflectVLM as originally proposed) remains rejected.
 
+## Phase 1 model choice: `meta/llama-3.1-8b-instruct` via NVIDIA NIM (2026-08-21)
+
+Ran an empirical bake-off (`docs/research/bakeoff_instruction_parser.py`,
+standalone/stdlib-only, no new conda-env dependency) across NVIDIA's
+`build.nvidia.com` free-tier catalog against 8 representative test
+instructions (single-object, multi-step, "stack" requests, attribute
+sorting).
+
+**Decisive factor**: each model's NIM card has an explicit "Capabilities"
+section. Only `meta/llama-3.1-8b-instruct` is confirmed **"Structured
+Output: Supported"** — `mistralai/mistral-nemotron`,
+`nvidia/nemotron-3-nano-30b-a3b`, `meta/llama-3.3-70b-instruct`, and
+`nvidia/llama-3.1-nemotron-nano-8b-v1` are all confirmed **"Structured
+Output: Not supported"**.
+
+Empirical results confirmed this matters in practice, not just on paper:
+
+| Model | valid_json | valid_schema | avg latency | errors |
+|---|---|---|---|---|
+| `meta/llama-3.1-8b-instruct` (+ `response_format=json_object`) | 8/8 | 8/8 | **~0.7s** | 0 |
+| `mistralai/mistral-nemotron` | 8/8 | 8/8 | 19.7s (worst case 124.5s) | 500 Internal Server Error |
+| `nvidia/nemotron-3-nano-30b-a3b` | 7/8 | 7/8 | 6.9s | 503 Service Unavailable (x3), one response leaked its reasoning trace as plain text instead of JSON |
+
+`response_format={"type": "json_object"}` requires a top-level JSON
+**object**, not a bare array — the schema is `{"steps": [...]}`, not a
+top-level array (an early attempt at a top-level array silently collapsed
+multi-step instructions to a single step). One round of system-prompt
+refinement (explicit "one step per distinct object, never repeat the same
+pick_target" + a negative example) fixed an object-duplication quirk seen
+in round 1.
+
+**Decision**: Phase 1 uses `meta/llama-3.1-8b-instruct` via NVIDIA's
+OpenAI-compatible NIM endpoint (`https://integrate.api.nvidia.com/v1`),
+with `response_format={"type": "json_object"}`, and the system prompt now
+committed in `docs/research/bakeoff_instruction_parser.py`. No local
+model/VRAM footprint at all (0MB, matches the "cloud API" option from
+`ROADMAP.md` P8). Requires `NVIDIA_API_KEY` in a local `.env` (gitignored,
+see `.env.example`).
+
+**Known minor residual quirk**: for a literal "stack X on Y" instruction,
+the parser sometimes emits a spurious extra step for the *reference*
+object Y (as if it also needed picking). Low risk in practice — Phase 1's
+planned pipeline already skips/logs a warning for any `pick_target` that
+doesn't resolve to an object still on the table, so a phantom re-pick of
+an already-placed object degrades gracefully rather than breaking anything.
+Not chased further with more prompt iterations (diminishing returns).
+
 ## Next step (not yet done)
 
-Flesh out Phase 1 (Option A)'s architecture in detail (exact module
+Flesh out Phase 1 (Option A)'s full architecture in detail (exact module
 boundaries, data flow, error handling, testing) and get it approved as a
-proper design before writing a spec/plan under `docs/superpowers/`.
+proper design before writing a spec/plan under `docs/superpowers/`. Model
+choice above is settled; remaining open architecture pieces are the
+spatial-relation-to-sub-region resolver and the `--instruction` CLI wiring
+into `run_sim_grasp_test.py --pick-all` (see the in-chat brainstorm for the
+sketch -- not yet written to a spec doc).

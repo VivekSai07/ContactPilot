@@ -21,6 +21,11 @@ contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/log/
 # Untracked personal notes/scratch docs (not part of the repo's documented baselines)
 notes/
 
+# Local secrets (API keys etc.) -- never commit
+.env
+.env.*
+!.env.example
+
 # OS
 .DS_Store
 Thumbs.db
