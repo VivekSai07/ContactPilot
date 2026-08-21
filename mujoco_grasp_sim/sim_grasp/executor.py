@@ -80,6 +80,14 @@ TOPDOWN_HAND_R = np.array([[1.0, 0.0, 0.0],    # canonical hand-down pose,
                            [0.0, 0.0, -1.0]])  # place IK
 
 
+def _ease(t: float, smooth: bool) -> float:
+    """Interpolation parameter for _step_to: linear (smooth=False) or a
+    smoothstep ease-in-ease-out curve (smooth=True, zero velocity at t=0
+    and t=1) -- pulled out as its own function so the easing math is
+    unit-testable without a live MuJoCo model."""
+    return (3 * t ** 2 - 2 * t ** 3) if smooth else t
+
+
 def _candidate_hand_orientations(R_cur: np.ndarray, yaw: float) -> tuple:
     """Ordered hand-orientation candidates for place(): (1) current hand
     orientation as-is, (2) canonical top-down rotated by `yaw` about world
@@ -202,14 +210,19 @@ class GraspExecutor:
 
     # -- low-level motion helpers ---------------------------------------------
     def _step_to(self, q_target: np.ndarray, duration: float,
-                 gripper_ctrl: float | None = None):
-        """Linearly interpolate joint position references over `duration`
-        seconds of sim time; the position servos do the tracking."""
+                 gripper_ctrl: float | None = None, smooth: bool = False):
+        """Interpolate joint position references over `duration` seconds of
+        sim time; the position servos do the tracking. `smooth=True` uses
+        a smoothstep ease-in-ease-out profile (zero velocity at both ends)
+        instead of linear interpolation -- linear interpolation has an
+        instantaneous velocity jump at t=0, a real cause of a held object
+        slipping right as a transit move begins."""
         model, data = self.model, self.data
         n = max(1, int(duration / model.opt.timestep))
         q_start = data.ctrl[:7].copy()
         for i in range(n):
-            a = (i + 1) / n
+            t = (i + 1) / n
+            a = _ease(t, smooth)
             data.ctrl[:7] = (1 - a) * q_start + a * q_target
             if gripper_ctrl is not None:
                 data.ctrl[7] = gripper_ctrl
@@ -341,8 +354,12 @@ class GraspExecutor:
             return {'placed': False, 'stage': 'ik_place'}
 
         ik_pre, ik_rel = plan
-        self._step_to(ik_pre.qpos, 2.2, gripper_ctrl=GRIPPER_CLOSED)   # transit
-        self._step_to(ik_rel.qpos, 1.0, gripper_ctrl=GRIPPER_CLOSED)   # lower
+        # smooth=True only for the two motions performed while still
+        # holding the object -- linear interpolation's instant velocity
+        # jump at the start of a move is a real cause of slip; release and
+        # retract happen open-handed, so they're left as linear.
+        self._step_to(ik_pre.qpos, 2.2, gripper_ctrl=GRIPPER_CLOSED, smooth=True)   # transit
+        self._step_to(ik_rel.qpos, 1.0, gripper_ctrl=GRIPPER_CLOSED, smooth=True)   # lower
         self._hold(0.2)
         self._step_to(ik_rel.qpos, 0.6, gripper_ctrl=GRIPPER_OPEN)     # release
         self._hold(0.4)
