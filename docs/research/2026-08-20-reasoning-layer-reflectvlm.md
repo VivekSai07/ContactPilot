@@ -146,3 +146,11 @@ and `docs/superpowers/plans/2026-08-21-reasoning-layer-phase1.md` for the
 implementation record, including two bugs found and fixed via live smoke
 testing. Results summarized in `ROADMAP.md` P8. Phase 2 (Option C) remains
 un-started, gated on Phase 1 proving insufficient in practice.
+
+A follow-up usability fix landed the same day, found while manually
+running `--instruction` end to end: scene objects previously got random
+RGBA, making instruction text like "the red cube" unreliable to write
+(and occasionally impossible, if no object was actually that color).
+Fixed to a deterministic red/green/blue-first palette
+(`color_utils.object_color`) — see `ROADMAP.md` P8's dated bullet for
+detail.

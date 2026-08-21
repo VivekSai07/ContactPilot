@@ -417,4 +417,26 @@ note for the full reality-check.
       Phase 2 (Option C, a vision+language model) remains un-started,
       gated on Phase 1 proving insufficient in practice, per the two-phase
       sequencing decision above.
+  - **Fixed, distinguishable object colors (2026-08-21, found via the
+    user manually running `--instruction` end to end):** scene objects
+    previously got fully random RGBA (`scene_generator.py`'s old
+    `_rand_rgba`), which frequently produced ambiguous or duplicate-ish
+    colors (e.g. two shades of blue, no red in a given seed) — making
+    instruction text like "the red cube" impossible to write correctly
+    without first inspecting `observation.png`, and a live test with seed
+    2 genuinely had no green object at all, so `"pick a green cube..."`
+    correctly (but unhelpfully) matched nothing 6/6 attempts. Fixed:
+    `color_utils.object_color(index)` assigns a fixed, deterministic
+    (name, rgba) per spawn index — red/green/blue first, for the default
+    3-object scene — using the same reference RGB `rgb_to_color_name`
+    matches against, so it always round-trips correctly.
+    `run_sim_grasp_test.py` now prints `[scene] object colors: obj_0=red,
+    obj_1=green, obj_2=blue` right after scene generation, so an
+    `--instruction` can be written correctly without opening
+    `observation.png` first. Live-tested: seed 2 now deterministically
+    spawns red/green/blue; `"Pick the red cube first and put it on the
+    left, then pick the green cube and put it on the right."` correctly
+    grounded and picked both (2/3 binned, 152-frame `execution.gif` —
+    previously a 2-frame no-op when the instruction's color didn't exist
+    in the scene).
 
