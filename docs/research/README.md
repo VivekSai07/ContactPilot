@@ -16,4 +16,5 @@ and this file should say so (with a link) rather than duplicating it.
 
 - [2026-08-20-reasoning-layer-reflectvlm.md](2026-08-20-reasoning-layer-reflectvlm.md) —
   natural-language task instructions (pick order + relative placement) for
-  the MuJoCo pick-and-place pipeline. Status: brainstorming in progress.
+  the MuJoCo pick-and-place pipeline. Status: sequencing decided (see
+  `ROADMAP.md` P8), Phase 1 architecture not yet fully fleshed out.
