@@ -335,6 +335,8 @@ def main():
     on_table = gen.objects_on_table()
     print(f'[scene] {len(gen.object_names)} objects spawned, '
           f'{len(on_table)} on table after settling ({time.time() - t0:.1f}s)')
+    print(f"[scene] object colors: "
+          f"{', '.join(f'{n}={gen.object_colors[n]}' for n in gen.object_names)}")
 
     # ------------------------------------------------- interactive sim viewer
     if args.view_sim:

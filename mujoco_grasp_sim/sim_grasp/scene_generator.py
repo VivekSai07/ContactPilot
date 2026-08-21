@@ -123,17 +123,16 @@ class ObjectSpec:
     name: str
     xml: str            # the <body>...</body> snippet
     spawn_half_height: float
+    color_name: str = ''
 
 
-def _rand_rgba(rng):
-    c = rng.uniform(0.15, 0.95, size=3)
-    return f'{c[0]:.3f} {c[1]:.3f} {c[2]:.3f} 1'
-
-
-def _make_primitive(rng, name: str) -> ObjectSpec:
-    """Random graspable box/cuboid. Sizes chosen to fit the Panda gripper
-    (max opening 0.08 m) along at least one dimension."""
-    rgba = _rand_rgba(rng)
+def _make_primitive(rng, name: str, index: int) -> ObjectSpec:
+    """Graspable box/cuboid with a fixed, clearly distinguishable color
+    (see color_utils.object_color) -- only its size/orientation are
+    randomized. Sizes chosen to fit the Panda gripper (max opening 0.08 m)
+    along at least one dimension."""
+    from sim_grasp.color_utils import object_color
+    color_name, rgba = object_color(index)
     yaw = rng.uniform(0, 2 * np.pi)
     quat = f'{np.cos(yaw / 2):.5f} 0 0 {np.sin(yaw / 2):.5f}'
 
@@ -147,7 +146,7 @@ def _make_primitive(rng, name: str) -> ObjectSpec:
             f'<freejoint name="{name}_joint"/>'
             f'{geom}'
             f'</body>')
-    return ObjectSpec(name=name, xml=body, spawn_half_height=half_h)
+    return ObjectSpec(name=name, xml=body, spawn_half_height=half_h, color_name=color_name)
 
 
 def _list_mesh_files():
@@ -157,7 +156,7 @@ def _list_mesh_files():
                    if p.suffix.lower() in ('.stl', '.obj')])
 
 
-def _make_mesh_object(rng, name: str, mesh_path: Path) -> ObjectSpec | None:
+def _make_mesh_object(rng, name: str, mesh_path: Path, index: int) -> ObjectSpec | None:
     """Load a mesh object (e.g. a YCB model dropped into assets/objects/).
 
     The mesh is auto-scaled so its largest bounding-box dimension is <= 12 cm
@@ -177,7 +176,8 @@ def _make_mesh_object(rng, name: str, mesh_path: Path) -> ObjectSpec | None:
 
     yaw = rng.uniform(0, 2 * np.pi)
     quat = f'{np.cos(yaw / 2):.5f} 0 0 {np.sin(yaw / 2):.5f}'
-    rgba = _rand_rgba(rng)
+    from sim_grasp.color_utils import object_color
+    color_name, rgba = object_color(index)
     mesh_asset_name = f'{name}_mesh'
     # NOTE: absolute path so meshdir (which belongs to panda.xml) is bypassed.
     asset = f'<mesh name="{mesh_asset_name}" file="{mesh_path.resolve()}" scale="{scale:.5f} {scale:.5f} {scale:.5f}"/>'
@@ -185,7 +185,7 @@ def _make_mesh_object(rng, name: str, mesh_path: Path) -> ObjectSpec | None:
             f'<freejoint name="{name}_joint"/>'
             f'<geom type="mesh" mesh="{mesh_asset_name}" rgba="{rgba}" density="400"/>'
             f'</body>')
-    spec = ObjectSpec(name=name, xml=body, spawn_half_height=half_h)
+    spec = ObjectSpec(name=name, xml=body, spawn_half_height=half_h, color_name=color_name)
     spec.extra_asset = asset  # type: ignore[attr-defined]
     return spec
 
@@ -208,6 +208,7 @@ class SceneGenerator:
         self.model: mujoco.MjModel | None = None
         self.data: mujoco.MjData | None = None
         self.object_names: list[str] = []
+        self.object_colors: dict[str, str] = {}   # obj name -> fixed color name
         self.object_body_ids: dict[int, int] = {}   # mj body id -> seg label (1..N)
         self.scene_xml_path: Path | None = None
 
@@ -287,11 +288,11 @@ class SceneGenerator:
             name = f'obj_{i}'
             spec = None
             if mesh_files and self.rng.random() < self.cfg.mesh_probability:
-                spec = _make_mesh_object(self.rng, name, Path(self.rng.choice(mesh_files)))
+                spec = _make_mesh_object(self.rng, name, Path(self.rng.choice(mesh_files)), i)
                 if spec is not None and hasattr(spec, 'extra_asset'):
                     extra_assets.append(spec.extra_asset)  # type: ignore[attr-defined]
             if spec is None:
-                spec = _make_primitive(self.rng, name)
+                spec = _make_primitive(self.rng, name, i)
             specs.append(spec)
         return specs, extra_assets
 
@@ -460,6 +461,7 @@ class SceneGenerator:
         data = mujoco.MjData(model)
         self.model, self.data = model, data
         self.object_names = [s.name for s in specs]
+        self.object_colors = {s.name: s.color_name for s in specs}
 
         # Map MuJoCo body ids -> segmentation labels 1..N (0 = background)
         self.object_body_ids = {}
