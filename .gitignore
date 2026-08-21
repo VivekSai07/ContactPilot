@@ -10,7 +10,8 @@ mujoco_grasp_sim/output/
 mujoco_grasp_sim/graspgen_checkpoints/
 
 # Regenerated on every sim run (random spawn poses, not meant to be committed)
-mujoco_menagerie/franka_emika_panda/_generated_scene.xml
+mujoco_grasp_sim/assets/_generated_scene.xml
+mujoco_grasp_sim/assets/_panda_sim_patched.xml
 
 # Vendored Pointnet++ example training logs/checkpoints (unrelated to this pipeline)
 contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/log/
