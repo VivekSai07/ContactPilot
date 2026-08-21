@@ -245,6 +245,49 @@ deployable. No novelty for novelty's sake.
       observed in either condition — the 3-object/24cm-bin scene rarely
       exercises them either way; a larger `--n-objects` scene would be a
       sharper differentiator for future validation.
+- [x] **Placement pose robustness fixes (2026-08-21), found via live/manual
+      testing feedback (not caught by the benchmark's success/failure
+      taxonomy, since neither symptom below always caused an outright
+      `missed_bin`/failure — just a near-miss or visible instability)**:
+      plan `docs/superpowers/plans/2026-08-21-placement-pose-robustness.md`.
+  - **Bug 1 — corner-lock:** `OccupancyPlacementPlanner.plan()`'s
+    clearance-scoring tie-break measured only distance to *other objects*,
+    which is `inf` for every candidate when the bin is empty (true for the
+    first object placed every round) — the tie-break silently defaulted to
+    the first-scanned candidate, the near-corner of the search region,
+    every single time. This is exactly why every run showed the first
+    object landing in the same bin corner, touching the wall. Fixed by
+    adding a wall-clearance term (`clearance = min(wall_clearance,
+    occ_clearance)`), restoring what the design spec always said the
+    objective should be. Regression-tested (`test_placement_planner.py`'s
+    empty-bin case now asserts a near-center placement, not just "somewhere
+    in the bin").
+  - **Bug 2 — transit slip:** `GraspExecutor._step_to()` used pure linear
+    interpolation for joint targets, which has an instantaneous velocity
+    jump at the start of every motion — a classic cause of a held object
+    slipping right as `place()`'s transit-to-hover move begins. Fixed by
+    adding an optional smoothstep ease-in-ease-out profile (`_ease()`,
+    zero velocity at both ends), applied only to `place()`'s two
+    object-carrying motions (transit, lower); the already-tuned pick
+    sequence in `execute()` and the open-handed release/retract steps are
+    untouched.
+  - **Deferred (separate future plan, not fixed here):** a third symptom
+    (short objects' fingers hitting the table during closing) was
+    root-caused to a *different* subsystem —
+    `GraspFeasibilityChecker` validates the grasp pose before
+    `execute()`'s `EXTRA_APPROACH` (12mm) deepens it further, unchecked.
+    Logged at
+    `docs/research/2026-08-21-short-object-finger-table-collision.md`.
+  - **Re-validation (2026-08-21, same 10-seed GraspGen/fused config as
+    above): 30/30 binned (100%)**, zero knocked-off-table, zero
+    `missed_bin` failures (down from 3, all clustered in one seed, in the
+    pre-fix run) — only 3 `ik_unreachable` pre-grasp retries (unrelated to
+    placement, resolved on the next round each time). A clean improvement
+    over the prior 29/30 (96.7%), though at this 3-object bin size the
+    small failure count makes it hard to call the delta itself
+    statistically decisive — the qualitative fix (no more corner-touching,
+    smoother carries) is the more meaningful result here, confirmed via
+    the live-testing feedback that motivated this fix in the first place.
 
 ## Current state (2026-08-18)
 Working end-to-end in MuJoCo sim, two grasp backends (CGN, GraspGen — P1) and
