@@ -128,6 +128,15 @@ pose = planner.plan(small_footprint, empty_map)
 assert pose is not None, 'a 3cm object must fit in an empty 24cm bin'
 assert abs(pose.release_z - 0.75) < 1e-6, f'release_z={pose.release_z}'
 assert abs(pose.x - 0.45) < 0.12 and abs(pose.y - (-0.30)) < 0.12
+# Regression test for a real bug: on an EMPTY bin every candidate had
+# infinite "clearance to nearest occupied cell" (there are no occupied
+# cells yet), so the tie-break silently picked the first-scanned candidate
+# -- the near-corner of the search region -- every single time. Fix adds a
+# wall-clearance term so an empty bin centers the placement instead. (bin
+# half-extent is 0.12m, so a corner would be off by ~0.10m from center --
+# 0.03m is a tight, meaningful "not a corner" bound.)
+assert abs(pose.x - 0.45) < 0.03 and abs(pose.y - (-0.30)) < 0.03, \
+    f'expected a near-center placement on an empty bin, got ({pose.x}, {pose.y})'
 
 # Occupy the whole left half of the bin (col < n/2) at height 0.80 (5cm
 # stack) -- planner must choose a slot on the right (unoccupied) side.

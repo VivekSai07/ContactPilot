@@ -180,8 +180,17 @@ class OccupancyPlacementPlanner(PlacementPlanner):
                               (np.abs(grid_y - cy) <= half_ey))
                     if np.any(heightmap.heights[in_box] > occupied_z):
                         continue
-                    clearance = (float(np.min(np.hypot(occ_x - cx, occ_y - cy)))
-                                 if len(occ_x) else float('inf'))
+                    # Clearance to the nearest occupied cell OR the bin
+                    # wall, whichever is smaller -- without the wall term,
+                    # an empty bin gives every candidate infinite
+                    # occupied-clearance, so the tie-break always
+                    # degenerates to the first-scanned candidate (a corner
+                    # of the search region).
+                    wall_clearance = min(cx - x_min, x_max - cx,
+                                         cy - y_min, y_max - cy)
+                    occ_clearance = (float(np.min(np.hypot(occ_x - cx, occ_y - cy)))
+                                     if len(occ_x) else float('inf'))
+                    clearance = min(wall_clearance, occ_clearance)
                     if best is None or clearance > best[0]:
                         best = (clearance, cx, cy, yaw)
 
@@ -205,11 +214,15 @@ class OccupancyPlacementPlanner(PlacementPlanner):
                 if len(cell_heights) == 0:
                     continue
                 max_h = float(np.max(cell_heights))
-                if best_fallback is None or max_h < best_fallback[0]:
-                    best_fallback = (max_h, cx, cy)
+                wall_clearance = min(cx - x_min, x_max - cx,
+                                     cy - y_min, y_max - cy)
+                if (best_fallback is None or max_h < best_fallback[0] or
+                        (max_h == best_fallback[0] and
+                         wall_clearance > best_fallback[1])):
+                    best_fallback = (max_h, wall_clearance, cx, cy)
         if best_fallback is None:
             return None
-        max_h, x, y = best_fallback
+        max_h, _, x, y = best_fallback
         print('[placement] no fully-clear slot found in the bin -- using the '
               'least-occupied region as a fallback')
         return PlacementPose(x=float(x), y=float(y), yaw=footprint.yaw,
