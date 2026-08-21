@@ -85,6 +85,31 @@ deployable. No novelty for novelty's sake.
       Mean wall time 136s/run (5-seed batch, includes a fresh GraspGen
       subprocess inference per pick-all round). GraspGen is now the
       recommended backend for further P1 reliability work.
+- [x] **Short-object finger-table collision fix (2026-08-21):**
+      `GraspFeasibilityChecker.is_feasible()` validated the originally
+      predicted grasp pose, but `GraspExecutor.execute()` advances the
+      actually-executed pose `EXTRA_APPROACH` (12mm) further along the
+      approach axis before closing, unvalidated — for short objects
+      (already-tight table clearance), a plausible direct cause of
+      fingers hitting the table. Found via the same live-testing round
+      that led to the placement-pose-robustness fixes above; root-caused
+      then deferred (see
+      `docs/research/2026-08-21-short-object-finger-table-collision.md`),
+      now fixed: `GraspFeasibilityChecker` gained an `extra_approach`
+      constructor param (default 0.0, backward compatible),
+      `run_sim_grasp_test.py` now constructs it with
+      `extra_approach=EXTRA_APPROACH` so the feasibility check validates
+      the pose actually closed on. Before/after on identical raw predicted
+      grasps (5 seeds, box-only/3-objects, fused, GraspGen): **27/1687
+      grasps (1.6%) newly rejected**, concentrated on 4 of 5 seeds.
+      Regression check (`benchmark.py --seeds 0-4 --mode pick-all`, fix
+      active): **15/15 binned (100%)**, 0 knocked off table — matches the
+      last recorded GraspGen baseline, so the extra rejections cost no
+      throughput. Sample size is small and not deliberately biased toward
+      short objects, so 1.6% is a lower bound, not an isolated measurement
+      of the short-object case specifically — the qualitative result (a
+      real, previously-unvalidated 12mm blind spot is now checked) is the
+      more meaningful takeaway.
 - [ ] Filtering: neighbor-object collision check (table collision exists),
       workspace-reachability pre-filter
 
