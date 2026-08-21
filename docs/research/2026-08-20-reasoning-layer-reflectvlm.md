@@ -1,7 +1,7 @@
 # Reasoning layer: natural-language task instructions
 
-**Status:** sequencing decided, tracked as `ROADMAP.md` P8. Phase 1 (Option A)
-architecture not yet fully fleshed out/approved as a formal spec.
+**Status:** Phase 1 implemented (2026-08-21), tracked as `ROADMAP.md` P8.
+Phase 2 not started, gated on Phase 1 proving insufficient in practice.
 
 ## Origin
 
@@ -137,12 +137,12 @@ doesn't resolve to an object still on the table, so a phantom re-pick of
 an already-placed object degrades gracefully rather than breaking anything.
 Not chased further with more prompt iterations (diminishing returns).
 
-## Next step (not yet done)
+## Phase 1 implemented (2026-08-21)
 
-Flesh out Phase 1 (Option A)'s full architecture in detail (exact module
-boundaries, data flow, error handling, testing) and get it approved as a
-proper design before writing a spec/plan under `docs/superpowers/`. Model
-choice above is settled; remaining open architecture pieces are the
-spatial-relation-to-sub-region resolver and the `--instruction` CLI wiring
-into `run_sim_grasp_test.py --pick-all` (see the in-chat brainstorm for the
-sketch -- not yet written to a spec doc).
+Architecture fleshed out, approved, and built. See
+`docs/superpowers/specs/2026-08-21-reasoning-layer-phase1-design.md` for
+the full design (module boundaries, data flow, error handling, testing)
+and `docs/superpowers/plans/2026-08-21-reasoning-layer-phase1.md` for the
+implementation record, including two bugs found and fixed via live smoke
+testing. Results summarized in `ROADMAP.md` P8. Phase 2 (Option C) remains
+un-started, gated on Phase 1 proving insufficient in practice.

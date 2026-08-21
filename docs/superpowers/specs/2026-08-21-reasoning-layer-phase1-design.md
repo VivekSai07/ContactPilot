@@ -270,3 +270,34 @@ contract stays simple: "a scoped planner, or None."
    "..." --no-vis` end-to-end on a real scene, confirming pick order and
    left/right placement match the instruction by eye (`observation.png`
    + `execution.gif`).
+
+## Implementation notes (2026-08-21)
+
+Implementation matched this design's module boundaries and interfaces
+exactly (`instruction_parser.py`, `spatial_relation_resolver.py`, and the
+`--pick-all` wiring all landed as specified, including the square-only
+sub-region geometry and the 3-attempt retry budget). Two behaviors were
+refined beyond what this doc originally described, both found via the
+mandatory live smoke test (Testing item 3) rather than anticipated here:
+
+- **Step advancement was underspecified.** This doc's round-loop
+  description covered *failing* to match a step (advance after 3 misses)
+  but never said what happens after a step's object is *successfully*
+  picked and binned. Implementation adds: once `entry.get('in_bin')` is
+  true for the active step's object, advance `step_idx` and reset the
+  miss counter. Without this, a single-step instruction would retry the
+  same already-satisfied step forever against whatever objects remain.
+- **`pick_target` resolution needed to try more than the top SAM 3
+  match.** This doc's data-flow section described resolving `pick_target`
+  via `PromptSelector.select` without specifying which match to use when
+  several come back (a real, common case in this project's scenes, which
+  can spawn multiple identically-described objects, e.g. three green
+  cuboids). Implementation tries every returned match by descending
+  score, taking the first that resolves to an object still on the table,
+  rather than only the single highest-scoring one — otherwise the
+  top match can be an object a *previous* step already placed.
+
+Both are refinements of the specified behavior, not departures from it
+(the design's stated *intent* — one step per object, resolved against the
+current table state — is what the fixes actually enforce); no other
+divergence was found.

@@ -328,7 +328,7 @@ binned vs CGN's 93% on the current box-only/3-object scene config, see P1
 (sparse, low scores) vs inclined lookat/fused (dense, higher success) — lab
 camera remounted inclined (P2).
 
-## P8 — Natural-language task instructions (reasoning layer)  [PLANNED, not started]
+## P8 — Natural-language task instructions (reasoning layer)  [Phase 1 IMPLEMENTED 2026-08-21]
 
 Full exploration/rationale in `docs/research/2026-08-20-reasoning-layer-reflectvlm.md`.
 Goal: instructions like "pick the blue cube first and put it on the left,
@@ -361,4 +361,54 @@ diffusion dynamics model, ~26GB fp16 / would consume this machine's entire
 8GB budget even 4-bit quantized; needs a goal *image* not text; trained on
 a different task domain with no fine-tuning support yet) — see the research
 note for the full reality-check.
+
+- [x] **Phase 1 implemented (2026-08-21):** full architecture in
+      `docs/superpowers/specs/2026-08-21-reasoning-layer-phase1-design.md`,
+      built per `docs/superpowers/plans/2026-08-21-reasoning-layer-phase1.md`.
+      Three new modules, none modifying already-shipped P5/P7 code:
+      `sim_grasp/instruction_parser.py` (NIM `meta/llama-3.1-8b-instruct`
+      call + JSON-schema validation into an ordered `Step` list),
+      `sim_grasp/spatial_relation_resolver.py` (turns a step's
+      `left_of`/`right_of`/`near`/`center` relation into a smaller,
+      differently-positioned `OccupancyPlacementPlanner` instance, or
+      `None` for no bias — `OccupancyPlacementPlanner` itself is untouched,
+      since it only supports square regions, not true half-bin
+      rectangles), and a new `run_sim_grasp_test.py --instruction TEXT`
+      flag wired into the existing `--pick-all` round loop (resolves the
+      active step's `pick_target` via SAM 3 each round, restricting
+      `allowed` to that one object; biases placement via the resolver,
+      falling back to the plain bin-wide planner). With no `--instruction`,
+      every code path is byte-for-byte unchanged (confirmed by re-running
+      the full existing `test_*.py` suite plus a baseline `--pick-all` run
+      with identical 3/3-binned results to the pre-change baseline).
+      Two real bugs were found and fixed via the required live smoke tests
+      (not the unit tests, which don't exercise a multi-round pick-all
+      sequence): (1) the active step's index never advanced after a
+      *successful* pick, so a single-step instruction kept retrying the
+      same already-satisfied step forever; (2) an ambiguous `pick_target`
+      matching multiple visually-identical objects (e.g. three green
+      cuboids in one seed) only checked SAM 3's single top-scoring match,
+      which could be an object a prior step already placed — fixed by
+      trying every match by descending score until one resolves to an
+      object still on the table.
+      **Live smoke test results:** a single-step instruction ("Pick up any
+      cube and place it in the center of the bin.", seed 0, GraspGen/fused)
+      parsed to exactly one step and picked exactly one object, then
+      correctly stopped (`[pick-all] round 2: no instruction steps left to
+      resolve`) rather than continuing to pick the remaining two — matching
+      the instruction's stated scope. A two-step, relation-bearing
+      instruction ("Pick a green cube and put it on the left, then pick a
+      green cube and put it on the right.", seed 1, GraspGen/fused) parsed
+      to two steps and executed both: 2/3 objects binned, zero crashes,
+      zero knocked-off-table, landing in two distinct (non-stacked,
+      non-overlapping) bin locations. The exact left/right sidedness (as a
+      person looking at the camera image would call it) is guaranteed by
+      `spatial_relation_resolver`'s own unit tests
+      (`test_spatial_relation_resolver.py`), which directly verify
+      `_camera_view_axis()`'s direction math against a known camera
+      transform — the live run's role was end-to-end wiring validation,
+      not re-deriving that geometry by eye from a 3rd-person GIF angle.
+      Phase 2 (Option C, a vision+language model) remains un-started,
+      gated on Phase 1 proving insufficient in practice, per the two-phase
+      sequencing decision above.
 
