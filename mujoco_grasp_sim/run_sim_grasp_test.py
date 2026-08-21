@@ -17,6 +17,7 @@ Usage:
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -87,7 +88,6 @@ def predict_clouds_in_subprocess(pc_full_cam, pc_segments_cam, forward_passes,
 
 def _subprocess_predict(payload, forward_passes, arg_configs,
                         work_dir) -> GraspPrediction:
-    import subprocess
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
     obs_f, out_f = work_dir / '_cgn_obs.npz', work_dir / '_cgn_out.npz'
@@ -97,9 +97,10 @@ def _subprocess_predict(payload, forward_passes, arg_configs,
            '--forward-passes', str(forward_passes)]
     if arg_configs:
         cmd += ['--arg-configs', *arg_configs]
-    r = subprocess.run(cmd)
-    if r.returncode != 0 or not out_f.exists():
-        raise RuntimeError(f'CGN worker failed (exit code {r.returncode})')
+    from sim_grasp.subprocess_utils import run_worker
+    returncode = run_worker(cmd)
+    if returncode != 0 or not out_f.exists():
+        raise RuntimeError(f'CGN worker failed (exit code {returncode})')
     parts = {'grasps': {}, 'scores': {}, 'contacts': {}, 'openings': {}}
     with np.load(out_f) as z:   # context manager: NpzFile keeps the file open
         for k in z.files:       # lazily; Windows can't unlink it otherwise
@@ -272,6 +273,11 @@ def main():
     ap.add_argument('--grasp-index', type=int, default=None, metavar='I',
                     help='with --execute: run candidate #I from the printed '
                          'ranked candidate list instead of auto-trying top-k')
+    ap.add_argument('--verbose', action='store_true',
+                    help='show full third-party output (warnings, INFO '
+                         'logs) from the cgn/graspgen/sam3 worker '
+                         'subprocesses -- by default they are hidden and '
+                         'only surfaced automatically if a worker fails')
     ap.add_argument('--clean-depth', action='store_true',
                     help='crop the depth map to the table workspace and remove '
                          'speckles before grasp prediction (sim_grasp/perception.py)')
@@ -284,6 +290,8 @@ def main():
                          'calibration_result.yaml next to this script if present; '
                          '"none" uses the generic look-at camera (same as --camera lookat)')
     args = ap.parse_args()
+    if args.verbose:
+        os.environ['SIM_GRASP_VERBOSE'] = '1'
     if args.pick_all:
         args.execute = True   # pick-all implies execution (thresholds, GPU prep)
     if args.pick_object is not None and (args.prompt or args.click or args.box):

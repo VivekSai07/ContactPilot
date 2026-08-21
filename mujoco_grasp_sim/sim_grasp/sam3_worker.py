@@ -9,6 +9,16 @@ rgb.npy: (H,W,3) uint8 RGB image.
 out.npz keys: masks (K,H,W) bool, scores (K,) float32, boxes (K,4) float32
     (pixel [x1,y1,x2,y2], computed from each mask's own bounding box).
 """
+import logging
+import os
+import warnings
+
+if not os.environ.get('SIM_GRASP_VERBOSE'):
+    warnings.filterwarnings('ignore', category=FutureWarning)
+    warnings.filterwarnings('ignore', category=UserWarning)
+    for _name in ('grasp_gen', 'OpenGL', 'torch', 'timm', 'spconv', 'sam3'):
+        logging.getLogger(_name).setLevel(logging.ERROR)
+
 import argparse
 
 import numpy as np

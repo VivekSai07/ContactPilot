@@ -315,6 +315,7 @@ python run_sim_grasp_test.py --backend graspgen --execute     # NVlabs/GraspGen 
 python run_sim_grasp_test.py --execute --prompt "the red box" # select the target by text description (needs SAM3_PYTHON — see "Promptable selection setup")
 python run_sim_grasp_test.py --execute --click 320,240        # select the target by clicking a pixel (observation.png coords)
 python interactive_pick.py --seed 5 --backend graspgen        # click live in a window instead of typing coordinates — see "Interactive live pick"
+python run_sim_grasp_test.py --verbose                        # show full cgn/graspgen/sam3 worker output (warnings, INFO logs) instead of the quiet default
 ```
 
 `--camera fused` captures BOTH observation cameras (generic lookat as the
