@@ -848,17 +848,65 @@ git commit -m "Wire --instruction into --pick-all: instruction-driven pick order
 
 ---
 
+## Task 4: Documentation update — results, ROADMAP, spec reconciliation
+
+**Files:**
+- Modify: `ROADMAP.md` (P8 section)
+- Modify: `docs/research/2026-08-20-reasoning-layer-reflectvlm.md` ("Next
+  step (not yet done)" section)
+- Modify: `docs/superpowers/specs/2026-08-21-reasoning-layer-phase1-design.md`
+  (reconcile against whatever changed during implementation, if anything)
+
+**Step 1: Record what actually got built and its live-smoke-test results**
+
+- `ROADMAP.md` P8: change the `[PLANNED, not started]` header tag to
+  reflect Phase 1 being implemented, and add a dated bullet (matching the
+  style of existing dated P1/P7 bullets) summarizing: the three new
+  modules, the `--instruction` flag, and the two live smoke tests from
+  Task 3 Step 7 (quote their actual printed `[instruction] parsed N
+  step(s)` output and the `[pick-all] DONE:` summary, and confirm by eye
+  from `execution.gif` whether the two-step relation-bearing smoke test's
+  placements landed on visibly different sides of the bin — state this
+  plainly, don't guess).
+- `docs/research/2026-08-20-reasoning-layer-reflectvlm.md`: replace the
+  "Next step (not yet done)" section with a short "Phase 1 implemented
+  (2026-08-21)" note pointing at the spec and plan files, so the doc
+  doesn't keep telling readers the architecture is unfleshed once it
+  isn't.
+- `docs/superpowers/specs/2026-08-21-reasoning-layer-phase1-design.md`:
+  if implementation diverged from the spec in any way (e.g. a signature
+  changed, an edge case behaved differently than described), add a short
+  "Implementation notes (2026-08-21)" section at the end documenting the
+  divergence and why — do not silently edit the original design
+  sections. If nothing diverged, state that explicitly in the same
+  section instead of leaving the spec looking unreviewed.
+
+- [ ] **Step 1: Update all three docs with real results (no placeholder
+      numbers/guesses)**
+
+**Step 2: Commit**
+
+```bash
+git add ROADMAP.md docs/research/2026-08-20-reasoning-layer-reflectvlm.md \
+       docs/superpowers/specs/2026-08-21-reasoning-layer-phase1-design.md
+git commit -m "Document reasoning-layer Phase 1 results in ROADMAP.md and research docs"
+```
+
+---
+
 ## Plan Self-Review Notes
 
 - **Spec coverage**: Task 1 covers the design's `instruction_parser.py`
   section; Task 2 covers `spatial_relation_resolver.py` (including the
   square-region-only geometry fix and the `near`-relation clamp); Task 3
   covers the `--pick-all` round-loop wiring, the step-retry budget, and
-  both required live smoke tests. All three "Testing" bullets from the
-  spec are covered (schema validation, resolver unit tests with a fake
-  selector, one live end-to-end smoke test — Task 3 adds a second smoke
-  test for the relation-bearing case, strictly more coverage than the
-  spec required).
+  both required live smoke tests. Task 4 covers the user's explicit
+  request to update documentation (results, architecture status) once
+  implementation is done. All three "Testing" bullets from the spec are
+  covered (schema validation, resolver unit tests with a fake selector,
+  one live end-to-end smoke test — Task 3 adds a second smoke test for
+  the relation-bearing case, strictly more coverage than the spec
+  required).
 - **Type consistency checked**: `Step`'s four fields, `parse_instruction`'s
   signature, and `resolve`'s full signature are identical everywhere they
   appear across Tasks 1-3.
