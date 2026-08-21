@@ -17,8 +17,9 @@ runnable pieces:
    scene → perception → grasp prediction → feasibility filter → ranked
    diff-IK execution → pick-and-place-in-bin.
 
-`mujoco_menagerie/franka_emika_panda/` is a sparse clone providing only the
-Panda robot model, consumed by `mujoco_grasp_sim`.
+`mujoco_menagerie/franka_emika_panda/` is a sparse-checked-out git submodule
+(pinned commit, `franka_emika_panda/` only) providing the Panda robot model,
+consumed by `mujoco_grasp_sim`.
 
 Read `ROADMAP.md` for project history/current status and *why* things are
 built the way they are (it documents A/B experiment results, not just a todo
@@ -156,6 +157,14 @@ either repo; they're hosted on Hugging Face Hub and fetched by
 `contact_graspnet_pytorch/scripts/download_assets.py`. After
 `git submodule update --init`, run that script once to populate
 `checkpoints/` and `test_data/` (it's idempotent).
+
+`mujoco_menagerie/` is a third git submodule, pointing at
+[`google-deepmind/mujoco_menagerie`](https://github.com/google-deepmind/mujoco_menagerie)
+upstream (pinned commit, sparse-checked-out to `franka_emika_panda/` only —
+the full menagerie repo covers dozens of unrelated robots). Nothing in this
+repo patches its source on disk: `SceneGenerator` patches `panda.xml`
+in-memory and writes the result to `mujoco_grasp_sim/assets/`, never back
+into the submodule.
 
 ## Known constraints worth knowing before touching things
 

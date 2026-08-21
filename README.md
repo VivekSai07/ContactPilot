@@ -170,7 +170,7 @@ xychart-beta
 ContactPilot/
 ├── README.md                      ← this file
 ├── mujoco_grasp_sim/              ← MuJoCo tabletop sim (Panda + RGB-D + CGN/GraspGen) — see its README
-├── mujoco_menagerie/              ← sparse clone: franka_emika_panda model only
+├── mujoco_menagerie/              ← git submodule (sparse-checked-out: franka_emika_panda only)
 ├── GraspGen/                      ← git submodule (NVlabs/GraspGen upstream, pinned commit, unpatched)
 ├── contact_graspnet_pytorch/      ← git submodule (VivekSai07/contact_graspnet_pytorch, pinned tag)
 │   ├── checkpoints/contact_graspnet/checkpoints/model.pt   (26 MB, fetched by download_assets.py)
@@ -237,19 +237,22 @@ the reference implementation for adding further backends — see
 
 ### Getting the submodules (+ CGN assets)
 
-`contact_graspnet_pytorch/` is a git submodule pointing at
-[`VivekSai07/contact_graspnet_pytorch`](https://github.com/VivekSai07/contact_graspnet_pytorch)
-(pinned to a tag). `GraspGen/` is a second git submodule, pointing directly
-at [`NVlabs/GraspGen`](https://github.com/NVlabs/GraspGen) upstream (pinned
-to a commit, not a fork — nothing in this project patches GraspGen's
-source). The command below initializes both. The checkpoint and test
-scenes for `contact_graspnet_pytorch` are hosted on Hugging Face Hub and
-fetched by a script — neither is committed to git; GraspGen's own
-checkpoint is fetched separately, see `mujoco_grasp_sim/README.md`'s
+Three git submodules are used: `contact_graspnet_pytorch/` (pointing at
+[`VivekSai07/contact_graspnet_pytorch`](https://github.com/VivekSai07/contact_graspnet_pytorch),
+pinned to a tag), `GraspGen/` (pointing directly at
+[`NVlabs/GraspGen`](https://github.com/NVlabs/GraspGen) upstream, pinned
+to a commit — nothing in this project patches GraspGen's source), and
+`mujoco_menagerie/` (pointing at [`google-deepmind/mujoco_menagerie`](https://github.com/google-deepmind/mujoco_menagerie),
+pinned to a commit and sparse-checked-out to `franka_emika_panda/` only).
+The checkpoint and test scenes for `contact_graspnet_pytorch` are hosted on
+Hugging Face Hub and fetched by a script — neither is committed to git;
+GraspGen's own checkpoint is fetched separately, see `mujoco_grasp_sim/README.md`'s
 "GraspGen backend setup".
 
-```powershell
+```bash
 git submodule update --init --depth 1
+git -C mujoco_menagerie sparse-checkout init --cone
+git -C mujoco_menagerie sparse-checkout set franka_emika_panda
 pip install huggingface_hub
 python contact_graspnet_pytorch\scripts\download_assets.py
 ```
