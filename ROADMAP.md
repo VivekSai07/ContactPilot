@@ -125,8 +125,11 @@ deployable. No novelty for novelty's sake.
       extracted the seed-selection decision into
       `_pick_best_seed_result()` — if the current-pose-seeded (`q_init`)
       result converges at all, it wins unconditionally; only fall through
-      to comparing the other seeds if `q_init` itself fails to converge.
-      Regression-tested with 5 synthetic scenarios in the new
+      to comparing the other seeds if `q_init` itself fails to converge —
+      as a side effect, `solve()`'s restart loop now breaks as soon as ANY
+      seed converges (previously only when the best-so-far result was
+      *tight*, not merely converged), which is both simpler and cheaper
+      (fewer wasted IK solves in the common case). Regression-tested with 5 synthetic scenarios in the new
       `test_executor_seed_selection.py` (tight convergence, loose
       convergence with a more-accurate competitor present, q_init failing
       entirely, nothing converging, single-result list), mirroring how
@@ -146,7 +149,15 @@ deployable. No novelty for novelty's sake.
       bias toward the current posture throughout DLS iteration, not just
       at seed selection) — considered as a follow-up to the elbow-flip fix
       above but deferred pending confirmation the seed-selection fix alone
-      is sufficient in practice.
+      is sufficient in practice. The concrete residual case, if this turns
+      out to be needed: the elbow-flip fix only guarantees continuity when
+      `q_init` itself converges — if `q_init` fails (the baseline already
+      shows occasional `ik_unreachable` pre-grasp retries) `solve()` falls
+      through to the canonical elbow-down seed, and a posture flip is
+      still possible there. Watch for this specifically in `place()`'s
+      hover-target solve (`executor.py`'s `self.ik.solve(T_pre, q_now)`),
+      where the target can be far enough from the current pose for `q_init`
+      to fail outright.
 
 ## P2 — Multi-camera perception  [DONE 2026-06-11 except A/B verdict]
 - New calibrated side camera available: `mujoco_grasp_sim/calibration_result.yaml`

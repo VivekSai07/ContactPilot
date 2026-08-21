@@ -110,7 +110,7 @@ class IKResult:
     converged: bool
 
 
-def _pick_best_seed_result(results: list) -> 'IKResult':
+def _pick_best_seed_result(results: 'list[IKResult]') -> 'IKResult':
     """Continuity-first seed selection: `results[0]` is always the
     q_init-seeded (current-pose) attempt. If it converged at all, it wins
     unconditionally -- 'converged' already means 'good enough' (see
