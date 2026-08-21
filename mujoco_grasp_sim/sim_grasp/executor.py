@@ -110,6 +110,27 @@ class IKResult:
     converged: bool
 
 
+def _pick_best_seed_result(results: 'list[IKResult]') -> 'IKResult':
+    """Continuity-first seed selection: `results[0]` is always the
+    q_init-seeded (current-pose) attempt. If it converged at all, it wins
+    unconditionally -- 'converged' already means 'good enough' (see
+    IKResult.converged's definition), so a numerically lower error from a
+    differently-postured seed is not a reason to abandon joint-space
+    continuity with the arm's current pose. Only when q_init itself fails
+    to converge do we fall through to the best of the remaining attempts
+    (preferring convergence, then lowest position error) -- unchanged from
+    the prior behavior for that case."""
+    q_init_result = results[0]
+    if q_init_result.converged:
+        return q_init_result
+    best = q_init_result
+    for res in results[1:]:
+        if (res.converged and not best.converged) or \
+                (res.converged == best.converged and res.pos_err < best.pos_err):
+            best = res
+    return best
+
+
 class DiffIK:
     """Damped-least-squares IK for the 7 Panda arm joints, targeting the
     'hand' body frame. Runs on a scratch MjData so the live sim is untouched."""
@@ -126,22 +147,26 @@ class DiffIK:
         self.max_iters, self.damping = max_iters, damping
 
     def solve(self, T_world_hand: np.ndarray, q_init: np.ndarray) -> IKResult:
-        """DLS with restarts: try the given seed, a canonical elbow-down pose,
-        and two perturbed seeds; return the best converged solution."""
+        """DLS with restarts: try the given seed (the caller's current joint
+        configuration) first. If it converges, use it -- continuity with the
+        arm's current pose beats a numerically lower error from a
+        differently-postured seed (see _pick_best_seed_result). Only try the
+        canonical elbow-down pose and two perturbed seeds if q_init itself
+        fails to converge."""
         seeds = [q_init,
                  np.array([0.0, 0.35, 0.0, -1.8, 0.0, 2.2, -0.785]),
                  q_init + np.random.default_rng(0).uniform(-0.4, 0.4, 7),
                  q_init + np.random.default_rng(1).uniform(-0.7, 0.7, 7)]
-        best = None
+        results = []
         for s in seeds:
             res = self._solve_single(T_world_hand, np.clip(
                 s, self.jnt_range[:, 0], self.jnt_range[:, 1]))
-            if best is None or (res.converged and not best.converged) or \
-                    (res.converged == best.converged and res.pos_err < best.pos_err):
-                best = res
-            if best.converged and best.pos_err < self.pos_tol:
-                break
-        return best
+            results.append(res)
+            if res.converged:
+                break   # q_init converged (or, having fallen through, this
+                        # later seed did) -- _pick_best_seed_result will
+                        # still apply the continuity-first rule below
+        return _pick_best_seed_result(results)
 
     def _solve_single(self, T_world_hand: np.ndarray, q_init: np.ndarray) -> IKResult:
         d = self.scratch
