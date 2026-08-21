@@ -36,7 +36,7 @@ from sim_grasp.pointcloud import depth_to_pointcloud
 from sim_grasp.placement_planner import (
     compute_object_footprint, build_bin_heightmap, OccupancyPlacementPlanner,
     compute_release_z)
-from sim_grasp.executor import PLACE_RELEASE
+from sim_grasp.executor import EXTRA_APPROACH, PLACE_RELEASE
 
 
 def gpu_vram_gb() -> float:
@@ -114,7 +114,8 @@ def _subprocess_predict(payload, forward_passes, arg_configs,
 
 def filter_feasible(grasps_cam, scores, openings, T_world_cam, table_height):
     """Table-collision filter (runs in world frame, returns camera frame)."""
-    checker = GraspFeasibilityChecker(table_height=table_height)
+    checker = GraspFeasibilityChecker(table_height=table_height,
+                                     extra_approach=EXTRA_APPROACH)
     grasps_world = {k: transform_grasps(T_world_cam, np.asarray(G))
                     for k, G in grasps_cam.items()}
     kept_world, kept_scores, stats = checker.filter(grasps_world, scores, openings)

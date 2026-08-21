@@ -14,6 +14,12 @@ frame and reject the grasp if any corner dips below the tabletop plane
 (z < table_height + margin). We additionally reject "underhand" grasps whose
 approach direction points upward in the world frame — those are unreachable
 in a tabletop eye-to-hand setup and indicate a spurious detection.
+
+If `extra_approach` is configured, the table-collision check is run against
+the pose further advanced along the grasp +Z axis by that amount — i.e. the
+pose GraspExecutor.execute() actually closes on (see EXTRA_APPROACH in
+executor.py), not just the originally predicted pose — so a grasp that only
+clears the table before that extra deepening is correctly rejected.
 """
 
 import numpy as np
@@ -36,23 +42,32 @@ def _gripper_sample_points(opening: float = 0.08) -> np.ndarray:
 
 class GraspFeasibilityChecker:
     def __init__(self, table_height: float, margin: float = 0.005,
-                 reject_upward_approach: bool = True, max_up_z: float = 0.15):
+                 reject_upward_approach: bool = True, max_up_z: float = 0.15,
+                 extra_approach: float = 0.0):
         """
         :param table_height: world z of the tabletop plane (meters)
         :param margin: extra clearance above the table (meters)
         :param reject_upward_approach: drop grasps approaching from below
         :param max_up_z: max allowed world-z component of the approach axis
+        :param extra_approach: extra distance (meters) the executor advances
+            the grasp along +Z before closing (see EXTRA_APPROACH in
+            executor.py) — the table-collision check validates the pose
+            advanced by this much, not just the originally predicted pose
         """
         self.table_z = table_height + margin
         self.reject_upward = reject_upward_approach
         self.max_up_z = max_up_z
+        self.extra_approach = extra_approach
 
     def is_feasible(self, T_world_grasp: np.ndarray, opening: float = 0.08) -> bool:
         # 1) approach direction sanity (grasp +Z in world coordinates)
         if self.reject_upward and T_world_grasp[2, 2] > self.max_up_z:
             return False
-        # 2) table collision: all gripper sample points must stay above the top
-        pts_world = transform_points(T_world_grasp, _gripper_sample_points(opening))
+        # 2) table collision: check the pose actually closed on (post
+        # extra_approach advance), all gripper sample points must clear the top
+        T_check = T_world_grasp.copy()
+        T_check[:3, 3] = T_world_grasp[:3, 3] + self.extra_approach * T_world_grasp[:3, 2]
+        pts_world = transform_points(T_check, _gripper_sample_points(opening))
         return bool(pts_world[:, 2].min() > self.table_z)
 
     def filter(self, grasps_world: dict, scores: dict,
