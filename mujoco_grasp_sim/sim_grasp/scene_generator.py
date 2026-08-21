@@ -9,9 +9,14 @@ Responsibilities
 3. Spawn objects without catastrophic penetration (rejection-sampled XY,
    staggered drop heights) and settle physics before observation capture.
 
-The generated XML is written INTO the menagerie franka_emika_panda directory
-so that panda.xml's relative meshdir="assets" keeps resolving (MJCF resolves
-asset paths relative to the main model file).
+The patched panda.xml and the generated scene XML are written into
+mujoco_grasp_sim/assets/ (NOT into the vendored mujoco_menagerie/ tree —
+that directory is a git submodule and must stay pristine so it never shows
+as locally modified). Because MJCF resolves meshdir/<include> paths
+relative to the top-level XML file's own directory, the patch step rewrites
+panda.xml's <compiler meshdir="assets"> to an absolute path pointing back
+at mujoco_menagerie/franka_emika_panda/assets, so mesh loading still works
+regardless of where the generated files live.
 """
 
 import os
@@ -32,6 +37,7 @@ PROJECT_ROOT = _THIS_DIR.parent                              # mujoco_grasp_sim/
 REPO_ROOT = PROJECT_ROOT.parent                              # repo root
 MENAGERIE_PANDA_DIR = REPO_ROOT / 'mujoco_menagerie' / 'franka_emika_panda'
 MESH_OBJECT_DIR = PROJECT_ROOT / 'assets' / 'objects'        # drop YCB .obj/.stl here
+GENERATED_DIR = PROJECT_ROOT / 'assets'                       # patched/generated MJCF lands here
 
 # Arm joint targets while observing (folded back so the arm stays out of the
 # camera frustum). Position-servo actuators hold these via data.ctrl.
@@ -215,9 +221,11 @@ class SceneGenerator:
 
     # -- panda.xml patching --------------------------------------------------
     def _patched_panda_xml(self) -> str:
-        """Strip the keyframe (qpos-size clash with added free joints) and lift
-        link0 onto the pedestal at table height. Returns the patched filename
-        (written next to panda.xml so meshdir='assets' still resolves)."""
+        """Strip the keyframe (qpos-size clash with added free joints), lift
+        link0 onto the pedestal at table height, and rewrite meshdir to an
+        absolute path (the output file no longer lives next to panda.xml,
+        so the original relative meshdir="assets" would otherwise break).
+        Returns the patched filename (written into GENERATED_DIR)."""
         src = (MENAGERIE_PANDA_DIR / 'panda.xml').read_text(encoding='utf-8')
         patched = re.sub(r'<keyframe>.*?</keyframe>', '', src, flags=re.S)
         patched = patched.replace(
@@ -227,6 +235,22 @@ class SceneGenerator:
         if f'pos="0 0 {self.cfg.table_height}"' not in patched:
             raise RuntimeError('Failed to patch link0 mount height in panda.xml '
                                '(upstream file structure changed?)')
+
+        # meshdir="assets" is relative to panda.xml's own directory; since
+        # the patched file is now written into GENERATED_DIR (not next to
+        # panda.xml), rewrite it to an absolute path so mesh loading still
+        # resolves correctly regardless of where the top-level scene XML
+        # that includes this file actually lives.
+        abs_meshdir = str((MENAGERIE_PANDA_DIR / 'assets').resolve())
+        patched, n_meshdir = re.subn(
+            r'meshdir="assets"',
+            f'meshdir="{abs_meshdir}"',
+            patched)
+        if n_meshdir != 1:
+            raise RuntimeError(
+                f'Expected to patch exactly one meshdir="assets" in panda.xml, '
+                f'patched {n_meshdir} (upstream file structure changed?)')
+
         # [P1 friction audit] Compliant rubber fingertip pads grip harder
         # against rotation/slip than MuJoCo's rigid-body default
         # (1 0.005 0.0001, condim=3) — bump sliding+torsional friction on the
@@ -248,7 +272,8 @@ class SceneGenerator:
                 f'Expected to patch friction on 5 fingertip pad collision '
                 f'geoms in panda.xml, patched {n_friction} '
                 '(upstream file structure changed?)')
-        out = MENAGERIE_PANDA_DIR / '_panda_sim_patched.xml'
+        GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+        out = GENERATED_DIR / '_panda_sim_patched.xml'
         out.write_text(patched, encoding='utf-8')
         return out.name
 
@@ -418,7 +443,8 @@ class SceneGenerator:
   </worldbody>
 </mujoco>
 """
-        out = MENAGERIE_PANDA_DIR / '_generated_scene.xml'
+        GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+        out = GENERATED_DIR / '_generated_scene.xml'
         out.write_text(xml, encoding='utf-8')
         return out
 
