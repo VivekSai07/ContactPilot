@@ -153,5 +153,8 @@ def parse_instruction(text: str, api_key: 'str | None' = None) -> list[Step]:
             body = json.loads(resp.read().decode('utf-8'))
     except urllib.error.URLError as e:
         raise RuntimeError(f'NIM API call failed: {e}') from e
-    content = body['choices'][0]['message']['content']
+    try:
+        content = body['choices'][0]['message']['content']
+    except (KeyError, IndexError, TypeError) as e:
+        raise RuntimeError(f'unexpected NIM API response shape: {e}') from e
     return _parse_and_validate(content)

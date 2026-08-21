@@ -63,6 +63,33 @@ try:
 except ValueError:
     pass
 
+# A step with an extra, unexpected key.
+try:
+    _parse_and_validate(json.dumps({"steps": [
+        {"step": 1, "pick_target": "x", "place_relation": "none",
+         "place_reference": None, "extra_key": "unexpected"}]}))
+    assert False, "expected ValueError for a step with an extra key"
+except ValueError:
+    pass
+
+# Wrong type for "pick_target" (must be a string).
+try:
+    _parse_and_validate(json.dumps({"steps": [
+        {"step": 1, "pick_target": 123, "place_relation": "none",
+         "place_reference": None}]}))
+    assert False, "expected ValueError for a non-string pick_target"
+except ValueError:
+    pass
+
+# Wrong type for "place_reference" (must be a string or null, not a number).
+try:
+    _parse_and_validate(json.dumps({"steps": [
+        {"step": 1, "pick_target": "x", "place_relation": "near",
+         "place_reference": 42}]}))
+    assert False, "expected ValueError for a non-string/non-null place_reference"
+except ValueError:
+    pass
+
 # An invalid place_relation value.
 try:
     _parse_and_validate(json.dumps({"steps": [
