@@ -379,23 +379,29 @@ class GraspExecutor:
             return {'placed': False, 'stage': 'ik_place'}
 
         ik_pre, ik_rel = plan
-        # smooth=True only for the two motions performed while still
-        # holding the object -- linear interpolation's instant velocity
-        # jump at the start of a move is a real cause of slip; release and
-        # retract happen open-handed, so they're left as linear.
+        # smooth=True on the transit/lower motions guards against slip
+        # (linear interpolation's instant velocity jump at the start of a
+        # move is a real cause of it) while still holding the object.
+        # The retract below is also smoothed -- not for slip (nothing is
+        # held), but so it decelerates to zero velocity right where the
+        # next round's go_observe() move picks up, instead of stopping
+        # abruptly and immediately snapping into a new motion.
         self._step_to(ik_pre.qpos, 2.2, gripper_ctrl=GRIPPER_CLOSED, smooth=True)   # transit
         self._step_to(ik_rel.qpos, 1.0, gripper_ctrl=GRIPPER_CLOSED, smooth=True)   # lower
         self._hold(0.2)
         self._step_to(ik_rel.qpos, 0.6, gripper_ctrl=GRIPPER_OPEN)     # release
         self._hold(0.4)
-        self._step_to(ik_pre.qpos, 0.8, gripper_ctrl=GRIPPER_OPEN)     # retract
+        self._step_to(ik_pre.qpos, 0.8, gripper_ctrl=GRIPPER_OPEN, smooth=True)     # retract
         return {'placed': True, 'stage': 'place_done'}
 
     def go_observe(self, q_observe, duration=2.5):
         """Joint move back to the observation pose (gripper open) so the next
-        capture sees the table without the arm in the frustum."""
+        capture sees the table without the arm in the frustum. Smoothed so
+        this move (and the retract that typically precedes it in place())
+        together read as one continuous decelerate-then-reaccelerate,
+        instead of two separately-abrupt stop/start segments."""
         self._step_to(np.asarray(q_observe, dtype=float), duration,
-                      gripper_ctrl=GRIPPER_OPEN)
+                      gripper_ctrl=GRIPPER_OPEN, smooth=True)
         self._hold(0.3)
 
     def save_gif(self, path, fps=None):

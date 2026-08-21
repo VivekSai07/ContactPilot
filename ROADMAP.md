@@ -143,6 +143,40 @@ deployable. No novelty for novelty's sake.
       run with the most retries) and the elbow stayed in a consistent
       posture throughout, with no flip to a mirrored/different
       configuration at any waypoint transition.
+- [x] **Smooth the retract-then-observe transition (2026-08-21), found via
+      live/manual testing feedback ("it feels like a state
+      transition/machine" going home between picks):** between
+      `--pick-all` rounds, `place()`'s final open-handed retract move and
+      `go_observe()`'s move to the fixed `ARM_OBSERVE_QPOS` were both
+      linear (`_ease(smooth=False)`) — each has an instantaneous velocity
+      jump at its start, so two consecutive full-speed-from-a-dead-stop
+      motions in a row visually read as separate abrupt "snaps" rather
+      than one continuous reach. Fixed: applied the same `smooth=True`
+      easing already used for `place()`'s object-carrying motions to both
+      of these — retract now decelerates to zero velocity exactly where
+      `go_observe()`'s move picks up, so the pair reads as one fluid
+      decelerate-then-reaccelerate. No hold durations were touched (those
+      serve object-settling physics and capture-accuracy margin, out of
+      scope for this fix — see the deferred idea below).
+      **Validation (2026-08-21, same 10-seed GraspGen/fused config as the
+      last recorded baseline): 30/30 binned (100%)**, 0 knocked off
+      table — matches the DiffIK elbow-flip fix's own baseline exactly,
+      confirming this change (which only alters the SHAPE of the joint
+      trajectory between waypoints, never which waypoints are targeted)
+      costs no throughput. Visual check: sampled densely-spaced frames
+      around a round transition (seed 0, release → retract → go_observe →
+      settle) and saw stable, consistent arm positioning with no visible
+      discontinuity or odd artifact — though unlike the elbow-flip fix's
+      more binary "did it flip" signature, confirming *smoothness* itself
+      from low-fps stills alone has real limits; the benchmark's clean
+      regression result is the stronger piece of evidence here.
+- [ ] Skip the fixed `ARM_OBSERVE_QPOS` detour entirely when it isn't
+      actually needed for camera-frustum clearance for the next target —
+      a more thorough follow-up to the transition-smoothing fix above,
+      considered during the same brainstorming session but deferred as
+      more invasive (requires a real geometric check of what "in the
+      frustum" means) and better proven-in-need after this smoothing fix
+      is confirmed sufficient in practice.
 - [ ] Filtering: neighbor-object collision check (table collision exists),
       workspace-reachability pre-filter
 - [ ] Nullspace redundancy resolution for DiffIK (continuous joint-space
