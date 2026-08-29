@@ -48,6 +48,8 @@ def run_one(seed: int, args, run_dir: Path) -> dict:
         cmd += ['--recenter']
     if args.clean_depth:
         cmd += ['--clean-depth']
+    if args.filter_neighbors:
+        cmd += ['--filter-neighbors']
     if args.mode == 'execute':
         cmd += ['--execute', '--top-k', str(args.top_k)]
     elif args.mode == 'pick-all':
@@ -102,6 +104,8 @@ def main():
                     help='forward --recenter to the run script')
     ap.add_argument('--clean-depth', action='store_true',
                     help='forward --clean-depth to the run script')
+    ap.add_argument('--filter-neighbors', action='store_true',
+                    help='forward --filter-neighbors to the run script')
     ap.add_argument('--backend', choices=['cgn', 'graspgen'], default='cgn',
                     help='forward --backend to the run script')
     ap.add_argument('--graspgen-python', default=None,

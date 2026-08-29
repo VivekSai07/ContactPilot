@@ -113,13 +113,46 @@ def _subprocess_predict(payload, forward_passes, arg_configs,
                            gripper_openings=parts['openings'])
 
 
-def filter_feasible(grasps_cam, scores, openings, T_world_cam, table_height):
-    """Table-collision filter (runs in world frame, returns camera frame)."""
+def filter_feasible(grasps_cam, scores, openings, T_world_cam, table_height,
+                    depth=None, segmap=None, K=None, filter_neighbors=False):
+    """Table-collision filter (runs in world frame, returns camera frame).
+    When filter_neighbors=True (needs depth/segmap/K), also rejects grasps
+    that collide with a neighboring on-table object or fall outside the
+    analytical workspace-reachability envelope -- both opt-in, off by
+    default so every existing caller/benchmark baseline is unaffected."""
     checker = GraspFeasibilityChecker(table_height=table_height,
                                      extra_approach=EXTRA_APPROACH)
     grasps_world = {k: transform_grasps(T_world_cam, np.asarray(G))
                     for k, G in grasps_cam.items()}
     kept_world, kept_scores, stats = checker.filter(grasps_world, scores, openings)
+
+    if filter_neighbors and depth is not None and segmap is not None and K is not None:
+        from sim_grasp.reachability import is_reachable
+        from sim_grasp.workspace_occupancy import (
+            build_workspace_occupancy, collides_with_neighbors)
+        occupancy = build_workspace_occupancy(depth, segmap, K, T_world_cam, table_height)
+        n_before_extra = sum(len(v) for v in kept_world.values())
+        out_world, out_scores = {}, {}
+        for seg_id, G in kept_world.items():
+            keep = []
+            for i, T in enumerate(G):
+                opening = 0.08
+                if openings and seg_id in openings and len(openings[seg_id]) > i:
+                    opening = float(openings[seg_id][i])
+                if not is_reachable(T):
+                    continue
+                if collides_with_neighbors(T, opening, int(seg_id), occupancy):
+                    continue
+                keep.append(i)
+            if keep:
+                out_world[seg_id] = G[keep]
+                out_scores[seg_id] = np.asarray(kept_scores[seg_id])[keep]
+        n_after_extra = sum(len(v) for v in out_world.values())
+        stats = dict(stats)
+        stats['n_rejected_neighbors_or_unreachable'] = n_before_extra - n_after_extra
+        stats['n_after'] = n_after_extra
+        kept_world, kept_scores = out_world, out_scores
+
     T_cam_world = invert_se3(T_world_cam)
     kept_cam = {k: transform_grasps(T_cam_world, G) for k, G in kept_world.items()}
     return kept_cam, kept_scores, stats
@@ -285,6 +318,12 @@ def main():
                     help='shift each executed grasp along its finger-closing '
                          'axis onto the target object cloud — counters the '
                          'dominant closed_on_air failure (lateral CGN offset)')
+    ap.add_argument('--filter-neighbors', action='store_true',
+                    help='reject grasps that collide with a neighboring '
+                         'on-table object (3D voxel occupancy) or fall '
+                         'outside the analytical workspace-reachability '
+                         'envelope (position + azimuth, no IK) -- opt-in, '
+                         'off by default')
     ap.add_argument('--calibration', default='auto',
                     help='path to eye-to-hand calibration yaml; "auto" uses '
                          'calibration_result.yaml next to this script if present; '
@@ -505,9 +544,13 @@ def main():
     feas_stats = {'n_before': pred.num_grasps, 'n_after': pred.num_grasps, 'n_rejected': 0}
     if not args.no_feasibility and pred.num_grasps > 0:
         grasps_cam, scores, feas_stats = filter_feasible(
-            grasps_cam, scores, pred.gripper_openings, T_world_cam, cfg.table_height)
+            grasps_cam, scores, pred.gripper_openings, T_world_cam, cfg.table_height,
+            depth=depth, segmap=segmap, K=K, filter_neighbors=args.filter_neighbors)
         print(f"[feasibility] kept {feas_stats['n_after']}/{feas_stats['n_before']} "
               f"({feas_stats['n_rejected']} table-colliding/underhand rejected)")
+        if args.filter_neighbors:
+            print(f"[feasibility]   + {feas_stats['n_rejected_neighbors_or_unreachable']} "
+                  'rejected by neighbor-collision/reachability pre-filter')
 
     # ----------------------------------------------------------------- metrics
     per_object = {}
@@ -629,7 +672,9 @@ def main():
                 g_r, s_r = pred_r.grasps_cam, pred_r.scores
                 if not args.no_feasibility and pred_r.num_grasps > 0:
                     g_r, s_r, _ = filter_feasible(g_r, s_r, pred_r.gripper_openings,
-                                                  T_wc, cfg.table_height)
+                                                  T_wc, cfg.table_height,
+                                                  depth=depth_r, segmap=segmap_r, K=K_r,
+                                                  filter_neighbors=args.filter_neighbors)
 
             in_bin_now = set(gen.objects_in_bin())
             remaining = [n for n in gen.objects_on_table()
