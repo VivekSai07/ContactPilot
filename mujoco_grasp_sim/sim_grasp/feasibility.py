@@ -31,13 +31,22 @@ def _box_corners(x0, x1, y0, y1, z0, z1):
     return np.array([[x, y, z] for x in (x0, x1) for y in (y0, y1) for z in (z0, z1)])
 
 
+def _hand_boxes(opening: float = 0.08) -> list:
+    """The three boxes (palm, finger_l, finger_r) approximating the Panda
+    hand in the grasp frame, as (x0, x1, y0, y1, z0, z1) tuples -- the
+    single source of truth for hand geometry, shared by this module's
+    corner-only sampling and workspace_occupancy.py's denser sampling."""
+    half_open = opening / 2.0
+    return [
+        (-0.102, 0.102, -0.0315, 0.0315, -0.012, 0.066),                        # palm
+        (-half_open - 0.012, -half_open + 0.012, -0.012, 0.012, 0.066, 0.112),  # finger_l
+        (half_open - 0.012, half_open + 0.012, -0.012, 0.012, 0.066, 0.112),    # finger_r
+    ]
+
+
 def _gripper_sample_points(opening: float = 0.08) -> np.ndarray:
     """Corner samples of the simplified Panda hand in the grasp frame."""
-    half_open = opening / 2.0
-    palm = _box_corners(-0.102, 0.102, -0.0315, 0.0315, -0.012, 0.066)
-    finger_l = _box_corners(-half_open - 0.012, -half_open + 0.012, -0.012, 0.012, 0.066, 0.112)
-    finger_r = _box_corners(half_open - 0.012, half_open + 0.012, -0.012, 0.012, 0.066, 0.112)
-    return np.vstack([palm, finger_l, finger_r])
+    return np.vstack([_box_corners(*box) for box in _hand_boxes(opening)])
 
 
 class GraspFeasibilityChecker:
