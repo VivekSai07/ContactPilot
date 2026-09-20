@@ -324,6 +324,8 @@ def main():
                          'outside the analytical workspace-reachability '
                          'envelope (position + azimuth, no IK) -- opt-in, '
                          'off by default')
+    ap.add_argument('--end-effector', choices=['parallel', 'shadow_hand'],
+                    default='parallel', help='which gripper/hand to use')
     ap.add_argument('--calibration', default='auto',
                     help='path to eye-to-hand calibration yaml; "auto" uses '
                          'calibration_result.yaml next to this script if present; '
@@ -353,6 +355,7 @@ def main():
 
     # ----------------------------------------------------------------- scene
     cfg = SceneConfig(seed=args.seed)
+    cfg.end_effector = args.end_effector
     if args.n_objects is not None:
         cfg.n_objects_range = (args.n_objects, args.n_objects)
     if args.camera == 'lookat':
@@ -613,10 +616,16 @@ def main():
 
         rec_cam = CameraModule(model, data, cam_name=cfg.record_cam_name,
                                width=640, height=480)
+        if args.end_effector == 'shadow_hand':
+            from sim_grasp.end_effector import ShadowHandController
+            end_effector, hand_body_name = ShadowHandController(), 'rh_palm_mount'
+        else:
+            end_effector, hand_body_name = None, 'hand'   # GraspExecutor's own defaults
         executor = GraspExecutor(model, data, camera_module=rec_cam,
                                  record_gif=True,
                                  record_dir=save_dir / '_gif_frames',
-                                 gif_frame_interval=0.2)
+                                 gif_frame_interval=0.2,
+                                 end_effector=end_effector, hand_body_name=hand_body_name)
         label_of = {name: i + 1 for i, name in enumerate(gen.object_names)}
         drop = gen.bin_drop_point()   # kept only as the legacy fallback target
         placement_planner = OccupancyPlacementPlanner(cfg.bin_center, cfg.bin_inner_half)
@@ -885,9 +894,15 @@ def main():
         # camera — the top-down view shows nothing of the finger-object contact
         rec_cam = CameraModule(model, data, cam_name=cfg.record_cam_name,
                                width=640, height=480)
+        if args.end_effector == 'shadow_hand':
+            from sim_grasp.end_effector import ShadowHandController
+            end_effector, hand_body_name = ShadowHandController(), 'rh_palm_mount'
+        else:
+            end_effector, hand_body_name = None, 'hand'   # GraspExecutor's own defaults
         executor = GraspExecutor(model, data, camera_module=rec_cam,
                                  record_gif=True,
-                                 record_dir=save_dir / '_gif_frames')
+                                 record_dir=save_dir / '_gif_frames',
+                                 end_effector=end_effector, hand_body_name=hand_body_name)
         exec_results = []
         for attempt, (sid, T_cam_grasp, score) in enumerate(ranked, 1):
             data.qpos[:], data.qvel[:], data.ctrl[:] = qpos0, qvel0, ctrl0

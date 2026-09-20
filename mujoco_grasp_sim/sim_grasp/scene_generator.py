@@ -90,6 +90,8 @@ class SceneConfig:
     side_calibration_file: str | None = None
     side_cam_fovy_deg: float = 58.0
 
+    end_effector: str = 'parallel'   # 'parallel' | 'shadow_hand'
+
     # Recording camera for execution GIFs: a side view past the -y table edge,
     # pulled back far enough that the whole pick -> transit -> place-in-bin
     # sequence stays in frame (the top-down observation camera shows almost
@@ -352,7 +354,11 @@ class SceneGenerator:
                 f'<camera name="{cfg.side_cam_name}" '
                 f'pos="{sp[0]:.6f} {sp[1]:.6f} {sp[2]:.6f}" '
                 f'xyaxes="{sx}" fovy="{cfg.side_cam_fovy_deg}"/>')
-        panda_file = self._patched_panda_xml()
+        if cfg.end_effector == 'shadow_hand':
+            from sim_grasp.hand_assets import build_panda_shadow_hand_xml
+            panda_file = build_panda_shadow_hand_xml()
+        else:
+            panda_file = self._patched_panda_xml()
 
         table_z = cfg.table_height - cfg.table_thickness / 2
         leg_h = (cfg.table_height - cfg.table_thickness) / 2
