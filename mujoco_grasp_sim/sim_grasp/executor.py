@@ -255,8 +255,8 @@ class GraspExecutor:
             a = _ease(t, smooth)
             data.ctrl[:7] = (1 - a) * q_start + a * q_target
             if gripper_ctrl is not None:
-                n = self.end_effector.n_actuators
-                data.ctrl[7:7 + n] = self.end_effector.ctrl_for(gripper_ctrl)
+                n_act = self.end_effector.n_actuators
+                data.ctrl[7:7 + n_act] = self.end_effector.ctrl_for(gripper_ctrl)
             mujoco.mj_step(model, data)
             self._maybe_record()
 

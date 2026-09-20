@@ -30,3 +30,9 @@ notes/
 # OS
 .DS_Store
 Thumbs.db
+
+# Locally-downloaded external datasets (e.g. DexGraspNet, CC BY-NC 4.0 --
+# never redistribute via this repo) and Windows/WSL zone-identifier
+# metadata files that tag downloaded files
+*.tar.gz
+*:Zone.Identifier
