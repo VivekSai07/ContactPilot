@@ -245,7 +245,8 @@ pinned to a tag), `GraspGen/` (pointing directly at
 [`NVlabs/GraspGen`](https://github.com/NVlabs/GraspGen) upstream, pinned
 to a commit — nothing in this project patches GraspGen's source), and
 `mujoco_menagerie/` (pointing at [`google-deepmind/mujoco_menagerie`](https://github.com/google-deepmind/mujoco_menagerie),
-pinned to a commit and sparse-checked-out to `franka_emika_panda/` only).
+pinned to a commit and sparse-checked-out to `franka_emika_panda/` only by
+default).
 The checkpoint and test scenes for `contact_graspnet_pytorch` are hosted on
 Hugging Face Hub and fetched by a script — neither is committed to git;
 GraspGen's own checkpoint is fetched separately, see `mujoco_grasp_sim/README.md`'s
@@ -257,6 +258,14 @@ git -C mujoco_menagerie sparse-checkout init --cone
 git -C mujoco_menagerie sparse-checkout set franka_emika_panda
 pip install huggingface_hub
 python contact_graspnet_pytorch\scripts\download_assets.py
+```
+
+`--end-effector shadow_hand` (see `mujoco_grasp_sim/README.md`) additionally
+needs the Shadow Hand's MJCF from the same submodule, not checked out by
+default — widen the sparse-checkout before using that flag:
+
+```bash
+git -C mujoco_menagerie sparse-checkout set franka_emika_panda shadow_hand
 ```
 
 Run this once after cloning ContactPilot (or after any `git submodule update`

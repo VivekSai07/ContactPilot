@@ -316,6 +316,7 @@ python run_sim_grasp_test.py --execute --prompt "the red box" # select the targe
 python run_sim_grasp_test.py --execute --click 320,240        # select the target by clicking a pixel (observation.png coords)
 python interactive_pick.py --seed 5 --backend graspgen        # click live in a window instead of typing coordinates — see "Interactive live pick"
 python run_sim_grasp_test.py --verbose                        # show full cgn/graspgen/sam3 worker output (warnings, INFO logs) instead of the quiet default
+python run_sim_grasp_test.py --end-effector shadow_hand --execute  # P9: mount a Shadow Hand E3M5 instead of the parallel gripper, fixed power-grasp posture (needs the shadow_hand submodule path -- see README.md "Getting the submodules")
 ```
 
 `--camera fused` captures BOTH observation cameras (generic lookat as the
@@ -479,6 +480,9 @@ resists the off-center-grasp twisting torque. 5-seed fused pick-all
 - `table_height=0.75`, table size/position
 - `cam_pos=(1.35, 0, 1.40)`, `cam_target=(0.55, 0, 0.75)`, `cam_fovy_deg=58` (D455-ish)
 - `settle_time=3.0` + adaptive extra settling until objects rest
+- `end_effector='parallel'` (default, byte-identical to pre-P9 behavior) or
+  `'shadow_hand'` (P9 — mounts a Shadow Hand E3M5 with a fixed power-grasp
+  posture instead of per-object dexterous planning; see ROADMAP.md P9)
 
 ## How the Franka is controlled (joint space vs task space)
 
@@ -524,3 +528,10 @@ identical, IK picks the better-conditioned one.
   collision geometry; it only filters table hits + underhand approaches.
 - Simulated depth is noise-free. For sim-to-real studies add Gaussian +
   pixel-dropout noise to `CameraModule.render_depth()` output.
+- `--end-effector shadow_hand`'s fixed power-grasp posture was extracted
+  from [DexGraspNet](https://github.com/PKU-EPIC/DexGraspNet) (`ddg-gd_box_poisson_019.npy`,
+  index 263), which is released under **CC BY-NC 4.0** — the extracted
+  posture values are baked into `sim_grasp/shadow_hand_posture.py` as plain
+  floats (no dataset files are committed to this repo, and none should be:
+  `.gitignore` excludes `*.tar.gz`). Has a known ~0.15-0.27m IK
+  position-error / TCP-offset calibration gap — see ROADMAP.md P9.

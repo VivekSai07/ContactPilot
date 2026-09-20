@@ -343,13 +343,14 @@ class GraspExecutor:
         # ---- verdict --------------------------------------------------------
         obj_z1 = float(data.xpos[bid][2])
         raised = obj_z1 - obj_z0
-        success = self.end_effector.is_grasping(raised)
         # finger_opening_m is a parallel-gripper-specific diagnostic
         # (Panda's finger_joint1 doesn't exist on the Shadow Hand model) --
-        # None for any other end effector, not a crash.
+        # None for any other end effector, not a crash. Also feeds
+        # ParallelGripperController.is_grasping's finger-collapse check.
         finger_joint1_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, 'finger_joint1')
         finger_opening_m = (round(2 * float(data.qpos[self.model.jnt_qposadr[finger_joint1_id]]), 4)
                             if finger_joint1_id != -1 else None)
+        success = self.end_effector.is_grasping(raised, finger_opening_m)
         return {'success': bool(success), 'stage': 'done',
                 'object_raised_m': round(raised, 4),
                 'finger_opening_m': finger_opening_m,

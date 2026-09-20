@@ -121,8 +121,15 @@ def _extract_shadow_hand_pieces(shadow_xml: str) -> dict:
 
 
 def build_panda_shadow_hand_xml() -> str:
+    shadow_hand_file = MENAGERIE_SHADOW_HAND_DIR / 'right_hand.xml'
+    if not shadow_hand_file.exists():
+        raise FileNotFoundError(
+            f'{shadow_hand_file} not found -- mujoco_menagerie is sparse-checked-out '
+            "to franka_emika_panda only by default. Run "
+            "`git -C mujoco_menagerie sparse-checkout set franka_emika_panda shadow_hand` "
+            "to add the Shadow Hand assets (see README.md \"Getting the submodules\").")
     panda_xml = (MENAGERIE_PANDA_DIR / 'panda.xml').read_text(encoding='utf-8')
-    shadow_xml = (MENAGERIE_SHADOW_HAND_DIR / 'right_hand.xml').read_text(encoding='utf-8')
+    shadow_xml = shadow_hand_file.read_text(encoding='utf-8')
     pieces = _extract_shadow_hand_pieces(shadow_xml)
 
     # Rewrite panda.xml's own meshdir to an absolute path (same as

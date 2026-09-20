@@ -25,10 +25,12 @@ class EndEffectorController(ABC):
         project's existing GRIPPER_OPEN/GRIPPER_CLOSED convention.
         Returns the control vector for this end effector's own actuators."""
 
-    def is_grasping(self, object_raised_m: float) -> bool:
+    def is_grasping(self, object_raised_m: float, finger_opening_m: float = None) -> bool:
         """Default success check: did the target object actually rise
         during lift? Shared by both controllers for v1 -- a hand-specific
-        contact/force check is explicitly deferred (see the design spec)."""
+        contact/force check is explicitly deferred (see the design spec).
+        `finger_opening_m` is ignored here; only ParallelGripperController
+        consumes it (see override below)."""
         return object_raised_m > SUCCESS_RAISE
 
 
@@ -39,6 +41,13 @@ class ParallelGripperController(EndEffectorController):
 
     def ctrl_for(self, openness: float) -> np.ndarray:
         return np.array([openness], dtype=float)
+
+    def is_grasping(self, object_raised_m: float, finger_opening_m: float = None) -> bool:
+        """Restores this project's original parallel-gripper success check
+        (object rose AND the fingers didn't fully collapse, i.e. something
+        is actually between them) -- lost when is_grasping was generalized
+        to the height-only base check for the Shadow Hand's fixed posture."""
+        return object_raised_m > SUCCESS_RAISE and finger_opening_m is not None and finger_opening_m > 0.001
 
 
 # Actuator order must match hand_assets.py's merged model exactly (indices

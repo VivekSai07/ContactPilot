@@ -43,13 +43,6 @@ assert np.allclose(final_arm_ctrl, q_target, atol=1e-6), (
     f'here is exactly the interpolation-fraction bug this test guards against)'
 )
 
-# No intermediate overshoot either -- interpolation is monotonic between
-# q_start and q_target, so nothing should ever exceed q_target's own
-# per-joint magnitude relative to q_start by more than the target delta.
-max_delta = np.max(np.abs(q_target - q_start))
-assert np.all(np.abs(final_arm_ctrl - q_start) <= max_delta + 1e-6), \
-    'final ctrl must not overshoot past q_target'
-
 # Sanity: the gripper actuator itself still ends at the commanded value.
 assert np.isclose(data.ctrl[7], 0.0), f'expected gripper ctrl 0.0, got {data.ctrl[7]}'
 

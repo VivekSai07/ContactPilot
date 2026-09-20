@@ -23,12 +23,17 @@ mid_ctrl = shadow.ctrl_for(127.5)
 # Midpoint must be the midpoint of open/closed, not a third arbitrary posture.
 assert np.allclose(mid_ctrl, (open_ctrl + closed_ctrl) / 2, atol=1e-6)
 
-# -- is_grasping: both controllers work off the same lifted-height signal
-# already computed by GraspExecutor.execute() -- confirm the signature
-# accepts it without needing hand-specific contact sensing for v1.
-assert parallel.is_grasping(object_raised_m=0.1) is True
-assert parallel.is_grasping(object_raised_m=0.0) is False
+# -- is_grasping: ShadowHandController uses the base, height-only check
+# (no hand-specific contact sensing for v1's fixed posture).
 assert shadow.is_grasping(object_raised_m=0.1) is True
 assert shadow.is_grasping(object_raised_m=0.0) is False
+
+# ParallelGripperController restores this project's original two-part
+# check: object rose AND the fingers didn't fully collapse (i.e. something
+# is actually between them) -- height alone isn't enough.
+assert parallel.is_grasping(object_raised_m=0.1, finger_opening_m=0.01) is True
+assert parallel.is_grasping(object_raised_m=0.1, finger_opening_m=0.0) is False
+assert parallel.is_grasping(object_raised_m=0.1, finger_opening_m=None) is False
+assert parallel.is_grasping(object_raised_m=0.0, finger_opening_m=0.01) is False
 
 print('All end_effector checks passed.')

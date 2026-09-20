@@ -36,7 +36,8 @@ notes/
 Thumbs.db
 
 # Locally-downloaded external datasets (e.g. DexGraspNet, CC BY-NC 4.0 --
-# never redistribute via this repo) and Windows/WSL zone-identifier
-# metadata files that tag downloaded files
-*.tar.gz
+# never redistribute via this repo), placed at the repo root when fetched
+# manually, plus Windows/WSL zone-identifier metadata files that tag
+# downloaded files anywhere in the tree
+/*.tar.gz
 *:Zone.Identifier

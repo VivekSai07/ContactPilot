@@ -605,3 +605,63 @@ note for the full reality-check.
     `[bracket]` lines by default, and `--verbose` reproduces the original
     full output unchanged.
 
+## P9 — Shadow Hand E3M5 mechanical mount + fixed power-grasp posture  [MECHANICAL MOUNT DONE 2026-09-20]
+
+Full design in `docs/superpowers/specs/2026-09-20-shadow-hand-power-grasp-design.md`,
+built per `docs/superpowers/plans/2026-09-20-shadow-hand-power-grasp.md`.
+Goal: replace the Panda's parallel gripper with a Shadow Hand E3M5 dexterous
+hand and prove it can mechanically mount and execute a pick/place cycle
+using a single **fixed** power-grasp posture (not per-object dexterous
+grasp planning — that's future work, see below). Contact-GraspNet and
+GraspGen are both fundamentally 2-finger-parallel-jaw-specific (confirmed
+by direct investigation of `mujoco_menagerie`'s available hands before this
+work started); dexterous per-object grasp *planning* is a distinct research
+problem, deliberately out of scope here.
+
+- [x] **Mechanical mount + fixed posture (2026-09-20):** `--end-effector
+      shadow_hand` (default remains `parallel`, byte-identical to today's
+      behavior). `sim_grasp/hand_assets.py` grafts Shadow Hand's `rh_palm`
+      subtree directly onto the Panda's `link7` mount point via in-memory
+      MJCF regex surgery (mirrors `scene_generator.py`'s existing
+      `_patched_panda_xml()` pattern — never touches the vendored
+      submodule). `sim_grasp/end_effector.py` adds an `EndEffectorController`
+      ABC (`ParallelGripperController` / `ShadowHandController`) so
+      `GraspExecutor`/`DiffIK` drive either a 1-actuator gripper or an
+      18-actuator hand through the same pick/place state machine.
+      `sim_grasp/shadow_hand_posture.py` holds a fixed open/power-grasp
+      posture pair extracted from a real DexGraspNet box-grasp exemplar
+      (`ddg-gd_box_poisson_019.npy`, index 263 — fullest-curl entry across
+      268 grasps in that file). Live-verified: 5-seed regression benchmark
+      on the default parallel-gripper path returns 15/15 (100%), confirming
+      zero regression on the untouched path; Shadow Hand mounts and the arm
+      moves toward CGN/GraspGen-predicted poses without crashing.
+
+- **Known limitations (not yet fixed, scoped as follow-up):**
+  - **IK position-error / TCP-offset calibration gap.** `sim_grasp/frames.py`
+    defines `PANDA_TCP_OFFSET = 0.1034` (documenting where the parallel
+    gripper's fingertips sit relative to the "hand" body's own origin) but
+    this constant is **never actually consumed anywhere in the codebase** —
+    the parallel gripper's IK target is the "hand" body's own origin
+    directly (only a fixed ±90° rotation is applied to the CGN/GraspGen
+    grasp frame, no translation). This means CGN/GraspGen's predicted
+    grasp-frame origin is implicitly calibrated to the parallel gripper's
+    own physical convention; targeting Shadow Hand's much larger/
+    differently-shaped `rh_palm` body at the same raw pose leaves a
+    residual ~0.15-0.27m IK position error, large enough that many
+    predicted grasps are unreachable. Likely needs an empirically
+    determined or geometrically derived translation offset specific to
+    Shadow Hand's palm-to-fingertip geometry — not implemented in this
+    pass; deserves its own scoped investigation.
+  - **`rh_A_THJ1`** (one thumb DOF) has no valid DexGraspNet correspondence
+    — the two hand rigs' thumb-tip joints rotate about genuinely different
+    axes (`"0 1 0"` vs `"1 0 0"`) — so it's a fixed manual value (0.5 rad)
+    rather than dataset-derived.
+  - Per-object dexterous grasp *planning* (as opposed to this fixed-posture
+    mechanical mount) is future work: **DexGraspNet2** was investigated as
+    the likely integration path and a design proposal was explicitly
+    deferred by request — pick this up as its own spec/plan when ready.
+  - Requires a wider `mujoco_menagerie` sparse-checkout than this repo's
+    documented `franka_emika_panda`-only default — see the README's
+    Environment section for the exact `sparse-checkout set` command needed
+    before `--end-effector shadow_hand` will run from a clean clone.
+
