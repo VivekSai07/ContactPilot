@@ -193,8 +193,53 @@ deployable. No novelty for novelty's sake.
       because these motions have their own established anti-slip rationale
       (2026-06-14 P1 friction/gentle-closing work) that a smoothing change
       should be validated against separately, not bundled into this fix.
-- [ ] Filtering: neighbor-object collision check (table collision exists),
-      workspace-reachability pre-filter
+- [x] Filtering: neighbor-object collision check (table collision exists),
+      workspace-reachability pre-filter. **(2026-08-29)** Added two new,
+      small, composable modules — `sim_grasp/workspace_occupancy.py`
+      (`build_workspace_occupancy()`: full 3D voxel occupancy of every
+      on-table object's own depth-camera points, keyed by seg_id, so a
+      grasp's own target object never counts as a collision against
+      itself; `collides_with_neighbors()`: densified 26-point-per-box
+      gripper sampling — corners + face-centers + edge-midpoints, denser
+      than `feasibility.py`'s corner-only table-collision check — voxel-
+      checked against that occupancy) and `sim_grasp/reachability.py`
+      (`is_reachable()`: analytical position + azimuth check against the
+      real Panda `joint1` range, no IK — considered and rejected running
+      a cheap `DiffIK.solve()` probe instead, since even a reduced-
+      iteration solve is up to 4 seeds × 200 DLS iterations against
+      300-400+ raw candidates/round, likely slower than the status quo).
+      Wired into `run_sim_grasp_test.py`'s `filter_feasible()` behind a
+      new, opt-in `--filter-neighbors` flag (default off — confirmed via
+      a live smoke test that `filter_feasible()`'s output is byte-for-byte
+      identical without the flag). A full 3D voxel grid was chosen over a
+      2.5D top-down heightmap (`placement_planner.py`'s `BinHeightmap`)
+      because a gripper can reach under part of a tall neighbor, which a
+      top-down height value alone can't represent.
+
+      **Benchmark A/B (2026-08-29, seeds 0-4, `--mode pick-all --camera
+      fused --backend graspgen`, 3 objects/scene): a REAL, significant
+      regression, not an improvement.** `--filter-neighbors` off
+      (baseline): **15/15 objects binned (100%)**, 0 knocked off, mean
+      wall time 89s. `--filter-neighbors` on: **7/15 objects binned
+      (47%)**, 0 knocked off, mean wall time 75s (fewer surviving
+      candidates finish each round faster, at the cost of leaving objects
+      unpicked). Per-seed with the flag on: 2 of 5 seeds ended with only
+      1 of 3 objects even having a surviving candidate grasp at all.
+      Root cause, not a wiring bug (Task 1/2's isolated unit tests
+      independently verified the collision/reachability logic is
+      correct, and the 0-knocked-off count is identical in both
+      conditions): this benchmark's default scenes pack 3 objects into a
+      fairly small workspace region, so the densified-gripper-sample
+      sweep — spanning the full open-gripper width plus the finger
+      length — frequently clips a nearby second/third object even for
+      grasps that would otherwise succeed, at the current
+      `voxel_size=0.005`/26-point-density combination. **Given this,
+      `--filter-neighbors` stays opt-in/off-by-default and is NOT
+      recommended for normal use without further tuning** (a smaller
+      densified-sample margin, a coarser voxel size, or scoping the check
+      to genuinely dense-clutter scenes) — recorded honestly here rather
+      than declaring the feature done on "ran without error" alone, per
+      this project's validation standard.
 - [ ] Nullspace redundancy resolution for DiffIK (continuous joint-space
       bias toward the current posture throughout DLS iteration, not just
       at seed selection) — considered as a follow-up to the elbow-flip fix
