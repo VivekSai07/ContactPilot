@@ -618,7 +618,7 @@ def main():
                                width=640, height=480)
         if args.end_effector == 'shadow_hand':
             from sim_grasp.end_effector import ShadowHandController
-            end_effector, hand_body_name = ShadowHandController(), 'rh_palm_mount'
+            end_effector, hand_body_name = ShadowHandController(), 'rh_palm'
         else:
             end_effector, hand_body_name = None, 'hand'   # GraspExecutor's own defaults
         executor = GraspExecutor(model, data, camera_module=rec_cam,
@@ -896,7 +896,7 @@ def main():
                                width=640, height=480)
         if args.end_effector == 'shadow_hand':
             from sim_grasp.end_effector import ShadowHandController
-            end_effector, hand_body_name = ShadowHandController(), 'rh_palm_mount'
+            end_effector, hand_body_name = ShadowHandController(), 'rh_palm'
         else:
             end_effector, hand_body_name = None, 'hand'   # GraspExecutor's own defaults
         executor = GraspExecutor(model, data, camera_module=rec_cam,
