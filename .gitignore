@@ -14,6 +14,9 @@ mujoco_grasp_sim/assets/_generated_scene.xml
 mujoco_grasp_sim/assets/_panda_sim_patched.xml
 mujoco_grasp_sim/assets/panda_shadow_hand.xml
 
+# MuJoCo's own runtime warning/error log, written to CWD on GL errors
+MUJOCO_LOG.TXT
+
 # Vendored Pointnet++ example training logs/checkpoints (unrelated to this pipeline)
 contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/log/
 
