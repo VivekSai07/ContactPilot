@@ -136,10 +136,11 @@ class DiffIK:
     'hand' body frame. Runs on a scratch MjData so the live sim is untouched."""
 
     def __init__(self, model: mujoco.MjModel,
-                 pos_tol=0.004, ori_tol=0.02, max_iters=200, damping=0.1):
+                 pos_tol=0.004, ori_tol=0.02, max_iters=200, damping=0.1,
+                 hand_body_name='hand'):
         self.model = model
         self.scratch = mujoco.MjData(model)
-        self.hand_bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'hand')
+        self.hand_bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, hand_body_name)
         self.dof_idx = np.array([model.joint(j).dofadr[0] for j in ARM_JOINTS])
         self.qpos_idx = np.array([model.joint(j).qposadr[0] for j in ARM_JOINTS])
         self.jnt_range = np.array([model.joint(j).range for j in ARM_JOINTS])
@@ -212,9 +213,13 @@ class GraspExecutor:
 
     def __init__(self, model, data, camera_module=None, record_gif=False,
                  record_dir=None, gif_frame_interval=0.08,
-                 on_frame: 'Callable[[np.ndarray], None] | None' = None):
+                 on_frame: 'Callable[[np.ndarray], None] | None' = None,
+                 viewer=None, end_effector=None, hand_body_name='hand'):
         self.model, self.data = model, data
-        self.ik = DiffIK(model)
+        from sim_grasp.end_effector import ParallelGripperController
+        self.end_effector = end_effector or ParallelGripperController()
+        self.hand_body_name = hand_body_name
+        self.ik = DiffIK(model, hand_body_name=hand_body_name)
         self.cam = camera_module       # reused for GIF recording (optional)
         self.record = record_gif
         # With record_dir, frames are streamed to disk as JPEGs and the GIF is
@@ -250,7 +255,8 @@ class GraspExecutor:
             a = _ease(t, smooth)
             data.ctrl[:7] = (1 - a) * q_start + a * q_target
             if gripper_ctrl is not None:
-                data.ctrl[7] = gripper_ctrl
+                n = self.end_effector.n_actuators
+                data.ctrl[7:7 + n] = self.end_effector.ctrl_for(gripper_ctrl)
             mujoco.mj_step(model, data)
             self._maybe_record()
 
@@ -336,12 +342,17 @@ class GraspExecutor:
 
         # ---- verdict --------------------------------------------------------
         obj_z1 = float(data.xpos[bid][2])
-        finger_open = float(data.qpos[self.model.joint('finger_joint1').qposadr[0]])
         raised = obj_z1 - obj_z0
-        success = raised > SUCCESS_RAISE and finger_open > 0.001
+        success = self.end_effector.is_grasping(raised)
+        # finger_opening_m is a parallel-gripper-specific diagnostic
+        # (Panda's finger_joint1 doesn't exist on the Shadow Hand model) --
+        # None for any other end effector, not a crash.
+        finger_joint1_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, 'finger_joint1')
+        finger_opening_m = (round(2 * float(data.qpos[self.model.jnt_qposadr[finger_joint1_id]]), 4)
+                            if finger_joint1_id != -1 else None)
         return {'success': bool(success), 'stage': 'done',
                 'object_raised_m': round(raised, 4),
-                'finger_opening_m': round(2 * finger_open, 4),
+                'finger_opening_m': finger_opening_m,
                 'ik_errors_mm': [round(ik_pre.pos_err * 1e3, 1),
                                  round(ik_grasp.pos_err * 1e3, 1),
                                  round(ik_lift.pos_err * 1e3, 1)]}
