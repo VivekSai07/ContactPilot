@@ -605,3 +605,33 @@ note for the full reality-check.
     `[bracket]` lines by default, and `--verbose` reproduces the original
     full output unchanged.
 
+## P9 — Dexterous hand (Shadow Hand E3M5) investigation  [SHELVED 2026-09-29, not merged]
+
+Explored replacing the Panda's parallel gripper with a Shadow Hand E3M5
+dexterous hand: mechanical mounting via in-memory MJCF grafting, a
+pluggable `EndEffectorController` abstraction, and a single fixed
+power-grasp posture mined from DexGraspNet. Fully implemented, tested, and
+live-validated on the `shadow-hand-power-grasp` branch (see that branch's
+own `docs/superpowers/specs/2026-09-20-shadow-hand-power-grasp-design.md`
+and `docs/superpowers/plans/2026-09-20-shadow-hand-power-grasp.md` for the
+full design and a critical `_step_to()` variable-shadowing bug found and
+fixed along the way) — the default parallel-gripper path was confirmed to
+still bin 15/15 objects (5-seed benchmark) after the change, and the
+Shadow Hand itself mechanically mounts and moves toward predicted grasp
+poses, but never completed a successful pick: a ~0.15-0.27m IK
+position-error / TCP-offset calibration gap (`PANDA_TCP_OFFSET` in
+`sim_grasp/frames.py` is defined but never consumed by any end effector)
+was never resolved.
+
+**Decision (2026-09-29): not moving forward with a dexterous hand in this
+project for now.** `shadow-hand-power-grasp` is kept as an unmerged,
+preserved branch (same treatment as the earlier `chat-pick-live` branch) —
+**do not merge it into `main`, and do not resume this work without an
+explicit new request.** If dexterous grasping is revisited later, that
+branch's spec/plan/ledger and the DexGraspNet2 per-object grasp-planning
+investigation (deferred, never designed) are the starting point, not a
+from-scratch re-investigation. Contact-GraspNet and GraspGen are both
+fundamentally 2-finger-parallel-jaw-specific — a dexterous hand's grasp
+*planning* remains a distinct, unsolved problem in this pipeline, only its
+mechanical mounting was ever proven out.
+

@@ -30,6 +30,13 @@ Read `ROADMAP.md` for project history/current status and *why* things are
 built the way they are (it documents A/B experiment results, not just a todo
 list) — check it before assuming a design choice is arbitrary.
 
+**Dexterous hands are shelved, not open ground.** A Shadow Hand E3M5
+integration was fully built and live-validated on the unmerged
+`shadow-hand-power-grasp` branch, then explicitly not pursued further
+(see `ROADMAP.md` P9). Don't re-propose or re-attempt dexterous-hand
+integration without the user raising it again — read that branch's
+work first if they do.
+
 ## Environment
 
 Everything runs in one conda env, **`cgn_torch`** (Python 3.10, PyTorch
