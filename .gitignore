@@ -30,3 +30,5 @@ notes/
 # OS
 .DS_Store
 Thumbs.db
+
+mujoco_grasp_sim/assets/props/gso/
