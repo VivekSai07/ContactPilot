@@ -45,6 +45,15 @@ ARM_OBSERVE_QPOS = np.array([0.0, -1.4, 0.0, -2.7, 0.0, 1.45, -0.7853])
 GRIPPER_OPEN_CTRL = 255.0
 
 
+@dataclass(frozen=True)
+class BinSpec:
+    """One open-top place bin. category is '' in the legacy one-bin scene."""
+    name: str
+    center: tuple
+    inner_half: float
+    category: str
+
+
 @dataclass
 class SceneConfig:
     """All randomization & geometry knobs in one place."""
@@ -107,12 +116,29 @@ class SceneConfig:
     bin_wall_height: float = 0.05
     bin_wall_half_thickness: float = 0.006
 
+    # [P10] Second bin + semantic props. Defaults reproduce the legacy
+    # single-bin boxes scene exactly (see test_scene_default_unchanged.py).
+    scene_mode: str = 'boxes'                     # 'boxes' | 'props'
+    second_bin_center: tuple | None = None        # e.g. (0.45, 0.30)
+    bin_categories: tuple = ('food', 'non_food')  # bin A, bin B
+    props_manifest: str | None = None
+
     # Physics settling
     settle_time: float = 3.0            # seconds of free simulation
     max_extra_settle: float = 4.0       # extra time if objects still moving
     settle_qvel_thresh: float = 0.02    # rad/s or m/s — "at rest" threshold
 
     seed: int | None = None
+
+    def bins(self) -> 'list[BinSpec]':
+        """Bin A is always the legacy bin; bin B exists only when
+        second_bin_center is set, mirroring A's size."""
+        if self.second_bin_center is None:
+            return [BinSpec('A', tuple(self.bin_center), self.bin_inner_half, '')]
+        return [BinSpec('A', tuple(self.bin_center), self.bin_inner_half,
+                        self.bin_categories[0]),
+                BinSpec('B', tuple(self.second_bin_center), self.bin_inner_half,
+                        self.bin_categories[1])]
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +214,31 @@ def _make_mesh_object(rng, name: str, mesh_path: Path, index: int) -> ObjectSpec
     spec = ObjectSpec(name=name, xml=body, spawn_half_height=half_h, color_name=color_name)
     spec.extra_asset = asset  # type: ignore[attr-defined]
     return spec
+
+
+_BIN_GEOM_PREFIX = {'A': 'bin', 'B': 'bin_b'}   # bin A keeps its legacy geom names
+
+
+def _bin_xml(prefix: str, center: tuple, cfg: 'SceneConfig') -> str:
+    """Floor slab + 4 walls, static, on the tabletop. Formatting copied
+    verbatim from the original inline block so bin A's XML is unchanged."""
+    bx, by = center
+    bi, wt = cfg.bin_inner_half, cfg.bin_wall_half_thickness
+    wh = cfg.bin_wall_height / 2
+    bo = bi + 2 * wt                       # outer half-extent
+    bz = cfg.table_height
+    bin_rgba = '0.50 0.55 0.62 1'
+    return '\n    '.join([
+        f'<geom name="{prefix}_floor" type="box" size="{bo:.4f} {bo:.4f} 0.004" '
+        f'pos="{bx} {by} {bz + 0.004:.4f}" rgba="{bin_rgba}"/>',
+        f'<geom name="{prefix}_wall_xp" type="box" size="{wt:.4f} {bo:.4f} {wh:.4f}" '
+        f'pos="{bx + bi + wt:.4f} {by} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
+        f'<geom name="{prefix}_wall_xm" type="box" size="{wt:.4f} {bo:.4f} {wh:.4f}" '
+        f'pos="{bx - bi - wt:.4f} {by} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
+        f'<geom name="{prefix}_wall_yp" type="box" size="{bo:.4f} {wt:.4f} {wh:.4f}" '
+        f'pos="{bx} {by + bi + wt:.4f} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
+        f'<geom name="{prefix}_wall_ym" type="box" size="{bo:.4f} {wt:.4f} {wh:.4f}" '
+        f'pos="{bx} {by - bi - wt:.4f} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>'])
 
 
 # ---------------------------------------------------------------------------
@@ -368,24 +419,9 @@ class SceneGenerator:
         objects_xml = '\n    '.join(s.xml for s in specs)
         assets_xml = '\n    '.join(extra_assets)
 
-        # Place bin: floor slab + 4 walls, static, sitting on the tabletop
-        bx, by = cfg.bin_center
-        bi, wt = cfg.bin_inner_half, cfg.bin_wall_half_thickness
-        wh = cfg.bin_wall_height / 2
-        bo = bi + 2 * wt                       # outer half-extent
-        bz = cfg.table_height
-        bin_rgba = '0.50 0.55 0.62 1'
-        bin_xml = '\n    '.join([
-            f'<geom name="bin_floor" type="box" size="{bo:.4f} {bo:.4f} 0.004" '
-            f'pos="{bx} {by} {bz + 0.004:.4f}" rgba="{bin_rgba}"/>',
-            f'<geom name="bin_wall_xp" type="box" size="{wt:.4f} {bo:.4f} {wh:.4f}" '
-            f'pos="{bx + bi + wt:.4f} {by} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
-            f'<geom name="bin_wall_xm" type="box" size="{wt:.4f} {bo:.4f} {wh:.4f}" '
-            f'pos="{bx - bi - wt:.4f} {by} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
-            f'<geom name="bin_wall_yp" type="box" size="{bo:.4f} {wt:.4f} {wh:.4f}" '
-            f'pos="{bx} {by + bi + wt:.4f} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
-            f'<geom name="bin_wall_ym" type="box" size="{bo:.4f} {wt:.4f} {wh:.4f}" '
-            f'pos="{bx} {by - bi - wt:.4f} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>'])
+        # Place bin(s): legacy bin A, plus bin B in the props scene
+        bin_xml = '\n    '.join(_bin_xml(_BIN_GEOM_PREFIX[b.name], b.center, cfg)
+                                for b in cfg.bins())
 
         xml = f"""<mujoco model="panda_tabletop_grasping">
   <include file="{panda_file}"/>
@@ -514,22 +550,36 @@ class SceneGenerator:
             speeds.append(float(np.abs(self.data.qvel[jadr:jadr + 6]).max()))
         return max(speeds)
 
-    def bin_drop_point(self) -> np.ndarray:
+    def bin_drop_point(self, bin_name: str = 'A') -> np.ndarray:
         """World point above which the executor releases objects."""
-        bx, by = self.cfg.bin_center
+        b = next(b for b in self.cfg.bins() if b.name == bin_name)
+        bx, by = b.center
         return np.array([bx, by, self.cfg.table_height + 0.02])
 
-    def objects_in_bin(self) -> list[str]:
-        """Names of objects currently inside the place bin."""
+    def _objects_in_region(self, center: tuple, inner_half: float) -> list[str]:
         cfg, out = self.cfg, []
-        bx, by = cfg.bin_center
-        tol = cfg.bin_inner_half + 0.02
+        bx, by = center
+        tol = inner_half + 0.02
         for name in self.object_names:
             jadr = self.model.joint(f'{name}_joint').qposadr[0]
             x, y, z = self.data.qpos[jadr:jadr + 3]
             if (abs(x - bx) < tol and abs(y - by) < tol
                     and cfg.table_height - 0.01 < z < cfg.table_height + 0.20):
                 out.append(name)
+        return out
+
+    def objects_in_bin(self) -> list[str]:
+        """Names of objects currently inside the place bin (bin A)."""
+        return self._objects_in_region(self.cfg.bin_center, self.cfg.bin_inner_half)
+
+    def objects_in_bins(self) -> dict[str, str]:
+        """{object name: bin name} for every object inside any bin.
+        SIM ORACLE (reads qpos) -- P10 SP2 replaces this with vision-only
+        scene-graph node locations so the same logic runs on the real robot."""
+        out = {}
+        for b in self.cfg.bins():
+            for name in self._objects_in_region(b.center, b.inner_half):
+                out[name] = b.name
         return out
 
     def objects_on_table(self) -> list[str]:
