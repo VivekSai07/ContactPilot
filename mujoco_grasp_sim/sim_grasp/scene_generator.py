@@ -140,6 +140,21 @@ class SceneConfig:
                 BinSpec('B', tuple(self.second_bin_center), self.bin_inner_half,
                         self.bin_categories[1])]
 
+    @classmethod
+    def for_props(cls, seed: int | None = None, manifest: str | None = None,
+                  n_objects: int = 4) -> 'SceneConfig':
+        """[P10] Semantic props preset: 4 GSO props, bin B mirrored at
+        (0.45, +0.30) -- the only in-reach spot outside the spawn region,
+        since bin A already sits at reachability.MAX_REACH -- and a spawn
+        strip narrowed so props (<= 7.7 cm half-diagonal) clear both bins."""
+        from sim_grasp.props import MANIFEST_PATH, validate_props_count
+        validate_props_count(n_objects)
+        return cls(seed=seed, scene_mode='props',
+                   n_objects_range=(n_objects, n_objects),
+                   second_bin_center=(0.45, 0.30),
+                   spawn_y=(-0.09, 0.09),
+                   props_manifest=str(manifest or MANIFEST_PATH))
+
 
 # ---------------------------------------------------------------------------
 # Random object descriptions
@@ -150,6 +165,9 @@ class ObjectSpec:
     xml: str            # the <body>...</body> snippet
     spawn_half_height: float
     color_name: str = ''
+    category: str = ''      # [P10] ground-truth category (props scene only)
+    assets_xml: str = ''    # [P10] <texture>/<material>/<mesh> assets for this body
+    model_id: str = ''      # [P10] Google Scanned Objects model id
 
 
 def _make_primitive(rng, name: str, index: int) -> ObjectSpec:
@@ -261,6 +279,9 @@ class SceneGenerator:
         self.object_names: list[str] = []
         self.object_colors: dict[str, str] = {}   # obj name -> fixed color name
         self.object_body_ids: dict[int, int] = {}   # mj body id -> seg label (1..N)
+        self.object_categories: dict[str, str] = {}   # [P10] obj name -> category
+        self.object_props: dict[str, str] = {}        # [P10] obj name -> GSO model id
+        self._spawn_radii: list[float] | None = None  # [P10] props-only spawn spacing
         self.scene_xml_path: Path | None = None
 
         if not MENAGERIE_PANDA_DIR.is_dir():
@@ -331,6 +352,8 @@ class SceneGenerator:
 
     # -- object sampling -----------------------------------------------------
     def _sample_objects(self) -> tuple[list[ObjectSpec], list[str]]:
+        if self.cfg.scene_mode == 'props':
+            return self._sample_props()
         n = int(self.rng.integers(self.cfg.n_objects_range[0],
                                   self.cfg.n_objects_range[1] + 1))
         mesh_files = _list_mesh_files() if self.cfg.use_meshes else []
@@ -347,16 +370,48 @@ class SceneGenerator:
             specs.append(spec)
         return specs, extra_assets
 
-    def _sample_xy_positions(self, n: int) -> np.ndarray:
+    def _sample_props(self) -> tuple[list[ObjectSpec], list[str]]:
+        """[P10] Balanced food/non-food GSO props, upright in their scanned
+        pose (origin at the base, so spawn_half_height is just -lo_z)."""
+        from sim_grasp.props import (footprint_radius, load_manifest, obj_bounds,
+                                     prop_body_xml, prop_files, prop_scale,
+                                     sample_balanced, validate_props_count)
+        n = int(self.rng.integers(self.cfg.n_objects_range[0],
+                                  self.cfg.n_objects_range[1] + 1))
+        validate_props_count(n)
+        entries = sample_balanced(load_manifest(self.cfg.props_manifest), n, self.rng)
+        specs, assets, radii = [], [], []
+        for i, e in enumerate(entries):
+            name = f'obj_{i}'
+            files = prop_files(e.model_id)
+            lo, hi = obj_bounds(files['visual'])
+            scale = prop_scale(hi - lo)
+            body, assets_xml = prop_body_xml(name, e, files, scale, lo, hi)
+            specs.append(ObjectSpec(name=name, xml=body,
+                                    spawn_half_height=float(-lo[2] * scale),
+                                    category=e.category, assets_xml=assets_xml,
+                                    model_id=e.model_id))
+            assets.append(assets_xml)
+            radii.append(footprint_radius(hi - lo, scale))
+        self._spawn_radii = radii
+        return specs, assets
+
+    def _sample_xy_positions(self, n: int, radii: list[float] | None = None) -> np.ndarray:
         """Rejection-sample XY spawn positions keeping min spacing (avoids
-        catastrophic initial penetration between objects)."""
+        catastrophic initial penetration between objects). With radii
+        (props scene) a pair also needs r_i + r_j + 1 cm: a fixed 9-12 cm
+        spacing would let two 15 cm props spawn interpenetrating. radii=None
+        consumes the rng exactly as before, so box scenes are unchanged."""
         cfg = self.cfg
         positions = []
-        for _ in range(n):
+        for k in range(n):
             for _attempt in range(300):
                 xy = np.array([self.rng.uniform(*cfg.spawn_x),
                                self.rng.uniform(*cfg.spawn_y)])
-                if all(np.linalg.norm(xy - p) >= cfg.min_object_spacing for p in positions):
+                if all(np.linalg.norm(xy - p) >= (
+                        cfg.min_object_spacing if radii is None
+                        else max(cfg.min_object_spacing, radii[k] + radii[j] + 0.01))
+                       for j, p in enumerate(positions)):
                     positions.append(xy)
                     break
             else:
@@ -498,6 +553,8 @@ class SceneGenerator:
         self.model, self.data = model, data
         self.object_names = [s.name for s in specs]
         self.object_colors = {s.name: s.color_name for s in specs}
+        self.object_categories = {s.name: s.category for s in specs if s.category}
+        self.object_props = {s.name: s.model_id for s in specs if s.model_id}
 
         # Map MuJoCo body ids -> segmentation labels 1..N (0 = background)
         self.object_body_ids = {}
@@ -514,7 +571,7 @@ class SceneGenerator:
         data.qpos[8] = 0.04
 
         # --- place objects: random XY + staggered drop heights ---------------
-        xy = self._sample_xy_positions(len(specs))
+        xy = self._sample_xy_positions(len(specs), radii=self._spawn_radii)
         for i, s in enumerate(specs):
             jadr = model.joint(f'{s.name}_joint').qposadr[0]
             drop_z = cfg.table_height + s.spawn_half_height + 0.015 + 0.04 * i
