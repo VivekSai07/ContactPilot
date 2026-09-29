@@ -635,3 +635,29 @@ fundamentally 2-finger-parallel-jaw-specific — a dexterous hand's grasp
 *planning* remains a distinct, unsolved problem in this pipeline, only its
 mechanical mounting was ever proven out.
 
+
+## P10 — Semantic sorting with a scene/knowledge graph  [DESIGNED 2026-09-29, sub-project 1 not started]
+
+Origin + feasibility check: `docs/research/2026-09-29-scene-knowledge-graph.md`.
+Design: `docs/superpowers/specs/2026-09-29-semantic-sorting-scene-graph-design.md`.
+Goal: sort real-looking household props into two bins by category (food →
+bin A, non-food → bin B), with each object's category derived from
+perception (NIM vision model identifies the crop → NIM llama-3.1-8b maps
+name → category), never from simulator ground truth. Metric: correct-bin
+rate, split into identification vs knowledge errors.
+
+Three strictly sequential sub-projects, each its own spec/plan/PR:
+
+- [ ] **SP1 — semantic prop scene + second bin + oracle routing.** 12
+      textured, box-shaped Google Scanned Objects props (6 food / 6
+      non-food), a mirrored second bin at (0.45, +0.30), per-bin placement,
+      `--scene props`, correct-bin metrics. Plan:
+      `docs/superpowers/plans/2026-09-29-semantic-sorting-sp1-props-scene.md`.
+      **Gate before SP2:** GraspGen/fused, seeds 0-9 pick-all — ≥ 34/40
+      objects in the intended bin, ≤ 2 knocked off, 0 crashes (3-box
+      baseline: 30/30).
+- [ ] **SP2 — scene graph + knowledge.** Vision-only nodes/edges per round
+      (replaces the `objects_in_bin()` qpos oracle), NIM identify →
+      categorize cached per object, `--identity oracle` upper bound.
+- [ ] **SP3 — perceived sorting consumer + metrics.** Destination bin from
+      the graph's category; correct-bin rate vs SP1's oracle upper bound.
