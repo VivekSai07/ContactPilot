@@ -148,13 +148,26 @@ def prop_body_xml(name: str, entry: PropEntry, files: dict, scale: float,
     lo, hi = np.asarray(lo, dtype=float), np.asarray(hi, dtype=float)
     ext = (hi - lo) * scale
     c = (hi + lo) / 2 * scale
+    half = ext / 2
     ixx, iyy, izz = box_inertia(entry.mass_kg, ext)
-    # visual mesh renders (group 2) but never collides; the 32 V-HACD hulls
-    # collide but sit in group 3, which mujoco.Renderer hides by default
     geoms = [f'<geom type="mesh" mesh="{name}_vis" material="{name}_mat" '
              f'contype="0" conaffinity="0" group="2"/>']
-    geoms += [f'<geom type="mesh" mesh="{name}_col_{i}" group="3"/>'
+    # V-HACD hulls for detailed table/inter-object contact.
+    # High friction + condim 4 so the torsional term from the fingertip
+    # pads (friction="1.5 0.02 0.004") is not bottlenecked at the object
+    # side — MuJoCo contact friction is min(geom1, geom2) per axis.
+    geoms += [f'<geom type="mesh" mesh="{name}_col_{i}" group="3"'
+              f' friction="1.5 0.02 0.004" condim="4"/>'
               for i in range(len(files['collision']))]
+    # Tight bounding box fills V-HACD inter-hull gaps so the parallel-jaw
+    # gripper has a continuous surface to close on.
+    geoms.append(
+        f'<geom name="{name}_box" type="box"'
+        f' size="{half[0]:.5f} {half[1]:.5f} {half[2]:.5f}"'
+        f' pos="{c[0]:.5f} {c[1]:.5f} {c[2]:.5f}"'
+        f' group="3" rgba="0 0 0 0"'
+        f' friction="1.5 0.02 0.004" condim="4"/>'
+    )
     body = (f'<body name="{name}" pos="0 0 0">'
             f'<freejoint name="{name}_joint"/>'
             f'<inertial pos="{c[0]:.5f} {c[1]:.5f} {c[2]:.5f}" mass="{entry.mass_kg:.4f}" '

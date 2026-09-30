@@ -24,7 +24,7 @@ clears the table before that extra deepening is correctly rejected.
 
 import numpy as np
 
-from sim_grasp.frames import transform_points
+from sim_grasp.frames import PANDA_TCP_OFFSET, transform_points
 
 
 def _box_corners(x0, x1, y0, y1, z0, z1):
@@ -47,6 +47,35 @@ def _hand_boxes(opening: float = 0.08) -> list:
 def _gripper_sample_points(opening: float = 0.08) -> np.ndarray:
     """Corner samples of the simplified Panda hand in the grasp frame."""
     return np.vstack([_box_corners(*box) for box in _hand_boxes(opening)])
+
+
+PANDA_MAX_OPENING = 0.08   # metres
+PANDA_FINGER_PAD = 0.012   # each pad protrudes ~12mm inside the opening
+
+
+def _grasp_width(pts: np.ndarray, T_world_grasp: np.ndarray,
+                 band: float = 0.025) -> float:
+    """Width of the object's point cloud along the finger-closing axis,
+    measured only in a narrow band around the grasp contact plane.
+
+    The band selects points within ±*band* metres of the grasp origin
+    along the approach axis (+Z), so the width reflects the local cross-
+    section the fingers actually close on, not the full vertical extent
+    of the object.
+    """
+    if len(pts) == 0:
+        return 0.0
+    finger_axis = T_world_grasp[:3, 0]   # X = closing direction
+    approach = T_world_grasp[:3, 2]       # Z = approach direction
+    origin = T_world_grasp[:3, 3]
+    # Band centered at TCP (fingertip contact plane), not the wrist origin.
+    tcp = origin + PANDA_TCP_OFFSET * approach
+    d_approach = (pts - tcp) @ approach
+    in_band = np.abs(d_approach) < band
+    if in_band.sum() < 3:
+        return 0.0
+    proj = pts[in_band] @ finger_axis
+    return float(proj.max() - proj.min())
 
 
 class GraspFeasibilityChecker:
@@ -80,24 +109,38 @@ class GraspFeasibilityChecker:
         return bool(pts_world[:, 2].min() > self.table_z)
 
     def filter(self, grasps_world: dict, scores: dict,
-               gripper_openings: dict | None = None):
-        """Filter {seg_id: (N,4,4)} grasp dicts. Returns (grasps, scores, stats)."""
+               gripper_openings: dict | None = None,
+               seg_clouds: dict | None = None):
+        """Filter {seg_id: (N,4,4)} grasp dicts. Returns (grasps, scores, stats).
+
+        :param seg_clouds: optional {seg_id: (M,3)} world-frame point clouds
+            per segment. When provided, grasps whose finger-closing axis
+            spans more than the gripper opening across the object are rejected.
+        """
         out_g, out_s = {}, {}
-        n_in = n_out = 0
+        n_in = n_out = n_width = 0
         for seg_id, G in grasps_world.items():
+            obj_pts = seg_clouds.get(seg_id) if seg_clouds else None
             keep = []
             for i, T in enumerate(G):
                 opening = 0.08
                 if gripper_openings and seg_id in gripper_openings \
                         and len(gripper_openings[seg_id]) > i:
                     opening = float(gripper_openings[seg_id][i])
-                if self.is_feasible(T, opening):
-                    keep.append(i)
+                if not self.is_feasible(T, opening):
+                    continue
+                if obj_pts is not None and len(obj_pts) > 0:
+                    width = _grasp_width(obj_pts, T)
+                    if width > opening:
+                        n_width += 1
+                        continue
+                keep.append(i)
             n_in += len(G)
             n_out += len(keep)
             if keep:
                 out_g[seg_id] = G[keep]
                 out_s[seg_id] = np.asarray(scores[seg_id])[keep]
         stats = {'n_before': int(n_in), 'n_after': int(n_out),
-                 'n_rejected': int(n_in - n_out)}
+                 'n_rejected': int(n_in - n_out),
+                 'n_rejected_width': int(n_width)}
         return out_g, out_s, stats

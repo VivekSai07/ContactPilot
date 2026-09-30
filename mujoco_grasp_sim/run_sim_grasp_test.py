@@ -125,7 +125,20 @@ def filter_feasible(grasps_cam, scores, openings, T_world_cam, table_height,
                                      extra_approach=EXTRA_APPROACH)
     grasps_world = {k: transform_grasps(T_world_cam, np.asarray(G))
                     for k, G in grasps_cam.items()}
-    kept_world, kept_scores, stats = checker.filter(grasps_world, scores, openings)
+    seg_clouds = None
+    if depth is not None and segmap is not None and K is not None:
+        from sim_grasp.pointcloud import depth_to_pointcloud
+        valid = depth.flatten() > 0
+        cloud_cam = depth_to_pointcloud(depth, K)
+        pts_world = (T_world_cam[:3, :3] @ cloud_cam.T + T_world_cam[:3, 3:4]).T
+        seg_flat = segmap.flatten()[valid]
+        seg_clouds = {}
+        for sid in grasps_world:
+            mask = seg_flat == sid
+            if mask.any():
+                seg_clouds[sid] = pts_world[mask]
+    kept_world, kept_scores, stats = checker.filter(
+        grasps_world, scores, openings, seg_clouds=seg_clouds)
 
     if filter_neighbors and depth is not None and segmap is not None and K is not None:
         from sim_grasp.reachability import is_reachable
@@ -580,8 +593,10 @@ def main():
         grasps_cam, scores, feas_stats = filter_feasible(
             grasps_cam, scores, pred.gripper_openings, T_world_cam, cfg.table_height,
             depth=depth, segmap=segmap, K=K, filter_neighbors=args.filter_neighbors)
+        n_width = feas_stats.get('n_rejected_width', 0)
+        width_note = f'/{n_width} too wide for gripper' if n_width else ''
         print(f"[feasibility] kept {feas_stats['n_after']}/{feas_stats['n_before']} "
-              f"({feas_stats['n_rejected']} table-colliding/underhand rejected)")
+              f"({feas_stats['n_rejected']} table-colliding/underhand{width_note} rejected)")
         if args.filter_neighbors:
             print(f"[feasibility]   + {feas_stats['n_rejected_neighbors_or_unreachable']} "
                   'rejected by neighbor-collision/reachability pre-filter')
