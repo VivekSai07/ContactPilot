@@ -50,6 +50,8 @@ def run_one(seed: int, args, run_dir: Path) -> dict:
         cmd += ['--clean-depth']
     if args.filter_neighbors:
         cmd += ['--filter-neighbors']
+    if args.scene != 'boxes':          # keep the boxes command line byte-identical
+        cmd += ['--scene', args.scene]
     if args.mode == 'execute':
         cmd += ['--execute', '--top-k', str(args.top_k)]
     elif args.mode == 'pick-all':
@@ -83,6 +85,8 @@ def run_one(seed: int, args, run_dir: Path) -> dict:
         pa = m.get('pick_all', {})
         out['in_bin'] = len(pa.get('in_bin', []))
         out['total'] = pa.get('objects_total')
+        if 'in_correct_bin' in pa:
+            out['in_correct_bin'] = len(pa['in_correct_bin'])
         out['fell_off'] = len(pa.get('fell_off_table', []))
         out['rounds'] = len(pa.get('rounds', []))
         out['fail_stages'] = [r['pick'].get('stage')
@@ -106,6 +110,8 @@ def main():
                     help='forward --clean-depth to the run script')
     ap.add_argument('--filter-neighbors', action='store_true',
                     help='forward --filter-neighbors to the run script')
+    ap.add_argument('--scene', choices=['boxes', 'props'], default='boxes',
+                    help='passed through to run_sim_grasp_test.py (P10)')
     ap.add_argument('--backend', choices=['cgn', 'graspgen'], default='cgn',
                     help='forward --backend to the run script')
     ap.add_argument('--graspgen-python', default=None,
@@ -144,6 +150,10 @@ def main():
         fell = sum(r['fell_off'] for r in ok)
         print(f'[bench] objects binned: {binned}/{total} '
               f'({100 * binned / max(total, 1):.0f}%), knocked off table: {fell}')
+        if any('in_correct_bin' in r for r in ok):
+            corr = sum(r.get('in_correct_bin', 0) for r in ok)
+            print(f'[bench] objects in correct bin: {corr}/{total} '
+                  f'({100 * corr / max(total, 1):.0f}%)')
     if ok:
         cov_have = sum(r.get('objects_with_grasps') or 0 for r in ok)
         cov_all = sum(r.get('objects') or 0 for r in ok)
