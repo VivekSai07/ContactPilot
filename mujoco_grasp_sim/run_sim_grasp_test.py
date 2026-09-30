@@ -37,6 +37,7 @@ from sim_grasp.pointcloud import depth_to_pointcloud
 from sim_grasp.placement_planner import (
     compute_object_footprint, build_bin_heightmap, OccupancyPlacementPlanner,
     compute_release_z)
+from sim_grasp.props import sort_outcome, validate_props_count
 from sim_grasp.executor import EXTRA_APPROACH, PLACE_RELEASE
 
 
@@ -238,6 +239,12 @@ def main():
     ap.add_argument('--seed', type=int, default=None, help='randomization seed')
     ap.add_argument('--n-objects', type=int, default=None,
                     help='fixed object count (default: random 1-10)')
+    ap.add_argument('--scene', choices=['boxes', 'props'], default='boxes',
+                    help='"boxes" = the 3 coloured boxes (default); "props" = '
+                         'textured Google Scanned Objects food / non-food props + '
+                         'a second bin, each object placed in the bin for its '
+                         'category (ROADMAP P10 -- run scripts/download_props.py '
+                         'once first)')
     ap.add_argument('--forward-passes', type=int, default=1)
     ap.add_argument('--no-vis', action='store_true', help='skip Open3D window')
     ap.add_argument('--view-sim', action='store_true',
@@ -258,13 +265,14 @@ def main():
                          'objects unblock occluded ones) until the table is empty, '
                          'each object failed 3x, or no grasps remain')
     ap.add_argument('--camera', choices=['calibrated', 'lookat', 'fused'],
-                    default='calibrated',
+                    default=None,
                     help='observation camera setup: "calibrated" = real eye-to-hand '
                          'calibration (calibration_result.yaml); "lookat" = '
                          'generic angled look-at camera (the pre-calibration setup); '
                          '"fused" = BOTH (lookat primary + calibrated side cam, '
                          'point clouds fused in world frame — P2). '
-                         'Use this to A/B compare Contact-GraspNet performance.')
+                         'Use this to A/B compare Contact-GraspNet performance.'
+                         ' Default: calibrated (boxes) / lookat (--scene props).')
     ap.add_argument('--backend', choices=['cgn', 'graspgen'], default='cgn',
                     help='grasp-prediction backend: "cgn" = Contact-GraspNet '
                          '(default), "graspgen" = NVlabs/GraspGen (needs the '
@@ -346,13 +354,34 @@ def main():
         sys.exit('[instruction] --instruction and --prompt/--click/--box are '
                  'mutually exclusive — the instruction itself selects objects.')
 
+    # [P10] set from the Task 4 coverage check (does the calibrated camera see bin B?)
+    PROPS_CAMERAS = ('lookat', 'fused')
+    if args.camera is None:
+        # props default avoids a camera that can't see bin B; boxes keep calibrated
+        args.camera = 'lookat' if args.scene == 'props' else 'calibrated'
+    if args.scene == 'props':
+        if args.instruction is not None or args.prompt or args.click or args.box:
+            sys.exit('[scene] --scene props does not support --instruction/--prompt/'
+                     '--click/--box: they resolve objects by colour name and assume '
+                     'a single bin.')
+        if args.camera not in PROPS_CAMERAS:
+            sys.exit(f'[scene] --scene props needs --camera '
+                     f'{" or ".join(PROPS_CAMERAS)} (the {args.camera} camera does '
+                     'not see the second bin).')
+        if args.n_objects is not None:
+            try:
+                validate_props_count(args.n_objects)
+            except ValueError as e:
+                sys.exit(f'[scene] {e}')
+
     save_dir = Path(args.save_dir) if args.save_dir else \
         Path(__file__).parent / 'output' / time.strftime('%Y%m%d_%H%M%S')
     vis = Visualizer(save_dir)
     print(f'[run] outputs -> {save_dir}')
 
     # ----------------------------------------------------------------- scene
-    cfg = SceneConfig(seed=args.seed)
+    cfg = (SceneConfig.for_props(seed=args.seed) if args.scene == 'props'
+           else SceneConfig(seed=args.seed))
     if args.n_objects is not None:
         cfg.n_objects_range = (args.n_objects, args.n_objects)
     if args.camera == 'lookat':
@@ -382,8 +411,13 @@ def main():
     on_table = gen.objects_on_table()
     print(f'[scene] {len(gen.object_names)} objects spawned, '
           f'{len(on_table)} on table after settling ({time.time() - t0:.1f}s)')
-    print(f"[scene] object colors: "
-          f"{', '.join(f'{n}={gen.object_colors[n]}' for n in gen.object_names)}")
+    if cfg.scene_mode == 'props':
+        print('[scene] props: ' + ', '.join(
+            f'{n}={gen.object_props[n]} ({gen.object_categories[n]})'
+            for n in gen.object_names))
+    else:
+        print(f"[scene] object colors: "
+              f"{', '.join(f'{n}={gen.object_colors[n]}' for n in gen.object_names)}")
 
     # ------------------------------------------------- interactive sim viewer
     if args.view_sim:
@@ -582,6 +616,9 @@ def main():
         'T_world_cam': T_world_cam.tolist(),
         'camera_K': K.tolist(),
     }
+    if cfg.scene_mode == 'props':
+        metrics.update(scene='props', routing='oracle',
+                       props=gen.object_props, categories=gen.object_categories)
     if best is not None:
         seg_id, T_cam_grasp, score = best
         T_world_grasp = T_world_cam @ T_cam_grasp
@@ -603,6 +640,18 @@ def main():
     label_to_body = {lbl: gen.object_names[lbl - 1]
                      for lbl in gen.object_body_ids.values()}
 
+    bins_by_name = {b.name: b for b in cfg.bins()}
+    bin_categories = {b.name: b.category for b in cfg.bins()}
+
+    def target_bin_for(body: str):
+        """Bin this object should go in. P10 SP1 routes by GROUND-TRUTH
+        category on purpose -- it's the upper bound SP3's perceived routing
+        is measured against; boxes mode always uses bin A."""
+        if cfg.scene_mode != 'props':
+            return bins_by_name['A']
+        cat = gen.object_categories[body]
+        return next(b for b in bins_by_name.values() if b.category == cat)
+
     if args.pick_all:
         # Sequential pick-and-place of EVERY object: each round re-observes the
         # scene and re-runs CGN (the predictor stays loaded), so objects that
@@ -618,8 +667,10 @@ def main():
                                  record_dir=save_dir / '_gif_frames',
                                  gif_frame_interval=0.2)
         label_of = {name: i + 1 for i, name in enumerate(gen.object_names)}
-        drop = gen.bin_drop_point()   # kept only as the legacy fallback target
-        placement_planner = OccupancyPlacementPlanner(cfg.bin_center, cfg.bin_inner_half)
+        # one free-space planner per bin; the legacy drop point is resolved per
+        # target bin further down (fallback stays inside the object's own bin)
+        planners = {name: OccupancyPlacementPlanner(b.center, b.inner_half)
+                    for name, b in bins_by_name.items()}
         steps = None
         if args.instruction:
             from sim_grasp.instruction_parser import parse_instruction
@@ -676,7 +727,7 @@ def main():
                                                   depth=depth_r, segmap=segmap_r, K=K_r,
                                                   filter_neighbors=args.filter_neighbors)
 
-            in_bin_now = set(gen.objects_in_bin())
+            in_bin_now = set(gen.objects_in_bins())   # any bin: no re-sorting of a wrong-bin object
             remaining = [n for n in gen.objects_on_table()
                          if n not in in_bin_now and fail_count.get(n, 0) < 3]
             if args.pick_object is not None:        # P3: only the chosen one
@@ -757,12 +808,13 @@ def main():
                           'along the closing axis')
 
             d_o, seg_o, K_o = obs
+            tb = target_bin_for(body)
             footprint = compute_object_footprint(d_o, seg_o, int(sid), K_o, T_wc)
             place_pose = None
             if footprint is not None:
                 try:
                     heightmap = build_bin_heightmap(
-                        d_o, seg_o, K_o, T_wc, cfg.bin_center, cfg.bin_inner_half,
+                        d_o, seg_o, K_o, T_wc, tb.center, tb.inner_half,
                         exclude_seg_id=int(sid))
                     if active_step is not None and active_step.place_relation != 'none':
                         from sim_grasp.spatial_relation_resolver import resolve as resolve_relation
@@ -774,7 +826,7 @@ def main():
                         if scoped_planner is not None:
                             place_pose = scoped_planner.plan(footprint, heightmap)
                     if place_pose is None:
-                        place_pose = placement_planner.plan(footprint, heightmap)
+                        place_pose = planners[tb.name].plan(footprint, heightmap)
                 except ValueError as e:
                     print(f'[placement] heightmap build failed: {e}')
             if place_pose is None:
@@ -799,9 +851,17 @@ def main():
                     entry['place'] = executor.place(
                         place_pose.x, place_pose.y, release_z, place_pose.yaw)
                 else:
+                    drop = gen.bin_drop_point(tb.name)
                     entry['place'] = executor.place(
                         drop[0], drop[1], drop[2] + PLACE_RELEASE)
-                entry['in_bin'] = body in gen.objects_in_bin()
+                landed = gen.objects_in_bins().get(body)
+                entry['in_bin'] = landed is not None
+                if cfg.scene_mode == 'props':
+                    entry.update(category=gen.object_categories[body],
+                                 target_bin=tb.name, landed_bin=landed)
+                    if landed is not None and landed != tb.name:
+                        print(f'[pick-all]   WRONG BIN: {body} ({entry["category"]}) '
+                              f'landed in {landed}, target {tb.name}')
                 if entry['in_bin']:
                     print(f"[pick-all]   pick OK (raised {res['object_raised_m']} m)"
                           f' -> placed in bin')
@@ -823,7 +883,9 @@ def main():
                 step_idx += 1
                 step_miss_count = 0
 
-        in_bin = gen.objects_in_bin()
+        final_bins = gen.objects_in_bins()
+        in_bin = ([n for n in gen.object_names if n in final_bins]
+                  if cfg.scene_mode == 'props' else gen.objects_in_bin())
         left = [n for n in gen.objects_on_table() if n not in in_bin]
         fell = [n for n in gen.object_names if n not in in_bin and n not in left]
         print(f'[pick-all] DONE: {len(in_bin)}/{n_total} objects in the bin '
@@ -834,6 +896,11 @@ def main():
         metrics['pick_all'] = {'objects_total': n_total, 'in_bin': in_bin,
                                'left_on_table': left, 'fell_off_table': fell,
                                'rounds': rounds_log}
+        if cfg.scene_mode == 'props':
+            correct, wrong = sort_outcome(final_bins, gen.object_categories, bin_categories)
+            metrics['pick_all'].update(in_correct_bin=correct, in_wrong_bin=wrong)
+            print(f'[pick-all] SORTED: {len(correct)}/{n_total} in the correct bin; '
+                  f'wrong bin: {wrong if wrong else "none"}')
         (save_dir / 'metrics.json').write_text(json.dumps(metrics, indent=2))
         print(f'[pick-all] video saved: {save_dir / "execution.gif"}')
 
@@ -903,21 +970,22 @@ def main():
                     print(f'[recenter] grasp shifted {shift * 1e3:+.1f} mm '
                           'along the closing axis')
 
+            body = label_to_body[int(sid)]
+            tb = target_bin_for(body)
             footprint = compute_object_footprint(depth, segmap, int(sid), K, T_world_cam)
             place_pose = None
             if footprint is not None:
                 try:
                     heightmap = build_bin_heightmap(
-                        depth, segmap, K, T_world_cam, cfg.bin_center,
-                        cfg.bin_inner_half, exclude_seg_id=int(sid))
+                        depth, segmap, K, T_world_cam, tb.center,
+                        tb.inner_half, exclude_seg_id=int(sid))
                     place_pose = OccupancyPlacementPlanner(
-                        cfg.bin_center, cfg.bin_inner_half).plan(footprint, heightmap)
+                        tb.center, tb.inner_half).plan(footprint, heightmap)
                 except ValueError as e:
                     print(f'[placement] heightmap build failed: {e}')
             if place_pose is None:
                 print('[placement] footprint/slot search failed for object '
                       f'{int(sid)} — falling back to the fixed bin drop point')
-            body = label_to_body[int(sid)]
             print(f'[execute] attempt {attempt}/{len(ranked)}: object {int(sid)} '
                   f'({body}), score {score:.3f}')
             res = executor.execute(T_world_grasp, target_body=body)
@@ -928,10 +996,13 @@ def main():
                     res['place'] = executor.place(
                         place_pose.x, place_pose.y, release_z, place_pose.yaw)
                 else:
-                    drop = gen.bin_drop_point()
+                    drop = gen.bin_drop_point(tb.name)
                     res['place'] = executor.place(
                         drop[0], drop[1], drop[2] + PLACE_RELEASE)
-                res['in_bin'] = body in gen.objects_in_bin()
+                landed = gen.objects_in_bins().get(body)
+                res['in_bin'] = landed is not None
+                if cfg.scene_mode == 'props':
+                    res.update(target_bin=tb.name, landed_bin=landed)
             exec_results.append(res)
             print(f'[execute]   -> {res}')
             if res['success']:
