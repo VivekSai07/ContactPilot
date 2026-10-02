@@ -636,7 +636,7 @@ fundamentally 2-finger-parallel-jaw-specific — a dexterous hand's grasp
 mechanical mounting was ever proven out.
 
 
-## P10 — Semantic sorting with a scene/knowledge graph  [DESIGNED 2026-09-29, sub-project 1 not started]
+## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate NOT met (28/40 vs 34/40); SP2/SP3 not started]
 
 Origin + feasibility check: `docs/research/2026-09-29-scene-knowledge-graph.md`.
 Design: `docs/superpowers/specs/2026-09-29-semantic-sorting-scene-graph-design.md`.
@@ -656,6 +656,36 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
       **Gate before SP2:** GraspGen/fused, seeds 0-9 pick-all — ≥ 34/40
       objects in the intended bin, ≤ 2 knocked off, 0 crashes (3-box
       baseline: 30/30).
+      **SP1 status (2026-10-02): shipped as a working baseline, gate not
+      met.** `--scene props` runs end to end (10/10 runs completed, 0
+      crashes, 0 knocked off). GraspGen/fused, seeds 0-9 pick-all:
+      **28/40 (70%) in the correct bin** vs the 34/40 gate. Props started at
+      0/4 per scene; three fixes got it to 70%:
+      - *Prop friction.* GSO collision geoms had MuJoCo defaults
+        (1.0/0.005/0.0001, condim 3). Contact friction is the per-axis min
+        of the two geoms, so the object side zeroed the pads' torsional
+        term. Props now use `friction="1.5 0.02 0.004" condim="4"`.
+      - *Gripper-only bounding box.* The 32 V-HACD hulls have inter-hull
+        gaps the fingers slip through. A tight box per prop fills them, but
+        it is `contype=2 conaffinity=0` and the pads get `conaffinity=3`, so
+        it collides with the pads only. A first version that also collided
+        with the table/neighbours let a prop balance on a phantom ledge and
+        topple late (`test_scene_props` seed 4 failed to settle).
+        Ablation, same 10 seeds: no box 15/40, box (all collisions) 26/40,
+        pad-only box 28/40.
+      - *Grasp width filter* (`feasibility.py`): rejects grasps whose local
+        cross-section at the finger contact plane (a +-25 mm band centred
+        at the TCP, `origin + 0.1034*approach`, not the wrist origin) is
+        wider than the opening. A first version centred the band on the
+        wrist origin and measured nothing; CGN rejects 122/147 grasps
+        with it, GraspGen almost none.
+      Remaining failures (23 `done` = fingers close on nothing and lift
+      0.0 m, 3 `ik_grasp`, 1 `ik_pregrasp`) concentrate in two props:
+      Crayola_Bonus_64_Crayons 0/12 and ReadytoUse Fondant 0/4 over the
+      first 10-seed run, the two heaviest props (0.30 / 0.40 kg; every
+      prop at <= 0.22 kg succeeded at least once). Mass is a hypothesis
+      (confounded with size), not yet tested. Follow-up branch closes this
+      gap.
 - [ ] **SP2 — scene graph + knowledge.** Vision-only nodes/edges per round
       (replaces the `objects_in_bin()` qpos oracle), NIM identify →
       categorize cached per object, `--identity oracle` upper bound.

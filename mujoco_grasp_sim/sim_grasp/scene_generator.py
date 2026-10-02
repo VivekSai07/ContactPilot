@@ -335,10 +335,12 @@ class SceneGenerator:
         # torsional term friction[1] is a dead value no matter how high it's
         # set without it (the original 1.0/0.01/0.004 patch was a no-op,
         # since 1.0 sliding == the unpatched default).
+        # conaffinity="3" additionally lets the pads collide with the props'
+        # gripper-only bounding-box geoms (contype 2, see props.py).
         patched, n_friction = re.subn(
             r'(<default class="fingertip_pad_collision_\d">\s*'
             r'<geom type="box" size="[^"]*" pos="[^"]*")/>',
-            r'\1 friction="1.5 0.02 0.004" condim="4"/>',
+            r'\1 friction="1.5 0.02 0.004" condim="4" conaffinity="3"/>',
             patched)
         if n_friction != 5:
             raise RuntimeError(

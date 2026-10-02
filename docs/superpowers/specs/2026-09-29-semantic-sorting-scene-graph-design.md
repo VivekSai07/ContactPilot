@@ -300,3 +300,23 @@ Scene graph, NIM identification/categorisation, perceived routing
 (SP2/SP3); `--instruction`/`--prompt` in props mode; `interactive_pick.py`
 props support; clutter/stacking; more than two bins or categories;
 real-robot runs.
+
+## Implementation notes (SP1, 2026-10-02)
+
+Divergences from the design above, found while making props graspable:
+
+- **Collision geometry.** The design used the GSO V-HACD hulls with MuJoCo
+  default friction. Implemented: hulls with `friction="1.5 0.02 0.004"
+  condim="4"`, plus one invisible tight bounding box per prop
+  (`contype=2 conaffinity=0`) that collides only with the fingertip pads
+  (pads patched to `conaffinity=3` in `scene_generator.py`). Reason: object
+  friction bottlenecked the pads (per-axis min), and the hulls have gaps
+  the fingers slip through. Ablation over seeds 0-9 (pick-all, GraspGen,
+  fused): no box 15/40, box colliding with everything 26/40, pad-only box
+  28/40.
+- **Grasp width filter.** Not in the design. `GraspFeasibilityChecker.filter`
+  takes per-segment world point clouds and drops grasps whose local width
+  (band at the TCP, not the wrist-origin grasp frame) exceeds the opening.
+- **Gate outcome.** 28/40 correct-bin, 0 knocked off, 0 crashes: the 34/40
+  gate is not met. SP1 is merged as a working baseline; closing the gap is
+  tracked in ROADMAP P10 and runs on its own branch before SP2 starts.

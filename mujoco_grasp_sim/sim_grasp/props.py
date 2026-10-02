@@ -160,12 +160,16 @@ def prop_body_xml(name: str, entry: PropEntry, files: dict, scale: float,
               f' friction="1.5 0.02 0.004" condim="4"/>'
               for i in range(len(files['collision']))]
     # Tight bounding box fills V-HACD inter-hull gaps so the parallel-jaw
-    # gripper has a continuous surface to close on.
+    # gripper has a continuous surface to close on. contype=2/conaffinity=0
+    # makes it collide ONLY with the fingertip pads (conaffinity bit 2, see
+    # scene_generator.py): as a table/neighbour collider it over-approximates
+    # the shape, so a prop could balance on a phantom ledge and topple late.
     geoms.append(
         f'<geom name="{name}_box" type="box"'
         f' size="{half[0]:.5f} {half[1]:.5f} {half[2]:.5f}"'
         f' pos="{c[0]:.5f} {c[1]:.5f} {c[2]:.5f}"'
         f' group="3" rgba="0 0 0 0"'
+        f' contype="2" conaffinity="0"'
         f' friction="1.5 0.02 0.004" condim="4"/>'
     )
     body = (f'<body name="{name}" pos="0 0 0">'

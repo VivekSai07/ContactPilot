@@ -98,7 +98,12 @@ body, assets = prop_body_xml('obj_2', entry, files, 0.5,
 assert '<body name="obj_2"' in body and '<freejoint name="obj_2_joint"/>' in body
 assert 'mesh="obj_2_vis"' in body and 'material="obj_2_mat"' in body
 assert 'contype="0" conaffinity="0" group="2"' in body
-assert body.count('group="3"') == 2 and 'mesh="obj_2_col_1"' in body
+# 2 V-HACD hulls + 1 gripper-only bbox (contype 2 / conaffinity 0: collides
+# with the fingertip pads only, never table or other props)
+assert body.count('group="3"') == 3 and 'mesh="obj_2_col_1"' in body
+assert body.count('friction="1.5 0.02 0.004" condim="4"') == 3
+assert 'name="obj_2_box" type="box"' in body
+assert 'contype="2" conaffinity="0"' in body
 assert '<inertial pos="0.00000 0.00000 0.04000" mass="0.2000"' in body
 assert 'file="/abs/t.png"' in assets and 'name="obj_2_tex"' in assets
 assert 'scale="0.50000 0.50000 0.50000"' in assets
