@@ -297,6 +297,13 @@ def main():
                     help='only grasp THIS object (segmentation instance id, '
                          'see the printed per-object table / observation.png). '
                          'Works with --execute and --pick-all.')
+    ap.add_argument('--scene-graph', action='store_true',
+                    help='[P10 SP2] props only: build a vision-only scene graph each '
+                         'pick-all round (drives loop control), identify/categorize '
+                         'objects via NIM, save scene_graph_round_<k>.png + JSON')
+    ap.add_argument('--identity', choices=['perceived', 'oracle'], default=None,
+                    help='[P10 SP2] with --scene-graph: perceived = vision model names '
+                         'the crop (default); oracle = sim prop name, knowledge-only upper bound')
     ap.add_argument('--instruction', type=str, default=None,
                     help='natural-language pick-and-place instruction '
                          '(e.g. "pick the blue cube first and put it on '
@@ -366,6 +373,15 @@ def main():
     if args.instruction is not None and (args.prompt or args.click or args.box):
         sys.exit('[instruction] --instruction and --prompt/--click/--box are '
                  'mutually exclusive — the instruction itself selects objects.')
+
+    if args.scene_graph and args.scene != 'props':
+        sys.exit('[scene-graph] --scene-graph requires --scene props')
+    if args.scene_graph and not args.pick_all:
+        sys.exit('[scene-graph] --scene-graph requires --pick-all')
+    if args.identity is not None and not args.scene_graph:
+        sys.exit('[scene-graph] --identity requires --scene-graph')
+    if args.scene_graph and args.identity is None:
+        args.identity = 'perceived'
 
     # [P10] set from the Task 4 coverage check (does the calibrated camera see bin B?)
     PROPS_CAMERAS = ('lookat', 'fused')
@@ -682,6 +698,18 @@ def main():
                                  record_dir=save_dir / '_gif_frames',
                                  gif_frame_interval=0.2)
         label_of = {name: i + 1 for i, name in enumerate(gen.object_names)}
+        graph_on = args.scene_graph
+        if graph_on:
+            from sim_grasp import scene_graph as sg
+            from sim_grasp.object_knowledge import KnowledgeCache, identification_crop
+            from sim_grasp.scene_graph_viz import draw_scene_graph
+            from sim_grasp.scene_generator import HIRES_SCALE
+            import imageio.v2 as _iio
+            name_of_label = {v: k for k, v in label_of.items()}
+            categories = tuple(b.category for b in cfg.bins())
+            knowledge = KnowledgeCache()
+            hires_cam = None            # created once on first need (one renderer per size)
+            sg_rounds, sg_agree = [], []
         # one free-space planner per bin; the legacy drop point is resolved per
         # target bin further down (fallback stays inside the object's own bin)
         planners = {name: OccupancyPlacementPlanner(b.center, b.inner_half)
@@ -742,9 +770,59 @@ def main():
                                                   depth=depth_r, segmap=segmap_r, K=K_r,
                                                   filter_neighbors=args.filter_neighbors)
 
-            in_bin_now = set(gen.objects_in_bins())   # any bin: no re-sorting of a wrong-bin object
-            remaining = [n for n in gen.objects_on_table()
-                         if n not in in_bin_now and fail_count.get(n, 0) < 3]
+            if graph_on:
+                d_g, seg_g, K_g = obs
+                graph = sg.build(d_g, seg_g, K_g, T_wc, cur_rgb, cfg.bins(),
+                                 cfg.table_height)
+                need = [s for s in graph.nodes if s in name_of_label]
+                hi = None
+                for sid in need:
+                    body = name_of_label[sid]
+                    oracle = (gen.object_props[body].replace('_', ' ')
+                              if args.identity == 'oracle' else None)
+
+                    def make_crop(sid=sid):
+                        nonlocal hires_cam, hi
+                        if hi is None:      # one 3x render per round, only if a new node needs it
+                            if hires_cam is None:
+                                hires_cam = CameraModule(model, data, cam_name=cfg.cam_name,
+                                                         width=640 * HIRES_SCALE,
+                                                         height=480 * HIRES_SCALE)
+                            rgb_h, _, seg_h, _, _ = hires_cam.capture(gen.object_body_ids)
+                            hi = (rgb_h, seg_h)
+                        return identification_crop(hi[0], hi[1], sid)
+                    graph.nodes[sid].identity, graph.nodes[sid].category = knowledge.lookup(
+                        sid, make_crop, categories, oracle_name=oracle)
+                oracle_bins = gen.objects_in_bins()
+                oracle_table = set(gen.objects_on_table())
+                for sid, node in graph.nodes.items():
+                    body = name_of_label.get(sid)
+                    if body is None:
+                        continue
+                    truth = oracle_bins.get(body) or ('table' if body in oracle_table else 'off')
+                    sg_agree.append(node.location == truth)
+                sg_rounds.append({'round': rnd, **graph.to_json()})
+                gt = {s: gen.object_categories[name_of_label[s]] for s in graph.nodes
+                      if s in name_of_label}
+                _iio.imwrite(save_dir / f'scene_graph_round_{rnd}.png',
+                             draw_scene_graph(cur_rgb, graph,
+                                              {b.name: b.category for b in cfg.bins()}, gt))
+
+            if graph_on:
+                # [P10 SP2] vision-only loop control: graph table nodes, not qpos
+                remaining = [name_of_label[s] for s in graph.table_nodes()
+                             if s in name_of_label and fail_count.get(name_of_label[s], 0) < 3]
+                unseen = [n for n in gen.objects_on_table()
+                          if label_of[n] not in graph.table_nodes()
+                          and n not in gen.objects_in_bins()]
+                if unseen:
+                    # [P10 SP2] diagnostics only: loop control stays vision-only
+                    print(f'[scene-graph] round {rnd}: on the table but not a table node '
+                          f'in the graph (occluded/sparse): {unseen}')
+            else:
+                in_bin_now = set(gen.objects_in_bins())   # any bin: no re-sorting of a wrong-bin object
+                remaining = [n for n in gen.objects_on_table()
+                             if n not in in_bin_now and fail_count.get(n, 0) < 3]
             if args.pick_object is not None:        # P3: only the chosen one
                 remaining = [n for n in remaining
                              if label_of[n] == args.pick_object]
@@ -916,6 +994,23 @@ def main():
             metrics['pick_all'].update(in_correct_bin=correct, in_wrong_bin=wrong)
             print(f'[pick-all] SORTED: {len(correct)}/{n_total} in the correct bin; '
                   f'wrong bin: {wrong if wrong else "none"}')
+            if graph_on:
+                objs = {}
+                for sid, (ident, cat) in knowledge.items():
+                    body = name_of_label[sid]
+                    gt_cat = gen.object_categories[body]
+                    objs[body] = {'identity': ident, 'category': cat, 'gt_category': gt_cat,
+                                  'correct': cat == gt_cat}
+                acc = sum(o['correct'] for o in objs.values()) / max(len(objs), 1)
+                agree = sum(sg_agree) / max(len(sg_agree), 1)
+                metrics['scene_graph'] = {
+                    'identity_mode': args.identity, 'rounds': sg_rounds, 'objects': objs,
+                    'category_accuracy': round(acc, 3), 'location_agreement': round(agree, 3),
+                    'nim_calls': knowledge.calls, 'nim_seconds': round(knowledge.seconds, 1)}
+                print(f'[scene-graph] category accuracy {acc:.0%} ({args.identity}), '
+                      f'location agreement {agree:.0%}, {knowledge.calls} NIM calls')
+                if hires_cam is not None:
+                    hires_cam.close()
         (save_dir / 'metrics.json').write_text(json.dumps(metrics, indent=2))
         print(f'[pick-all] video saved: {save_dir / "execution.gif"}')
 

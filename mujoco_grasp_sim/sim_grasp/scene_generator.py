@@ -47,6 +47,10 @@ GRIPPER_STIFFNESS_SCALE = 5.0
 ARM_OBSERVE_QPOS = np.array([0.0, -1.4, 0.0, -2.7, 0.0, 1.45, -0.7853])
 GRIPPER_OPEN_CTRL = 255.0
 
+# [P10 SP2] identification crops come from a 3x render of the observation
+# camera: at 640x480 a prop is ~80 px and the vision model guesses (8/12).
+HIRES_SCALE = 3
+
 
 @dataclass(frozen=True)
 class BinSpec:
@@ -498,6 +502,8 @@ class SceneGenerator:
         bin_xml = '\n    '.join(_bin_xml(_BIN_GEOM_PREFIX[b.name], b.center, cfg)
                                 for b in cfg.bins())
 
+        off_w, off_h = ((640 * HIRES_SCALE, 480 * HIRES_SCALE)
+                        if cfg.scene_mode == 'props' else (1280, 960))
         xml = f"""<mujoco model="panda_tabletop_grasping">
   <include file="{panda_file}"/>
 
@@ -505,7 +511,7 @@ class SceneGenerator:
 
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
-    <global offwidth="1280" offheight="960" azimuth="120" elevation="-20"/>
+    <global offwidth="{off_w}" offheight="{off_h}" azimuth="120" elevation="-20"/>
     <map znear="0.005"/>
   </visual>
 

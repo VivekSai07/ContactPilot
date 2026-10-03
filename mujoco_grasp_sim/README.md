@@ -272,6 +272,13 @@ python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --b
 still means "in any bin". Not supported with `--scene props`:
 `--instruction`, `--prompt/--click/--box`, and `interactive_pick.py`.
 
+- `--scene-graph` — build a vision-only scene graph each round (nodes, bin
+  locations, NIM identify + categorize); needs `NVIDIA_API_KEY`. Routing
+  still uses ground truth until SP3.
+- `--identity {perceived,oracle}` — with `--scene-graph`: name objects from
+  the camera crop via NIM (`perceived`, default) or use the ground-truth
+  name (`oracle`, upper bound).
+
 ### Testing
 
 No automated test suite — these are standalone pure-function scripts, run

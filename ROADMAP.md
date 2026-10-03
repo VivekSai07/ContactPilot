@@ -636,7 +636,7 @@ fundamentally 2-finger-parallel-jaw-specific — a dexterous hand's grasp
 mechanical mounting was ever proven out.
 
 
-## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate MET 2026-10-03 (37/40); SP2 in design]
+## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate MET 2026-10-03 (37/40); SP2 IMPLEMENTED 2026-10-03, gate MET]
 
 Origin + feasibility check: `docs/research/2026-09-29-scene-knowledge-graph.md`.
 Design: `docs/superpowers/specs/2026-09-29-semantic-sorting-scene-graph-design.md`.
@@ -694,8 +694,23 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
       Seeds 0-9 pick-all, GraspGen/fused: props **37/40 correct-bin** (was
       28/40), 0 knocked off, 0 crashes, remaining failures 2 `ik_pregrasp`
       + 1 `done`; 3-box regression check 30/30 (unchanged).
-- [ ] **SP2 — scene graph + knowledge.** Vision-only nodes/edges per round
+- [x] **SP2 — scene graph + knowledge (2026-10-03, gate MET).** Spec (approved 2026-10-03):
+      `docs/superpowers/specs/2026-10-03-semantic-sorting-sp2-scene-graph-design.md`. Vision-only nodes/edges per round
       (replaces the `objects_in_bin()` qpos oracle), NIM identify →
       categorize cached per object, `--identity oracle` upper bound.
+      Gate (GraspGen/fused, seeds 0-9, pick-all): 36/40 correct-bin (>= 34),
+      0 knocked off, 0 crashes (10/10), location agreement 100%, perceived
+      category accuracy 33/40 = 82% (>= 80%). Oracle identity: 38/40 = 95%
+      accuracy, 37/40 correct-bin. 8 NIM calls/run perceived, 4 oracle.
+      Routing still uses ground truth (SP3 switches it). All 7 perceived
+      misses trace to the identify step (e.g. Epson ink -> 'Box of cereal'
+      2x, Nescafe -> 'Box of hair dye'; the Fondant box was named 'Box of
+      birthday cake decorations'). Both oracle misses are the Fondant box
+      categorized non_food from its correct name - a knowledge error.
+      Perceived run output:
+
+          [bench] objects binned: 36/40 (90%), knocked off table: 0
+          [bench] objects in correct bin: 36/40 (90%)
+          [bench] perceived category accuracy: 33/40 (82%), mean location agreement: 100%
 - [ ] **SP3 — perceived sorting consumer + metrics.** Destination bin from
       the graph's category; correct-bin rate vs SP1's oracle upper bound.
