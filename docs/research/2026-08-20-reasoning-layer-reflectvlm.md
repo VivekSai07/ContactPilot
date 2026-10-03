@@ -1,6 +1,6 @@
 # Reasoning layer: natural-language task instructions
 
-**Status:** Phase 1 implemented (2026-08-21), tracked as `ROADMAP.md` P8.
+**Status:** Phase 1 implemented (2026-08-21), tracked as `ROADMAP.md` P8. 2026-10-03: the chosen model below was retired from NIM (HTTP 410); the parser now uses `meta/llama-3.2-11b-vision-instruct` (see ROADMAP P8).
 Phase 2 not started, gated on Phase 1 proving insufficient in practice.
 
 ## Origin

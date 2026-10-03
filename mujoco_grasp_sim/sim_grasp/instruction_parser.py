@@ -1,7 +1,8 @@
 """Instruction parser: turns a free-text pick-and-place instruction into
 an ordered list of Steps via NVIDIA's OpenAI-compatible NIM endpoint
-(meta/llama-3.1-8b-instruct -- the only bake-off candidate confirmed to
-support schema-enforced JSON output, see
+(meta/llama-3.2-11b-vision-instruct, used text-only -- the bake-off's
+pick, meta/llama-3.1-8b-instruct, was retired from NIM (HTTP 410) in
+2026-10; see
 docs/research/2026-08-20-reasoning-layer-reflectvlm.md and
 docs/research/bakeoff_instruction_parser.py for the empirical validation).
 
@@ -20,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 NIM_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
-MODEL = "meta/llama-3.1-8b-instruct"
+MODEL = "meta/llama-3.2-11b-vision-instruct"
 VALID_RELATIONS = {"left_of", "right_of", "near", "center", "none"}
 
 SYSTEM_PROMPT = """You are a robotic task planner. Translate a human's \

@@ -314,3 +314,11 @@ All three are refinements toward the specified behavior, not accepted
 departures from it (the design's stated *intent* — one step per object,
 resolved against the current table state, with `near` matching only
 already-placed objects — is what the fixes actually enforce).
+
+### Model replacement (2026-10-03)
+
+NVIDIA retired `meta/llama-3.1-8b-instruct` from the hosted NIM endpoint
+(HTTP 410). The parser now calls `meta/llama-3.2-11b-vision-instruct`
+text-only, keeping JSON mode and this design's schema validation. It is the
+model P10 SP2 uses for object identification, so the project depends on a
+single hosted model.
