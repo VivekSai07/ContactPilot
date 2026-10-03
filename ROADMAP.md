@@ -636,7 +636,7 @@ fundamentally 2-finger-parallel-jaw-specific — a dexterous hand's grasp
 mechanical mounting was ever proven out.
 
 
-## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate NOT met (28/40 vs 34/40); SP2/SP3 not started]
+## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate MET 2026-10-03 (37/40); SP2 in design]
 
 Origin + feasibility check: `docs/research/2026-09-29-scene-knowledge-graph.md`.
 Design: `docs/superpowers/specs/2026-09-29-semantic-sorting-scene-graph-design.md`.
@@ -683,9 +683,17 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
       0.0 m, 3 `ik_grasp`, 1 `ik_pregrasp`) concentrate in two props:
       Crayola_Bonus_64_Crayons 0/12 and ReadytoUse Fondant 0/4 over the
       first 10-seed run, the two heaviest props (0.30 / 0.40 kg; every
-      prop at <= 0.22 kg succeeded at least once). Mass is a hypothesis
-      (confounded with size), not yet tested. Follow-up branch closes this
-      gap.
+      prop at <= 0.22 kg succeeded at least once).
+      **2026-10-03 — gate met: 37/40.** Mass was the cause: with both heavy
+      props set to 0.1 kg, seed 0 went 1/4 -> 4/4. The real limit is the
+      Menagerie gripper servo (kp 100 N/m on the tendon), which squeezes a
+      ~4 cm prop with only ~2 N. `scene_generator.py` now scales the gripper
+      actuator's gain and bias together by `GRIPPER_STIFFNESS_SCALE = 5`
+      (same 0-255 ctrl->width mapping, 5x squeeze force; forcerange still
+      caps it). Seed 0 sweep at real masses: x1 1/4, x5 4/4, x10 4/4.
+      Seeds 0-9 pick-all, GraspGen/fused: props **37/40 correct-bin** (was
+      28/40), 0 knocked off, 0 crashes, remaining failures 2 `ik_pregrasp`
+      + 1 `done`; 3-box regression check 30/30 (unchanged).
 - [ ] **SP2 — scene graph + knowledge.** Vision-only nodes/edges per round
       (replaces the `objects_in_bin()` qpos oracle), NIM identify →
       categorize cached per object, `--identity oracle` upper bound.

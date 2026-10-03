@@ -38,6 +38,9 @@ REPO_ROOT = PROJECT_ROOT.parent                              # repo root
 MENAGERIE_PANDA_DIR = REPO_ROOT / 'mujoco_menagerie' / 'franka_emika_panda'
 MESH_OBJECT_DIR = PROJECT_ROOT / 'assets' / 'objects'        # drop YCB .obj/.stl here
 GENERATED_DIR = PROJECT_ROOT / 'assets'                       # patched/generated MJCF lands here
+# Gripper servo stiffness multiplier (see the panda.xml patch below).
+# Props benchmark seeds 0-9: x1 -> 28/40, x5 -> 37/40 correct-bin; boxes 30/30.
+GRIPPER_STIFFNESS_SCALE = 5.0
 
 # Arm joint targets while observing (folded back so the arm stays out of the
 # camera frustum). Position-servo actuators hold these via data.ctrl.
@@ -347,6 +350,21 @@ class SceneGenerator:
                 f'Expected to patch friction on 5 fingertip pad collision '
                 f'geoms in panda.xml, patched {n_friction} '
                 '(upstream file structure changed?)')
+
+        # Menagerie's gripper servo (kp=100 N/m on the tendon) squeezes a
+        # ~4 cm prop with only ~2 N, so 0.3-0.4 kg props slip out on lift.
+        # Scale gain and bias together: same 0-255 ctrl->width mapping,
+        # GRIPPER_STIFFNESS_SCALE x the squeeze force (forcerange still caps it).
+        k = GRIPPER_STIFFNESS_SCALE
+        patched, n_grip = re.subn(
+            r'gainprm="0\.01568627451 0 0" biasprm="0 -100 -10"',
+            f'gainprm="{0.01568627451 * k:.11f} 0 0" '
+            f'biasprm="0 {-100 * k:g} {-10 * k:g}"',
+            patched)
+        if n_grip != 1:
+            raise RuntimeError(
+                f'Expected to patch exactly one gripper actuator in panda.xml, '
+                f'patched {n_grip} (upstream file structure changed?)')
         GENERATED_DIR.mkdir(parents=True, exist_ok=True)
         out = GENERATED_DIR / '_panda_sim_patched.xml'
         out.write_text(patched, encoding='utf-8')
