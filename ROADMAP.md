@@ -635,3 +635,82 @@ fundamentally 2-finger-parallel-jaw-specific — a dexterous hand's grasp
 *planning* remains a distinct, unsolved problem in this pipeline, only its
 mechanical mounting was ever proven out.
 
+
+## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate MET 2026-10-03 (37/40); SP2 IMPLEMENTED 2026-10-03, gate MET]
+
+Origin + feasibility check: `docs/research/2026-09-29-scene-knowledge-graph.md`.
+Design: `docs/superpowers/specs/2026-09-29-semantic-sorting-scene-graph-design.md`.
+Goal: sort real-looking household props into two bins by category (food →
+bin A, non-food → bin B), with each object's category derived from
+perception (NIM vision model identifies the crop → NIM llama-3.1-8b maps
+name → category), never from simulator ground truth. Metric: correct-bin
+rate, split into identification vs knowledge errors.
+
+Three strictly sequential sub-projects, each its own spec/plan/PR:
+
+- [ ] **SP1 — semantic prop scene + second bin + oracle routing.** 12
+      textured, box-shaped Google Scanned Objects props (6 food / 6
+      non-food), a mirrored second bin at (0.45, +0.30), per-bin placement,
+      `--scene props`, correct-bin metrics. Plan:
+      `docs/superpowers/plans/2026-09-29-semantic-sorting-sp1-props-scene.md`.
+      **Gate before SP2:** GraspGen/fused, seeds 0-9 pick-all — ≥ 34/40
+      objects in the intended bin, ≤ 2 knocked off, 0 crashes (3-box
+      baseline: 30/30).
+      **SP1 status (2026-10-02): shipped as a working baseline, gate not
+      met.** `--scene props` runs end to end (10/10 runs completed, 0
+      crashes, 0 knocked off). GraspGen/fused, seeds 0-9 pick-all:
+      **28/40 (70%) in the correct bin** vs the 34/40 gate. Props started at
+      0/4 per scene; three fixes got it to 70%:
+      - *Prop friction.* GSO collision geoms had MuJoCo defaults
+        (1.0/0.005/0.0001, condim 3). Contact friction is the per-axis min
+        of the two geoms, so the object side zeroed the pads' torsional
+        term. Props now use `friction="1.5 0.02 0.004" condim="4"`.
+      - *Gripper-only bounding box.* The 32 V-HACD hulls have inter-hull
+        gaps the fingers slip through. A tight box per prop fills them, but
+        it is `contype=2 conaffinity=0` and the pads get `conaffinity=3`, so
+        it collides with the pads only. A first version that also collided
+        with the table/neighbours let a prop balance on a phantom ledge and
+        topple late (`test_scene_props` seed 4 failed to settle).
+        Ablation, same 10 seeds: no box 15/40, box (all collisions) 26/40,
+        pad-only box 28/40.
+      - *Grasp width filter* (`feasibility.py`): rejects grasps whose local
+        cross-section at the finger contact plane (a +-25 mm band centred
+        at the TCP, `origin + 0.1034*approach`, not the wrist origin) is
+        wider than the opening. A first version centred the band on the
+        wrist origin and measured nothing; CGN rejects 122/147 grasps
+        with it, GraspGen almost none.
+      Remaining failures (23 `done` = fingers close on nothing and lift
+      0.0 m, 3 `ik_grasp`, 1 `ik_pregrasp`) concentrate in two props:
+      Crayola_Bonus_64_Crayons 0/12 and ReadytoUse Fondant 0/4 over the
+      first 10-seed run, the two heaviest props (0.30 / 0.40 kg; every
+      prop at <= 0.22 kg succeeded at least once).
+      **2026-10-03 — gate met: 37/40.** Mass was the cause: with both heavy
+      props set to 0.1 kg, seed 0 went 1/4 -> 4/4. The real limit is the
+      Menagerie gripper servo (kp 100 N/m on the tendon), which squeezes a
+      ~4 cm prop with only ~2 N. `scene_generator.py` now scales the gripper
+      actuator's gain and bias together by `GRIPPER_STIFFNESS_SCALE = 5`
+      (same 0-255 ctrl->width mapping, 5x squeeze force; forcerange still
+      caps it). Seed 0 sweep at real masses: x1 1/4, x5 4/4, x10 4/4.
+      Seeds 0-9 pick-all, GraspGen/fused: props **37/40 correct-bin** (was
+      28/40), 0 knocked off, 0 crashes, remaining failures 2 `ik_pregrasp`
+      + 1 `done`; 3-box regression check 30/30 (unchanged).
+- [x] **SP2 — scene graph + knowledge (2026-10-03, gate MET).** Spec (approved 2026-10-03):
+      `docs/superpowers/specs/2026-10-03-semantic-sorting-sp2-scene-graph-design.md`. Vision-only nodes/edges per round
+      (replaces the `objects_in_bin()` qpos oracle), NIM identify →
+      categorize cached per object, `--identity oracle` upper bound.
+      Gate (GraspGen/fused, seeds 0-9, pick-all): 36/40 correct-bin (>= 34),
+      0 knocked off, 0 crashes (10/10), location agreement 100%, perceived
+      category accuracy 33/40 = 82% (>= 80%). Oracle identity: 38/40 = 95%
+      accuracy, 37/40 correct-bin. 8 NIM calls/run perceived, 4 oracle.
+      Routing still uses ground truth (SP3 switches it). All 7 perceived
+      misses trace to the identify step (e.g. Epson ink -> 'Box of cereal'
+      2x, Nescafe -> 'Box of hair dye'; the Fondant box was named 'Box of
+      birthday cake decorations'). Both oracle misses are the Fondant box
+      categorized non_food from its correct name - a knowledge error.
+      Perceived run output:
+
+          [bench] objects binned: 36/40 (90%), knocked off table: 0
+          [bench] objects in correct bin: 36/40 (90%)
+          [bench] perceived category accuracy: 33/40 (82%), mean location agreement: 100%
+- [ ] **SP3 — perceived sorting consumer + metrics.** Destination bin from
+      the graph's category; correct-bin rate vs SP1's oracle upper bound.

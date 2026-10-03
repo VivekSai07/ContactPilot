@@ -254,6 +254,31 @@ Click-based selection uses the same whole-object category detection as
 2026-08-18 update) -- pass `--category` to override the default `'a block'`
 if your scene uses different-shaped objects.
 
+### Semantic props scene (`--scene props`, ROADMAP P10)
+
+Textured Google Scanned Objects props (6 food, 6 non-food; 4 per scene,
+always 2 + 2) and a second bin: food → bin A at (0.45, −0.30), non-food →
+bin B at (0.45, +0.30). In this first stage each object is routed by its
+**ground-truth** category (`"routing": "oracle"` in `metrics.json`) — the
+upper bound the later perception-based sorting is measured against.
+
+```bash
+python scripts/download_props.py                         # once; idempotent
+python run_sim_grasp_test.py --scene props --pick-all --camera fused --backend graspgen
+python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --tag props_oracle
+```
+
+`metrics.json` gains `pick_all.in_correct_bin` / `in_wrong_bin`; `in_bin`
+still means "in any bin". Not supported with `--scene props`:
+`--instruction`, `--prompt/--click/--box`, and `interactive_pick.py`.
+
+- `--scene-graph` — build a vision-only scene graph each round (nodes, bin
+  locations, NIM identify + categorize); needs `NVIDIA_API_KEY`. Routing
+  still uses ground truth until SP3.
+- `--identity {perceived,oracle}` — with `--scene-graph`: name objects from
+  the camera crop via NIM (`perceived`, default) or use the ground-truth
+  name (`oracle`, upper bound).
+
 ### Testing
 
 No automated test suite — these are standalone pure-function scripts, run

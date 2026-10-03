@@ -88,21 +88,41 @@ class CameraModule:
 
         MuJoCo's segmentation renderer returns per-pixel (geom_id, obj_type).
         We map geom -> body -> our object label so the segmap matches what
-        Contact-GraspNet expects (integer instance labels)."""
-        self.renderer.enable_segmentation_rendering()
-        self.renderer.update_scene(self.data, camera=self.cam_id)
-        seg = self.renderer.render()
-        self.renderer.disable_segmentation_rendering()
+        Contact-GraspNet expects (integer instance labels).
 
-        geom_ids = seg[:, :, 0].astype(np.int64)
-        segmap = np.zeros(geom_ids.shape, dtype=np.float32)
-        # geom -> body lookup table (geom_id -1 = background)
+        Software rasterizers (OSMesa, used headless/WSL2) occasionally hand
+        back a segmentation frame where one or more farther-away geoms read
+        as background -- a rendering-buffer race, not scene-state dependent
+        (same scene re-rendered a moment later is typically complete). We
+        retry a few times and OR results together: a pixel keeps the first
+        non-background body it was ever assigned, so a flaky miss on one
+        render is filled in by a later render of the same static scene."""
         geom_body = self.model.geom_bodyid
-        valid = geom_ids >= 0
-        bodies = np.zeros_like(geom_ids)
-        bodies[valid] = geom_body[geom_ids[valid]]
+        bodies = None
+        for _attempt in range(5):
+            self.renderer.enable_segmentation_rendering()
+            self.renderer.update_scene(self.data, camera=self.cam_id)
+            seg = self.renderer.render()
+            self.renderer.disable_segmentation_rendering()
+
+            geom_ids = seg[:, :, 0].astype(np.int64)
+            valid = geom_ids >= 0
+            frame_bodies = np.zeros(geom_ids.shape, dtype=np.int64)
+            frame_bodies[valid] = geom_body[geom_ids[valid]]
+
+            if bodies is None:
+                bodies = frame_bodies
+            else:
+                fill = (bodies == 0) & (frame_bodies != 0)
+                bodies[fill] = frame_bodies[fill]
+
+            seen = {int(b) for b in np.unique(bodies)}
+            if all(bid in seen for bid in body_to_label):
+                break
+
+        segmap = np.zeros(bodies.shape, dtype=np.float32)
         for body_id, label in body_to_label.items():
-            segmap[valid & (bodies == body_id)] = float(label)
+            segmap[bodies == body_id] = float(label)
         return segmap
 
     def capture(self, body_to_label: dict[int, int] | None = None):

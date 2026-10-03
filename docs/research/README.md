@@ -21,3 +21,7 @@ and this file should say so (with a link) rather than duplicating it.
 - [2026-08-21-short-object-finger-table-collision.md](2026-08-21-short-object-finger-table-collision.md) —
   root cause + fix for fingers hitting the table on short objects during
   grasp closing. Status: fixed (see `ROADMAP.md` P1).
+- [2026-09-29-scene-knowledge-graph.md](2026-09-29-scene-knowledge-graph.md) —
+  vision → scene/knowledge graph feasibility check (repo audit, SGG model
+  landscape, NIM vision models, Google Scanned Objects props). Status:
+  graduated into the semantic-sorting design (see `ROADMAP.md` P10).

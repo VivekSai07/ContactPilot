@@ -38,11 +38,27 @@ REPO_ROOT = PROJECT_ROOT.parent                              # repo root
 MENAGERIE_PANDA_DIR = REPO_ROOT / 'mujoco_menagerie' / 'franka_emika_panda'
 MESH_OBJECT_DIR = PROJECT_ROOT / 'assets' / 'objects'        # drop YCB .obj/.stl here
 GENERATED_DIR = PROJECT_ROOT / 'assets'                       # patched/generated MJCF lands here
+# Gripper servo stiffness multiplier (see the panda.xml patch below).
+# Props benchmark seeds 0-9: x1 -> 28/40, x5 -> 37/40 correct-bin; boxes 30/30.
+GRIPPER_STIFFNESS_SCALE = 5.0
 
 # Arm joint targets while observing (folded back so the arm stays out of the
 # camera frustum). Position-servo actuators hold these via data.ctrl.
 ARM_OBSERVE_QPOS = np.array([0.0, -1.4, 0.0, -2.7, 0.0, 1.45, -0.7853])
 GRIPPER_OPEN_CTRL = 255.0
+
+# [P10 SP2] identification crops come from a 3x render of the observation
+# camera: at 640x480 a prop is ~80 px and the vision model guesses (8/12).
+HIRES_SCALE = 3
+
+
+@dataclass(frozen=True)
+class BinSpec:
+    """One open-top place bin. category is '' in the legacy one-bin scene."""
+    name: str
+    center: tuple
+    inner_half: float
+    category: str
 
 
 @dataclass
@@ -107,12 +123,44 @@ class SceneConfig:
     bin_wall_height: float = 0.05
     bin_wall_half_thickness: float = 0.006
 
+    # [P10] Second bin + semantic props. Defaults reproduce the legacy
+    # single-bin boxes scene exactly (see test_scene_default_unchanged.py).
+    scene_mode: str = 'boxes'                     # 'boxes' | 'props'
+    second_bin_center: tuple | None = None        # e.g. (0.45, 0.30)
+    bin_categories: tuple = ('food', 'non_food')  # bin A, bin B
+    props_manifest: str | None = None
+
     # Physics settling
     settle_time: float = 3.0            # seconds of free simulation
     max_extra_settle: float = 4.0       # extra time if objects still moving
     settle_qvel_thresh: float = 0.02    # rad/s or m/s — "at rest" threshold
 
     seed: int | None = None
+
+    def bins(self) -> 'list[BinSpec]':
+        """Bin A is always the legacy bin; bin B exists only when
+        second_bin_center is set, mirroring A's size."""
+        if self.second_bin_center is None:
+            return [BinSpec('A', tuple(self.bin_center), self.bin_inner_half, '')]
+        return [BinSpec('A', tuple(self.bin_center), self.bin_inner_half,
+                        self.bin_categories[0]),
+                BinSpec('B', tuple(self.second_bin_center), self.bin_inner_half,
+                        self.bin_categories[1])]
+
+    @classmethod
+    def for_props(cls, seed: int | None = None, manifest: str | None = None,
+                  n_objects: int = 4) -> 'SceneConfig':
+        """[P10] Semantic props preset: 4 GSO props, bin B mirrored at
+        (0.45, +0.30) -- the only in-reach spot outside the spawn region,
+        since bin A already sits at reachability.MAX_REACH -- and a spawn
+        strip narrowed so props (<= 7.7 cm half-diagonal) clear both bins."""
+        from sim_grasp.props import MANIFEST_PATH, validate_props_count
+        validate_props_count(n_objects)
+        return cls(seed=seed, scene_mode='props',
+                   n_objects_range=(n_objects, n_objects),
+                   second_bin_center=(0.45, 0.30),
+                   spawn_y=(-0.09, 0.09),
+                   props_manifest=str(manifest or MANIFEST_PATH))
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +172,9 @@ class ObjectSpec:
     xml: str            # the <body>...</body> snippet
     spawn_half_height: float
     color_name: str = ''
+    category: str = ''      # [P10] ground-truth category (props scene only)
+    assets_xml: str = ''    # [P10] <texture>/<material>/<mesh> assets for this body
+    model_id: str = ''      # [P10] Google Scanned Objects model id
 
 
 def _make_primitive(rng, name: str, index: int) -> ObjectSpec:
@@ -190,6 +241,31 @@ def _make_mesh_object(rng, name: str, mesh_path: Path, index: int) -> ObjectSpec
     return spec
 
 
+_BIN_GEOM_PREFIX = {'A': 'bin', 'B': 'bin_b'}   # bin A keeps its legacy geom names
+
+
+def _bin_xml(prefix: str, center: tuple, cfg: 'SceneConfig') -> str:
+    """Floor slab + 4 walls, static, on the tabletop. Formatting copied
+    verbatim from the original inline block so bin A's XML is unchanged."""
+    bx, by = center
+    bi, wt = cfg.bin_inner_half, cfg.bin_wall_half_thickness
+    wh = cfg.bin_wall_height / 2
+    bo = bi + 2 * wt                       # outer half-extent
+    bz = cfg.table_height
+    bin_rgba = '0.50 0.55 0.62 1'
+    return '\n    '.join([
+        f'<geom name="{prefix}_floor" type="box" size="{bo:.4f} {bo:.4f} 0.004" '
+        f'pos="{bx} {by} {bz + 0.004:.4f}" rgba="{bin_rgba}"/>',
+        f'<geom name="{prefix}_wall_xp" type="box" size="{wt:.4f} {bo:.4f} {wh:.4f}" '
+        f'pos="{bx + bi + wt:.4f} {by} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
+        f'<geom name="{prefix}_wall_xm" type="box" size="{wt:.4f} {bo:.4f} {wh:.4f}" '
+        f'pos="{bx - bi - wt:.4f} {by} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
+        f'<geom name="{prefix}_wall_yp" type="box" size="{bo:.4f} {wt:.4f} {wh:.4f}" '
+        f'pos="{bx} {by + bi + wt:.4f} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
+        f'<geom name="{prefix}_wall_ym" type="box" size="{bo:.4f} {wt:.4f} {wh:.4f}" '
+        f'pos="{bx} {by - bi - wt:.4f} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>'])
+
+
 # ---------------------------------------------------------------------------
 # SceneGenerator
 # ---------------------------------------------------------------------------
@@ -210,6 +286,9 @@ class SceneGenerator:
         self.object_names: list[str] = []
         self.object_colors: dict[str, str] = {}   # obj name -> fixed color name
         self.object_body_ids: dict[int, int] = {}   # mj body id -> seg label (1..N)
+        self.object_categories: dict[str, str] = {}   # [P10] obj name -> category
+        self.object_props: dict[str, str] = {}        # [P10] obj name -> GSO model id
+        self._spawn_radii: list[float] | None = None  # [P10] props-only spawn spacing
         self.scene_xml_path: Path | None = None
 
         if not MENAGERIE_PANDA_DIR.is_dir():
@@ -263,16 +342,33 @@ class SceneGenerator:
         # torsional term friction[1] is a dead value no matter how high it's
         # set without it (the original 1.0/0.01/0.004 patch was a no-op,
         # since 1.0 sliding == the unpatched default).
+        # conaffinity="3" additionally lets the pads collide with the props'
+        # gripper-only bounding-box geoms (contype 2, see props.py).
         patched, n_friction = re.subn(
             r'(<default class="fingertip_pad_collision_\d">\s*'
             r'<geom type="box" size="[^"]*" pos="[^"]*")/>',
-            r'\1 friction="1.5 0.02 0.004" condim="4"/>',
+            r'\1 friction="1.5 0.02 0.004" condim="4" conaffinity="3"/>',
             patched)
         if n_friction != 5:
             raise RuntimeError(
                 f'Expected to patch friction on 5 fingertip pad collision '
                 f'geoms in panda.xml, patched {n_friction} '
                 '(upstream file structure changed?)')
+
+        # Menagerie's gripper servo (kp=100 N/m on the tendon) squeezes a
+        # ~4 cm prop with only ~2 N, so 0.3-0.4 kg props slip out on lift.
+        # Scale gain and bias together: same 0-255 ctrl->width mapping,
+        # GRIPPER_STIFFNESS_SCALE x the squeeze force (forcerange still caps it).
+        k = GRIPPER_STIFFNESS_SCALE
+        patched, n_grip = re.subn(
+            r'gainprm="0\.01568627451 0 0" biasprm="0 -100 -10"',
+            f'gainprm="{0.01568627451 * k:.11f} 0 0" '
+            f'biasprm="0 {-100 * k:g} {-10 * k:g}"',
+            patched)
+        if n_grip != 1:
+            raise RuntimeError(
+                f'Expected to patch exactly one gripper actuator in panda.xml, '
+                f'patched {n_grip} (upstream file structure changed?)')
         GENERATED_DIR.mkdir(parents=True, exist_ok=True)
         out = GENERATED_DIR / '_panda_sim_patched.xml'
         out.write_text(patched, encoding='utf-8')
@@ -280,6 +376,8 @@ class SceneGenerator:
 
     # -- object sampling -----------------------------------------------------
     def _sample_objects(self) -> tuple[list[ObjectSpec], list[str]]:
+        if self.cfg.scene_mode == 'props':
+            return self._sample_props()
         n = int(self.rng.integers(self.cfg.n_objects_range[0],
                                   self.cfg.n_objects_range[1] + 1))
         mesh_files = _list_mesh_files() if self.cfg.use_meshes else []
@@ -296,16 +394,48 @@ class SceneGenerator:
             specs.append(spec)
         return specs, extra_assets
 
-    def _sample_xy_positions(self, n: int) -> np.ndarray:
+    def _sample_props(self) -> tuple[list[ObjectSpec], list[str]]:
+        """[P10] Balanced food/non-food GSO props, upright in their scanned
+        pose (origin at the base, so spawn_half_height is just -lo_z)."""
+        from sim_grasp.props import (footprint_radius, load_manifest, obj_bounds,
+                                     prop_body_xml, prop_files, prop_scale,
+                                     sample_balanced, validate_props_count)
+        n = int(self.rng.integers(self.cfg.n_objects_range[0],
+                                  self.cfg.n_objects_range[1] + 1))
+        validate_props_count(n)
+        entries = sample_balanced(load_manifest(self.cfg.props_manifest), n, self.rng)
+        specs, assets, radii = [], [], []
+        for i, e in enumerate(entries):
+            name = f'obj_{i}'
+            files = prop_files(e.model_id)
+            lo, hi = obj_bounds(files['visual'])
+            scale = prop_scale(hi - lo)
+            body, assets_xml = prop_body_xml(name, e, files, scale, lo, hi)
+            specs.append(ObjectSpec(name=name, xml=body,
+                                    spawn_half_height=float(-lo[2] * scale),
+                                    category=e.category, assets_xml=assets_xml,
+                                    model_id=e.model_id))
+            assets.append(assets_xml)
+            radii.append(footprint_radius(hi - lo, scale))
+        self._spawn_radii = radii
+        return specs, assets
+
+    def _sample_xy_positions(self, n: int, radii: list[float] | None = None) -> np.ndarray:
         """Rejection-sample XY spawn positions keeping min spacing (avoids
-        catastrophic initial penetration between objects)."""
+        catastrophic initial penetration between objects). With radii
+        (props scene) a pair also needs r_i + r_j + 1 cm: a fixed 9-12 cm
+        spacing would let two 15 cm props spawn interpenetrating. radii=None
+        consumes the rng exactly as before, so box scenes are unchanged."""
         cfg = self.cfg
         positions = []
-        for _ in range(n):
+        for k in range(n):
             for _attempt in range(300):
                 xy = np.array([self.rng.uniform(*cfg.spawn_x),
                                self.rng.uniform(*cfg.spawn_y)])
-                if all(np.linalg.norm(xy - p) >= cfg.min_object_spacing for p in positions):
+                if all(np.linalg.norm(xy - p) >= (
+                        cfg.min_object_spacing if radii is None
+                        else max(cfg.min_object_spacing, radii[k] + radii[j] + 0.01))
+                       for j, p in enumerate(positions)):
                     positions.append(xy)
                     break
             else:
@@ -368,25 +498,12 @@ class SceneGenerator:
         objects_xml = '\n    '.join(s.xml for s in specs)
         assets_xml = '\n    '.join(extra_assets)
 
-        # Place bin: floor slab + 4 walls, static, sitting on the tabletop
-        bx, by = cfg.bin_center
-        bi, wt = cfg.bin_inner_half, cfg.bin_wall_half_thickness
-        wh = cfg.bin_wall_height / 2
-        bo = bi + 2 * wt                       # outer half-extent
-        bz = cfg.table_height
-        bin_rgba = '0.50 0.55 0.62 1'
-        bin_xml = '\n    '.join([
-            f'<geom name="bin_floor" type="box" size="{bo:.4f} {bo:.4f} 0.004" '
-            f'pos="{bx} {by} {bz + 0.004:.4f}" rgba="{bin_rgba}"/>',
-            f'<geom name="bin_wall_xp" type="box" size="{wt:.4f} {bo:.4f} {wh:.4f}" '
-            f'pos="{bx + bi + wt:.4f} {by} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
-            f'<geom name="bin_wall_xm" type="box" size="{wt:.4f} {bo:.4f} {wh:.4f}" '
-            f'pos="{bx - bi - wt:.4f} {by} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
-            f'<geom name="bin_wall_yp" type="box" size="{bo:.4f} {wt:.4f} {wh:.4f}" '
-            f'pos="{bx} {by + bi + wt:.4f} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>',
-            f'<geom name="bin_wall_ym" type="box" size="{bo:.4f} {wt:.4f} {wh:.4f}" '
-            f'pos="{bx} {by - bi - wt:.4f} {bz + 0.008 + wh:.4f}" rgba="{bin_rgba}"/>'])
+        # Place bin(s): legacy bin A, plus bin B in the props scene
+        bin_xml = '\n    '.join(_bin_xml(_BIN_GEOM_PREFIX[b.name], b.center, cfg)
+                                for b in cfg.bins())
 
+        off_w, off_h = ((640 * HIRES_SCALE, 480 * HIRES_SCALE)
+                        if cfg.scene_mode == 'props' else (1280, 960))
         xml = f"""<mujoco model="panda_tabletop_grasping">
   <include file="{panda_file}"/>
 
@@ -394,7 +511,7 @@ class SceneGenerator:
 
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
-    <global offwidth="1280" offheight="960" azimuth="120" elevation="-20"/>
+    <global offwidth="{off_w}" offheight="{off_h}" azimuth="120" elevation="-20"/>
     <map znear="0.005"/>
   </visual>
 
@@ -462,6 +579,8 @@ class SceneGenerator:
         self.model, self.data = model, data
         self.object_names = [s.name for s in specs]
         self.object_colors = {s.name: s.color_name for s in specs}
+        self.object_categories = {s.name: s.category for s in specs if s.category}
+        self.object_props = {s.name: s.model_id for s in specs if s.model_id}
 
         # Map MuJoCo body ids -> segmentation labels 1..N (0 = background)
         self.object_body_ids = {}
@@ -478,7 +597,7 @@ class SceneGenerator:
         data.qpos[8] = 0.04
 
         # --- place objects: random XY + staggered drop heights ---------------
-        xy = self._sample_xy_positions(len(specs))
+        xy = self._sample_xy_positions(len(specs), radii=self._spawn_radii)
         for i, s in enumerate(specs):
             jadr = model.joint(f'{s.name}_joint').qposadr[0]
             drop_z = cfg.table_height + s.spawn_half_height + 0.015 + 0.04 * i
@@ -514,22 +633,36 @@ class SceneGenerator:
             speeds.append(float(np.abs(self.data.qvel[jadr:jadr + 6]).max()))
         return max(speeds)
 
-    def bin_drop_point(self) -> np.ndarray:
+    def bin_drop_point(self, bin_name: str = 'A') -> np.ndarray:
         """World point above which the executor releases objects."""
-        bx, by = self.cfg.bin_center
+        b = next(b for b in self.cfg.bins() if b.name == bin_name)
+        bx, by = b.center
         return np.array([bx, by, self.cfg.table_height + 0.02])
 
-    def objects_in_bin(self) -> list[str]:
-        """Names of objects currently inside the place bin."""
+    def _objects_in_region(self, center: tuple, inner_half: float) -> list[str]:
         cfg, out = self.cfg, []
-        bx, by = cfg.bin_center
-        tol = cfg.bin_inner_half + 0.02
+        bx, by = center
+        tol = inner_half + 0.02
         for name in self.object_names:
             jadr = self.model.joint(f'{name}_joint').qposadr[0]
             x, y, z = self.data.qpos[jadr:jadr + 3]
             if (abs(x - bx) < tol and abs(y - by) < tol
                     and cfg.table_height - 0.01 < z < cfg.table_height + 0.20):
                 out.append(name)
+        return out
+
+    def objects_in_bin(self) -> list[str]:
+        """Names of objects currently inside the place bin (bin A)."""
+        return self._objects_in_region(self.cfg.bin_center, self.cfg.bin_inner_half)
+
+    def objects_in_bins(self) -> dict[str, str]:
+        """{object name: bin name} for every object inside any bin.
+        SIM ORACLE (reads qpos) -- P10 SP2 replaces this with vision-only
+        scene-graph node locations so the same logic runs on the real robot."""
+        out = {}
+        for b in self.cfg.bins():
+            for name in self._objects_in_region(b.center, b.inner_half):
+                out[name] = b.name
         return out
 
     def objects_on_table(self) -> list[str]:

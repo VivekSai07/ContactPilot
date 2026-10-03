@@ -1,0 +1,14 @@
+[
+  {"model_id": "Crunch_Girl_Scouts_Candy_Bars_Peanut_Butter_Creme_78_oz_box", "category": "food", "mass_kg": 0.22},
+  {"model_id": "ReadytoUse_Rolled_Fondant_Pure_White_24_oz_box", "category": "food", "mass_kg": 0.40},
+  {"model_id": "Nestl_Skinny_Cow_Heavenly_Crisp_Candy_Bar_Chocolate_Raspberry_6_pack_462_oz_total", "category": "food", "mass_kg": 0.13},
+  {"model_id": "Nestle_Nips_Hard_Candy_Peanut_Butter", "category": "food", "mass_kg": 0.12},
+  {"model_id": "Nescafe_Momento_Mocha_Specialty_Coffee_Mix_8_ct", "category": "food", "mass_kg": 0.18},
+  {"model_id": "Polar_Herring_Fillets_Smoked_Peppered_705_oz_total", "category": "food", "mass_kg": 0.20},
+  {"model_id": "Epson_273XL_Ink_Cartridge_Magenta", "category": "non_food", "mass_kg": 0.05},
+  {"model_id": "Dell_Series_9_Color_Ink_Cartridge_MK993_High_Yield", "category": "non_food", "mass_kg": 0.08},
+  {"model_id": "Brother_LC_1053PKS_Ink_Cartridge_CyanMagentaYellow_1pack", "category": "non_food", "mass_kg": 0.06},
+  {"model_id": "Just_For_Men_ShampooIn_Haircolor_Jet_Black_60", "category": "non_food", "mass_kg": 0.12},
+  {"model_id": "Crayola_Crayons_24_count", "category": "non_food", "mass_kg": 0.10},
+  {"model_id": "Crayola_Bonus_64_Crayons", "category": "non_food", "mass_kg": 0.30}
+]
