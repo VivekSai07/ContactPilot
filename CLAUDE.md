@@ -58,7 +58,7 @@ via an interpreter path (see `mujoco_grasp_sim/README.md` for setup):
 |---|---|---|
 | `--backend graspgen` | `graspgen_torch` | `GRASPGEN_PYTHON` or `--graspgen-python` |
 | `--prompt` / `--click` / `--box`, `interactive_pick.py` (SAM 3) | `sam3_torch` | `SAM3_PYTHON` or `--sam3-python` |
-| `--instruction` (NL parsing via NVIDIA NIM) | — | `NVIDIA_API_KEY` in `.env` (see `.env.example`) |
+| `--instruction` (NL parsing), `--scene-graph` (identify/categorize) via NVIDIA NIM | — | `NVIDIA_API_KEY` in `.env` (see `.env.example`) |
 
 These fail fast with a clear error when unset — they deliberately never fall
 back to `sys.executable`, so don't "fix" that. On WSL2/headless machines,
@@ -191,6 +191,9 @@ Key modules in `sim_grasp/`:
   `placement_planner.py` — the P8 NL-instruction layer: parse an instruction
   into ordered steps, turn each step's spatial relation into a biased
   vision-only bin-placement plan.
+- `scene_graph.py` / `object_knowledge.py` / `scene_graph_viz.py` — P10 SP2:
+  vision-only per-round scene graph (`--scene-graph`), NIM identify →
+  categorize with per-object caching (`--identity oracle` = upper bound), overlay.
 - `fusion.py` — multi-camera point-cloud fusion (world frame, voxel dedup) for `--camera fused`.
 - `executor.py` — differential IK (damped least squares, multi-seed restarts)
   + joint-space ctrl interpolation + the pick/place state machine; also

@@ -199,3 +199,24 @@ GraspGen/fused, seeds 0–9, `--pick-all --scene props --scene-graph`:
 Routing by perceived category (SP3). Graph use in `--instruction`. A
 local VLM (Qwen3-VL) — revisit only if the hosted model misses the gate.
 Clutter or stacked relations (`on_top_of`). Boxes mode. Real-robot runs.
+
+## Implementation notes (2026-10-03)
+
+Divergences from the design above:
+
+- (a) A second `CameraModule` at 3x resolution is created once per run
+  instead of a `capture_hires` method (avoids an OSMesa multi-renderer crash).
+- (b) Bin location is the XY footprint only, with no rim-height cut-off (a
+  14 cm prop's top face is above the 5 cm wall).
+- (c) Node labels use "-" not an em dash (OpenCV Hershey fonts cannot draw it).
+- (d) An object with no graph node in a round is not retried, so the run can
+  end early (oracle scoring still counts it as left on table).
+- (e) Gate results (GraspGen/fused, seeds 0-9, pick-all): MET. 36/40
+  correct-bin (>= 34), 0 knocked off, 0 crashes (10/10), location agreement
+  100% (>= 95%), perceived category accuracy 33/40 = 82% (>= 80%). Oracle
+  identity: 38/40 = 95% accuracy, 37/40 correct-bin. 8 NIM calls/run
+  perceived, 4 oracle. Routing still uses ground truth, so category errors do
+  not change correct-bin in SP2. 7 of 8 perceived misses are identification
+  errors (Epson ink -> "Box of cereal" 2x, Nescafe -> "Box of hair dye");
+  the Fondant box is a knowledge error (named correctly, categorized
+  non_food; also both oracle misses).
