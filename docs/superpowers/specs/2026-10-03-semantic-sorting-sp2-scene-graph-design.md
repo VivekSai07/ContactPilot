@@ -216,7 +216,8 @@ Divergences from the design above:
   100% (>= 95%), perceived category accuracy 33/40 = 82% (>= 80%). Oracle
   identity: 38/40 = 95% accuracy, 37/40 correct-bin. 8 NIM calls/run
   perceived, 4 oracle. Routing still uses ground truth, so category errors do
-  not change correct-bin in SP2. 7 of 8 perceived misses are identification
-  errors (Epson ink -> "Box of cereal" 2x, Nescafe -> "Box of hair dye");
-  the Fondant box is a knowledge error (named correctly, categorized
-  non_food; also both oracle misses).
+  not change correct-bin in SP2. All 7 perceived misses trace to the identify
+  step (e.g. Epson ink -> 'Box of cereal' 2x, Nescafe -> 'Box of hair dye';
+  the Fondant box was named 'Box of birthday cake decorations'). Both oracle
+  misses are the Fondant box categorized non_food from its correct name - a
+  knowledge error.

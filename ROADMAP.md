@@ -702,9 +702,15 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
       0 knocked off, 0 crashes (10/10), location agreement 100%, perceived
       category accuracy 33/40 = 82% (>= 80%). Oracle identity: 38/40 = 95%
       accuracy, 37/40 correct-bin. 8 NIM calls/run perceived, 4 oracle.
-      Routing still uses ground truth (SP3 switches it). 7 of 8 misses are
-      identification errors (Epson ink -> "Box of cereal" 2x, Nescafe ->
-      "Box of hair dye"); Fondant box is a knowledge error (named right,
-      categorized non_food; both oracle misses).
+      Routing still uses ground truth (SP3 switches it). All 7 perceived
+      misses trace to the identify step (e.g. Epson ink -> 'Box of cereal'
+      2x, Nescafe -> 'Box of hair dye'; the Fondant box was named 'Box of
+      birthday cake decorations'). Both oracle misses are the Fondant box
+      categorized non_food from its correct name - a knowledge error.
+      Perceived run output:
+
+          [bench] objects binned: 36/40 (90%), knocked off table: 0
+          [bench] objects in correct bin: 36/40 (90%)
+          [bench] perceived category accuracy: 33/40 (82%), mean location agreement: 100%
 - [ ] **SP3 — perceived sorting consumer + metrics.** Destination bin from
       the graph's category; correct-bin rate vs SP1's oracle upper bound.
