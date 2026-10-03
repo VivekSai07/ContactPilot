@@ -320,3 +320,8 @@ Divergences from the design above, found while making props graspable:
 - **Gate outcome.** 28/40 correct-bin, 0 knocked off, 0 crashes: the 34/40
   gate is not met. SP1 is merged as a working baseline; closing the gap is
   tracked in ROADMAP P10 and runs on its own branch before SP2 starts.
+- **Gripper force (2026-10-03).** Not in the design. Heavy props (0.30 /
+  0.40 kg) slipped because the Menagerie gripper servo squeezes with only
+  ~2 N. The panda.xml patch scales the gripper actuator's gain and bias by 5
+  (same ctrl->width mapping). Gate re-run: 37/40 correct-bin, 0 knocked
+  off, 0 crashes, so SP1 now passes its gate; boxes unchanged at 30/30.
