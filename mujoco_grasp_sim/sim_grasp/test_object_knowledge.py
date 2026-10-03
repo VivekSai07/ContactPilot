@@ -30,6 +30,7 @@ calls = {'n': 0}
 def flaky(body):
     calls['n'] += 1
     raise OSError('boom')
+_ORIG_SLEEP = ok._SLEEP
 ok._SLEEP = lambda s: None
 try:
     ok.identify(np.zeros((4, 4, 3), np.uint8), transport=flaky); raise AssertionError('no raise')
@@ -56,4 +57,17 @@ r3 = cache.lookup(2, lambda: (_ for _ in ()).throw(AssertionError('no crop in or
                   ('food', 'non_food'), oracle_name='Crayola Bonus 64 Crayons')
 assert r3 == ('Crayola Bonus 64 Crayons', 'non_food') and cache.calls == 3
 assert dict(cache.items()) == {1: ('box of cookies', 'food'), 2: ('Crayola Bonus 64 Crayons', 'non_food')}
+# a rejected key (HTTP 401) must fail fast: one call, no retries
+import urllib.error
+n401 = []
+def _rejected(body):
+    n401.append(1)
+    raise urllib.error.HTTPError(ok.NIM_URL, 401, 'Unauthorized', {}, None)
+try:
+    ok._call({}, _rejected)
+    raise AssertionError('expected RuntimeError on 401')
+except RuntimeError as e:
+    assert 'NVIDIA_API_KEY' in str(e)
+assert len(n401) == 1
+ok._SLEEP = _ORIG_SLEEP  # why: don't leave the module patched for other importers
 print('All object_knowledge checks passed.')

@@ -812,6 +812,13 @@ def main():
                 # [P10 SP2] vision-only loop control: graph table nodes, not qpos
                 remaining = [name_of_label[s] for s in graph.table_nodes()
                              if s in name_of_label and fail_count.get(name_of_label[s], 0) < 3]
+                unseen = [n for n in gen.objects_on_table()
+                          if label_of[n] not in graph.table_nodes()
+                          and n not in gen.objects_in_bins()]
+                if unseen:
+                    # [P10 SP2] diagnostics only: loop control stays vision-only
+                    print(f'[scene-graph] round {rnd}: on the table but not a table node '
+                          f'in the graph (occluded/sparse): {unseen}')
             else:
                 in_bin_now = set(gen.objects_in_bins())   # any bin: no re-sorting of a wrong-bin object
                 remaining = [n for n in gen.objects_on_table()

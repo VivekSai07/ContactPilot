@@ -134,6 +134,9 @@ def main():
                          'on the GRASPGEN_PYTHON env var, same as the run script)')
     ap.add_argument('--tag', default=None, help='output/bench_<tag>/')
     args = ap.parse_args()
+    # why: same guard as run_sim_grasp_test.py; fail before any run starts
+    if args.identity is not None and not args.scene_graph:
+        ap.error('--identity requires --scene-graph')
 
     seeds = parse_seeds(args.seeds)
     tag = args.tag or f'{args.mode}_{args.camera}_{time.strftime("%m%d_%H%M")}'

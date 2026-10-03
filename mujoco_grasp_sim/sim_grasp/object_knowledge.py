@@ -46,6 +46,13 @@ def _call(body: dict, transport) -> str:
     for attempt in range(3):
         try:
             return transport(body)
+        except urllib.error.HTTPError as e:
+            # a rejected key will never succeed on retry, so fail fast with an actionable message
+            if e.code in (401, 403):
+                raise RuntimeError(f'NIM rejected the API key for {MODEL} (HTTP {e.code}) -- check NVIDIA_API_KEY') from e
+            last = e
+            if attempt < 2:
+                _SLEEP(_BACKOFF[attempt])
         except (OSError, urllib.error.URLError, KeyError, ValueError) as e:
             # the hosted endpoint returned transient 404/410s in the model test
             last = e
