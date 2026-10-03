@@ -605,6 +605,18 @@ note for the full reality-check.
     `[bracket]` lines by default, and `--verbose` reproduces the original
     full output unchanged.
 
+- **2026-10-03 — NIM retired the parser's model; `--instruction` was broken.**
+    `meta/llama-3.1-8b-instruct` (and `llama-3.3-70b-instruct`) now return
+    HTTP 410 Gone from `integrate.api.nvidia.com`, so every `--instruction`
+    run failed at the parse step. `instruction_parser.MODEL` is now
+    `meta/llama-3.2-11b-vision-instruct`, used text-only with the same
+    `response_format=json_object` call and unchanged schema validation.
+    Live check: 4 instructions x 2 runs, 8/8 valid parses, identical output
+    across runs, 1.5-15 s each (e.g. "green first on the right, then red on
+    the left, then blue" -> right_of/left_of/none in that order);
+    `test_instruction_parser.py` passes.
+
+
 ## P9 — Dexterous hand (Shadow Hand E3M5) investigation  [SHELVED 2026-09-29, not merged]
 
 Explored replacing the Panda's parallel gripper with a Shadow Hand E3M5
