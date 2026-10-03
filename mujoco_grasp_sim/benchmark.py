@@ -52,6 +52,10 @@ def run_one(seed: int, args, run_dir: Path) -> dict:
         cmd += ['--filter-neighbors']
     if args.scene != 'boxes':          # keep the boxes command line byte-identical
         cmd += ['--scene', args.scene]
+    if args.scene_graph:
+        cmd += ['--scene-graph']
+        if args.identity:
+            cmd += ['--identity', args.identity]
     if args.mode == 'execute':
         cmd += ['--execute', '--top-k', str(args.top_k)]
     elif args.mode == 'pick-all':
@@ -92,6 +96,13 @@ def run_one(seed: int, args, run_dir: Path) -> dict:
         out['fail_stages'] = [r['pick'].get('stage')
                               for r in pa.get('rounds', [])
                               if not r['pick'].get('success')]
+        sgm = m.get('scene_graph')
+        if sgm:
+            objs = sgm.get('objects', {})
+            out['cat_correct'] = sum(1 for o in objs.values() if o.get('correct'))
+            out['cat_total'] = len(objs)
+            out['loc_agreement'] = sgm.get('location_agreement')
+            out['nim_calls'] = sgm.get('nim_calls')
     return out
 
 
@@ -112,6 +123,10 @@ def main():
                     help='forward --filter-neighbors to the run script')
     ap.add_argument('--scene', choices=['boxes', 'props'], default='boxes',
                     help='passed through to run_sim_grasp_test.py (P10)')
+    ap.add_argument('--scene-graph', action='store_true',
+                    help='forward --scene-graph (props pick-all only)')
+    ap.add_argument('--identity', choices=['perceived', 'oracle'], default=None,
+                    help='forward --identity (needs --scene-graph)')
     ap.add_argument('--backend', choices=['cgn', 'graspgen'], default='cgn',
                     help='forward --backend to the run script')
     ap.add_argument('--graspgen-python', default=None,
@@ -154,6 +169,13 @@ def main():
             corr = sum(r.get('in_correct_bin', 0) for r in ok)
             print(f'[bench] objects in correct bin: {corr}/{total} '
                   f'({100 * corr / max(total, 1):.0f}%)')
+        if any('cat_total' in r for r in ok):
+            cc = sum(r.get('cat_correct', 0) for r in ok)
+            ct = sum(r.get('cat_total', 0) for r in ok)
+            la = [r['loc_agreement'] for r in ok if r.get('loc_agreement') is not None]
+            print(f'[bench] perceived category accuracy: {cc}/{ct} '
+                  f'({100 * cc / max(ct, 1):.0f}%), mean location agreement: '
+                  f'{100 * sum(la) / max(len(la), 1):.0f}%')
     if ok:
         cov_have = sum(r.get('objects_with_grasps') or 0 for r in ok)
         cov_all = sum(r.get('objects') or 0 for r in ok)
