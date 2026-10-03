@@ -44,3 +44,18 @@ for b in gen.cfg.bins():
             assert p[2] > 0 and 0 <= u < 640 and 0 <= v < 480, (b.name, u, v)
 cam.close()
 print('All props-scene checks passed (10 seeds settle, deterministic, both bins in view).')
+
+# 4. [SP2] 3x identification render: same camera, labels align with 1x
+from sim_grasp.scene_generator import HIRES_SCALE
+gen = SceneGenerator(SceneConfig.for_props(seed=2)); model, data = gen.generate()
+lo = CameraModule(model, data, cam_name=gen.cfg.cam_name, width=640, height=480)
+hi = CameraModule(model, data, cam_name=gen.cfg.cam_name,
+                  width=640 * HIRES_SCALE, height=480 * HIRES_SCALE)
+_, _, seg_lo, _, _ = lo.capture(gen.object_body_ids)
+rgb_hi, _, seg_hi, _, _ = hi.capture(gen.object_body_ids)
+assert rgb_hi.shape[:2] == (1440, 1920)
+seg_hi = seg_hi.reshape(1440, 1920); seg_lo = seg_lo.reshape(480, 640)
+down = seg_hi[1::3, 1::3]
+agree = (down == seg_lo)[seg_lo > 0].mean()
+assert agree > 0.95, agree
+print('3x identification render aligned with the 1x segmap.')
