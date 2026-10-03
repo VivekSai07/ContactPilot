@@ -686,7 +686,8 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
       prop at <= 0.22 kg succeeded at least once). Mass is a hypothesis
       (confounded with size), not yet tested. Follow-up branch closes this
       gap.
-- [ ] **SP2 — scene graph + knowledge.** Vision-only nodes/edges per round
+- [ ] **SP2 — scene graph + knowledge.** Spec (in review):
+      `docs/superpowers/specs/2026-10-03-semantic-sorting-sp2-scene-graph-design.md`. Vision-only nodes/edges per round
       (replaces the `objects_in_bin()` qpos oracle), NIM identify →
       categorize cached per object, `--identity oracle` upper bound.
 - [ ] **SP3 — perceived sorting consumer + metrics.** Destination bin from
