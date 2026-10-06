@@ -212,7 +212,8 @@ class GraspExecutor:
 
     def __init__(self, model, data, camera_module=None, record_gif=False,
                  record_dir=None, gif_frame_interval=0.08,
-                 on_frame: 'Callable[[np.ndarray], None] | None' = None):
+                 on_frame: 'Callable[[np.ndarray], None] | None' = None,
+                 viewer=None):
         self.model, self.data = model, data
         self.ik = DiffIK(model)
         self.cam = camera_module       # reused for GIF recording (optional)
@@ -232,6 +233,12 @@ class GraspExecutor:
         # Requires record_gif=True (the cadence/frame-capture logic lives in
         # _maybe_record below); this does not change GIF-saving behavior.
         self.on_frame = on_frame
+        # Optional mujoco.viewer.launch_passive() handle (or any duck-typed
+        # object with a .sync() method, e.g. a test fake) -- when set, every
+        # physics step in _step_to/_hold also syncs this viewer, giving a
+        # live 3D view of execution. None (the default) is a no-op, so every
+        # existing caller sees zero behavior change.
+        self.viewer = viewer
 
     # -- low-level motion helpers ---------------------------------------------
     def _step_to(self, q_target: np.ndarray, duration: float,
@@ -253,11 +260,13 @@ class GraspExecutor:
                 data.ctrl[7] = gripper_ctrl
             mujoco.mj_step(model, data)
             self._maybe_record()
+            self._maybe_sync_viewer()
 
     def _hold(self, duration: float):
         for _ in range(max(1, int(duration / self.model.opt.timestep))):
             mujoco.mj_step(self.model, self.data)
             self._maybe_record()
+            self._maybe_sync_viewer()
 
     def _maybe_record(self):
         if self.record and self.cam is not None and \
@@ -277,6 +286,12 @@ class GraspExecutor:
             self._last_frame_t = self.data.time
             if self.on_frame is not None:
                 self.on_frame(frame)
+
+    def _maybe_sync_viewer(self):
+        # Why: users may close a passive viewer while physics continues.
+        if self.viewer is not None and (
+                not hasattr(self.viewer, 'is_running') or self.viewer.is_running()):
+            self.viewer.sync()
 
     # -- grasp execution --------------------------------------------------------
     def _hand_targets(self, T_world_grasp: np.ndarray, q_seed: np.ndarray):
