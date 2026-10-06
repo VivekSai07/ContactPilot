@@ -1,5 +1,6 @@
 """SP3 batch summaries keep wrong-bin counts and failed seeds visible."""
-from benchmark import summarize_sorting, format_location_agreement
+from benchmark import (summarize_sorting, format_location_agreement,
+                       effective_identity)
 
 
 rows = [
@@ -13,5 +14,8 @@ summary = summarize_sorting(rows)
 assert summary == {'completed': 2, 'crashed': 1, 'total': 8,
                    'correct': 5, 'wrong': 1, 'binned': 6, 'fell_off': 1}
 assert format_location_agreement([1.0] * 9 + [0.958]) == '99.6%'
+assert effective_identity(True, None) == 'perceived'
+assert effective_identity(True, 'oracle') == 'oracle'
+assert effective_identity(False, None) is None
 
 print('SP3 benchmark aggregation checks passed.')

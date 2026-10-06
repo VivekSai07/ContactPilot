@@ -4,7 +4,8 @@ MuJoCo simulation of a Franka Panda, eye-to-hand RGB-D cameras, and tabletop
 objects. It evaluates Contact-GraspNet or GraspGen grasping, bin placement,
 and two-bin sorting of textured household props before robot deployment.
 The P10 scene graph identifies and categorizes props from camera observations;
-sorting still routes by simulator category until SP3 is implemented.
+sorting defaults to simulator-category routing, while P10 SP3 can route from
+the graph category with `--routing scene-graph`.
 
 **Initial geometry smoke test:** seed 42 on a GTX 1650 spawned 4 objects and
 predicted 52 grasps in ~12 s; reconstructed table height was within 1 cm of
@@ -301,7 +302,8 @@ of every score difference.
 
 In `metrics.json`, each props round has a `decision` (category source,
 category, target bin) and a separate `evaluation` (true category, landed
-bin, correct-bin result). `pick_all.in_bin` means "in any bin", while
+bin, correct-bin result). When no bin result exists, `landed_bin` and
+`correct_bin` are both `null`. `pick_all.in_bin` means "in any bin", while
 `in_correct_bin` and `in_wrong_bin` are **offline simulator-truth scores**;
 they are not perception-only metrics. A round's `evaluation` is a post-action
 snapshot; the final `pick_all` lists score the final scene state and can

@@ -21,3 +21,9 @@ correct-bin, wrong-bin, category, and location results. `ROADMAP.md` P10
 contains the interpreted comparison and known limitations. The benchmarks
 are stochastic and the NIM service is external, so reruns need not reproduce
 the same exact counts.
+
+The batches preceded two review-only reporting corrections: per-round
+`evaluation.correct_bin` is now `null` when no bin result exists, and an
+omitted graph `--identity` is now reported as `perceived`. All graph commands
+above specify identity explicitly; neither correction changes the final
+`pick_all` lists summarized in these JSON files.

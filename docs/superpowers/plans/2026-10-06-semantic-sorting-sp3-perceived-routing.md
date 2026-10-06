@@ -98,4 +98,4 @@
 - [x] Run three paired `benchmark.py --seeds 0-9 --mode pick-all --scene props --camera fused --backend graspgen` batches: oracle; graph routing with perceived identity; graph routing with oracle identity. Use distinct tags and preserve summary files. All three cohorts completed 10/10.
 - [x] Record exact aggregate output, per-seed comparison, crashes, wrong-bin and failure stages in ROADMAP. The graph decision/retry path has no simulator-truth input; the perceived 29/40 vs fresh oracle 36/40 gap is documented, not relabelled as a performance win.
 - [x] Run a boxes-mode regression smoke and `git diff --check`; commit the evidence-backed docs. The live boxes seed-0 smoke completed 3/3, and the three raw summaries are tracked under `docs/benchmarks/2026-10-06-sp3/`.
-- [ ] Push branch and open a PR to `main`; include commands, outputs, limitations, and no AI attribution.
+- [x] Push branch and open PR #34 to `main`; include commands, outputs, limitations, and no AI attribution. Review found and prompted the unbinned-evaluation and default-identity reporting corrections, each covered by a red/green standalone test.

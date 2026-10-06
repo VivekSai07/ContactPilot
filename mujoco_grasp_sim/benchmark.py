@@ -53,6 +53,12 @@ def format_location_agreement(values: list[float]) -> str:
     return f'{100 * sum(values) / max(len(values), 1):.1f}%'
 
 
+def effective_identity(scene_graph: bool, identity: str | None) -> str | None:
+    """Return the actual NIM identity mode that the run script will use."""
+    # Why: the run script defaults graph mode to perceived; summaries must agree.
+    return identity or ('perceived' if scene_graph else None)
+
+
 def run_one(seed: int, args, run_dir: Path) -> dict:
     cmd = [sys.executable, str(HERE / 'run_sim_grasp_test.py'),
            '--seed', str(seed), '--no-vis', '--camera', args.camera,
@@ -162,6 +168,7 @@ def main():
     if args.routing == 'scene-graph' and not (args.scene == 'props' and
                                               args.mode == 'pick-all' and args.scene_graph):
         ap.error('--routing scene-graph requires --scene props --mode pick-all --scene-graph')
+    args.identity = effective_identity(args.scene_graph, args.identity)
 
     seeds = parse_seeds(args.seeds)
     tag = args.tag or f'{args.mode}_{args.camera}_{time.strftime("%m%d_%H%M")}'

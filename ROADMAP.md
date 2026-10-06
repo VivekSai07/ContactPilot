@@ -749,6 +749,17 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
       `wrong_bin` event instead of **2**; after checking
       `evaluation.correct_bin`, it reports **2**, retaining the legacy
       target-vs-landed-bin check for older runs.
+      **2026-10-06 review corrections:** An unbinned/failed round previously
+      logged `landed_bin: null, correct_bin: false`, conflating no bin result
+      with a known wrong-bin placement; it now logs `correct_bin: null`.
+      `test_sorting_policy.py` failed with `AssertionError` before the change
+      and prints `SP3 sorting policy checks passed.` after it. Also, a
+      `benchmark.py --scene-graph` call without an explicit `--identity`
+      previously retained `identity: null` in the batch summary even though
+      the child used `perceived`; it now normalizes to `perceived` before
+      launching or reporting runs. `test_sorting_benchmark.py` was red with
+      `ImportError: cannot import name 'effective_identity'` and now prints
+      `SP3 benchmark aggregation checks passed.`
 
       **Fresh paired benchmark (2026-10-06, GraspGen/fused, props pick-all,
       seeds 0-9; all three modes 10/10 completed, 0 knocked off, 0 crashes):**

@@ -63,6 +63,6 @@ assert evaluate_placement('food', 'A', bin_categories) == {
 assert evaluate_placement('food', 'B', bin_categories) == {
     'gt_category': 'food', 'landed_bin': 'B', 'correct_bin': False}
 assert evaluate_placement('food', None, bin_categories) == {
-    'gt_category': 'food', 'landed_bin': None, 'correct_bin': False}
+    'gt_category': 'food', 'landed_bin': None, 'correct_bin': None}
 
 print('SP3 sorting policy checks passed.')

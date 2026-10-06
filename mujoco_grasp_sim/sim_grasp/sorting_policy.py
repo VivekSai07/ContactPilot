@@ -42,6 +42,7 @@ def next_failure_count(routing: str, pick_succeeded: bool,
 def evaluate_placement(gt_category: str, landed_bin: str | None,
                        bin_categories: dict[str, str]) -> dict:
     """Offline truth-labelled outcome; never feed this into a route decision."""
+    # Why: a failed/unbinned pick has no bin result to judge as right or wrong.
+    correct = None if landed_bin is None else bin_categories[landed_bin] == gt_category
     return {'gt_category': gt_category, 'landed_bin': landed_bin,
-            'correct_bin': landed_bin is not None and
-                           bin_categories[landed_bin] == gt_category}
+            'correct_bin': correct}
