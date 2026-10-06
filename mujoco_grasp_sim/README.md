@@ -1,17 +1,20 @@
-# mujoco_grasp_sim — Franka Panda tabletop grasping sim for Contact-GraspNet
+# mujoco_grasp_sim — Franka Panda grasping and sorting simulation
 
-MuJoCo simulation that mirrors the real-world setup (Franka Panda +
-eye-to-hand RGB-D camera + tabletop with unknown objects) to evaluate
-Contact-GraspNet-PyTorch end to end before robot deployment.
+MuJoCo simulation of a Franka Panda, eye-to-hand RGB-D cameras, and tabletop
+objects. It evaluates Contact-GraspNet or GraspGen grasping, bin placement,
+and two-bin sorting of textured household props before robot deployment.
+The P10 scene graph identifies and categorizes props from camera observations;
+sorting still routes by simulator category until SP3 is implemented.
 
-**Status: validated.** Seed-42 smoke run on a GTX 1650: 4 objects spawned,
-52 grasps in ~12 s, table-plane reconstruction within 1 cm of ground truth
-(verifies depth conversion + intrinsics + extrinsics simultaneously).
+**Initial geometry smoke test:** seed 42 on a GTX 1650 spawned 4 objects and
+predicted 52 grasps in ~12 s; reconstructed table height was within 1 cm of
+ground truth. Current multi-seed grasping and sorting results are in
+`../ROADMAP.md` P1 and P10.
 
 ## Architecture
 
 ```
-        MuJoCo (Menagerie Panda + table + random objects)
+        MuJoCo (Menagerie Panda + table + boxes or textured props + bins)
                             │  physics settle
                             ▼
             CameraModule (eye-to-hand, 640x480)
@@ -21,23 +24,33 @@ Contact-GraspNet-PyTorch end to end before robot deployment.
             depth_to_pointcloud  (OpenCV camera frame)
                             │
                             ▼
-        ContactGraspNetPredictor (reuses existing repo pipeline)
+        ContactGraspNetPredictor or GraspGenPredictor (subprocess)
                             │   {seg_id: (N,4,4) T_cam_grasp}, scores
                             ▼
         GraspFeasibilityChecker (table-collision + underhand filter)
                             │
                             ▼
-        metrics.json ── predictions_sim.npz ── Open3D visualization
+        ranked diff-IK pick → occupancy-planned bin placement
+                            │
+                            ▼
+        metrics.json ── execution.gif ── predictions_sim.npz
 ```
+
+In props `--pick-all --scene-graph` runs, a scene graph is built from each
+camera observation for loop control and NIM identity/category metrics.
+The selected bin still comes from the prop's simulator category in SP2.
 
 ## Directory structure
 
 ```
 mujoco_grasp_sim/
 ├── run_sim_grasp_test.py       # main entry point
+├── benchmark.py               # multi-seed evaluation
+├── interactive_pick.py        # live click-to-pick
 ├── README.md
 ├── assets/
-│   └── objects/                # drop YCB / custom .obj/.stl meshes here
+│   ├── objects/                # optional YCB / custom .obj/.stl meshes
+│   └── props/                  # GSO manifest; downloaded meshes/textures ignored
 ├── sim_grasp/
 │   ├── __init__.py
 │   ├── frames.py               # FRAME CONVENTIONS — read first
@@ -45,7 +58,12 @@ mujoco_grasp_sim/
 │   ├── camera.py               # CameraModule (RGB/depth/seg, K, extrinsics)
 │   ├── pointcloud.py           # depth -> point cloud
 │   ├── grasp_predictor.py      # GraspPredictor ABC + ContactGraspNetPredictor
+│   ├── graspgen_predictor.py   # second grasp backend
 │   ├── feasibility.py          # table-collision grasp filter
+│   ├── executor.py             # diff-IK pick/place execution
+│   ├── placement_planner.py    # vision-only free-space bin placement
+│   ├── scene_graph.py          # per-round vision-only object locations/relations
+│   ├── object_knowledge.py     # NIM identification/categorization cache
 │   └── visualizer.py           # Open3D + 2D observation dumps
 └── output/<run>/               # rgb.png, depth.npy, observation.png,
                                 # metrics.json, predictions_sim.npz

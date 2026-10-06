@@ -163,6 +163,13 @@ xychart-beta
 | 2026-08-18 | Place-in-bin gap closed for single-pick flows (`interactive_pick.py`, single `--execute`) | now match `--pick-all`'s full pick→place cycle |
 | 2026-08-21 | Intelligent (vision-only) bin placement — replaces the fixed drop-point/release-height with a footprint+heightmap free-space search | **29/30 binned (97%)** over 10 seeds, zero knocked-off-table, zero stacking/crushing failures (statistically on par with the fixed-point baseline at this 3-object bin size — see `ROADMAP.md` P7) |
 | 2026-08-21 | Placement robustness fixes — corner-lock tie-break (every object landing in the same bin corner) and transit-slip (abrupt start-of-motion jerk) found via live testing, both fixed | **30/30 binned (100%)**, zero `missed_bin` failures (down from 3) — see `ROADMAP.md` P7 |
+| 2026-08-21 | P8 natural-language instructions: NIM parses ordered picks and spatial placement; live single-step and two-step smoke tests | Two-step run **2/3 binned** with zero crashes or knocked-off-table objects; this is a smoke test, not a reliability benchmark — see `ROADMAP.md` P8 |
+| 2026-10-03 | P10 SP1: textured props, two bins, and ground-truth category routing; GraspGen/fused, seeds 0–9 | **37/40 in the correct bin**, zero knocked off, zero crashes — see `ROADMAP.md` P10 |
+| 2026-10-03 | P10 SP2: vision-only scene graph and NIM object identification/categorization; routing still uses ground truth | **36/40 in the correct bin**, **33/40 perceived categories correct (82%)**, **100% location agreement** on the same 10-seed gate — see `ROADMAP.md` P10 |
+
+P10 SP3, routing by perceived category, has not started. The P7 box-scene
+results and P10 prop-scene results use different object sets and should not
+be read as a direct grasp-backend comparison.
 
 ---
 
@@ -388,7 +395,8 @@ python -c "import numpy as np; d=np.load('results/predictions_7.npz',allow_pickl
 
 ## 5. Training (lab PC only — not a one-day task)
 
-Requires the ACRONYM dataset (see `docs/acronym_setup.md`) and ≥ 24 GB VRAM
+Requires the ACRONYM dataset (see
+`contact_graspnet_pytorch/docs/acronym_setup.md`) and ≥ 24 GB VRAM
 recommended (reduce batch size otherwise).
 
 ```powershell

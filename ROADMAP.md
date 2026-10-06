@@ -455,19 +455,25 @@ deployable. No novelty for novelty's sake.
     smoother carries) is the more meaningful result here, confirmed via
     the live-testing feedback that motivated this fix in the first place.
 
-## Current state (2026-08-18)
-Working end-to-end in MuJoCo sim, two grasp backends (CGN, GraspGen — P1) and
-four object-selection paths (`--pick-object` ids, `--grasp-index` candidate
-browsing, SAM 3 `--prompt`/`--click`/`--box`, P3-P5): scene gen → RGB-D +
-segmap (single or fused, P2) → grasp prediction (subprocess, 8 GB RAM safe) →
-feasibility filter → ranked execution (diff-IK) → pick → place-in-bin →
-re-observe loop (`--pick-all`), or a single click-to-pick with live visual
-feedback and the same pick → place-in-bin ending (`interactive_pick.py`, P6).
-GraspGen is the recommended backend for further P1 reliability work (100%
-binned vs CGN's 93% on the current box-only/3-object scene config, see P1
-2026-08-13 entry). Camera A/B: top-down calibrated is hard mode for CGN
-(sparse, low scores) vs inclined lookat/fused (dense, higher success) — lab
-camera remounted inclined (P2).
+## Current state (2026-10-06)
+
+The MuJoCo pipeline supports two grasp backends (CGN and GraspGen), single or
+fused RGB-D cameras, SAM 3 selection, interactive picking, and vision-only bin
+placement. GraspGen remains the recommended backend for reliability work.
+The latest recorded gates, each on its stated scene/configuration, are:
+
+| Work | Recorded result | Status |
+|---|---|---|
+| P7, 3-box placement, GraspGen/fused, seeds 0-9 | 30/30 binned, 0 knocked off (2026-08-21) | Implemented |
+| P8, natural-language instructions | Single-step and two-step live smoke tests; the two-step run binned 2/3 objects (2026-08-21) | Phase 1 implemented; Phase 2 deferred |
+| P10 SP1, props with oracle routing, GraspGen/fused, seeds 0-9 | 37/40 in correct bin, 0 knocked off, 0 crashes (2026-10-03) | Gate met |
+| P10 SP2, props with scene graph and perceived identity, same seeds/config | 36/40 in correct bin, 33/40 perceived categories correct, 100% location agreement (2026-10-03) | Gate met; routing still uses simulator truth |
+| P10 SP3, routing by perceived category | No implementation or benchmark yet | Not started |
+
+The P10 SP2 correct-bin score is an oracle-routing outcome; its category score
+measures perception separately. P10 SP3 will join those paths and compare with
+SP1's oracle upper bound. Source results and failure breakdowns are in P7-P10
+below; this summary does not replace those per-seed records.
 
 ## P8 — Natural-language task instructions (reasoning layer)  [Phase 1 IMPLEMENTED 2026-08-21]
 
@@ -653,14 +659,16 @@ mechanical mounting was ever proven out.
 Origin + feasibility check: `docs/research/2026-09-29-scene-knowledge-graph.md`.
 Design: `docs/superpowers/specs/2026-09-29-semantic-sorting-scene-graph-design.md`.
 Goal: sort real-looking household props into two bins by category (food →
-bin A, non-food → bin B), with each object's category derived from
-perception (NIM vision model identifies the crop → NIM llama-3.1-8b maps
-name → category), never from simulator ground truth. Metric: correct-bin
-rate, split into identification vs knowledge errors.
+bin A, non-food → bin B), ultimately routing from a perceived category rather
+than simulator ground truth. SP2 uses `meta/llama-3.2-11b-vision-instruct` for
+crop identification and name-to-category mapping (the original design's
+`llama-3.1-8b` model was retired); SP3 will consume the perceived category
+for routing. Evaluation keeps the true labels for correct-bin scoring and for
+separating identification from knowledge errors.
 
 Three strictly sequential sub-projects, each its own spec/plan/PR:
 
-- [ ] **SP1 — semantic prop scene + second bin + oracle routing.** 12
+- [x] **SP1 — semantic prop scene + second bin + oracle routing.** 12
       textured, box-shaped Google Scanned Objects props (6 food / 6
       non-food), a mirrored second bin at (0.45, +0.30), per-bin placement,
       `--scene props`, correct-bin metrics. Plan:
@@ -668,7 +676,7 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
       **Gate before SP2:** GraspGen/fused, seeds 0-9 pick-all — ≥ 34/40
       objects in the intended bin, ≤ 2 knocked off, 0 crashes (3-box
       baseline: 30/30).
-      **SP1 status (2026-10-02): shipped as a working baseline, gate not
+      **Initial SP1 status (2026-10-02): shipped as a working baseline, gate not
       met.** `--scene props` runs end to end (10/10 runs completed, 0
       crashes, 0 knocked off). GraspGen/fused, seeds 0-9 pick-all:
       **28/40 (70%) in the correct bin** vs the 34/40 gate. Props started at
