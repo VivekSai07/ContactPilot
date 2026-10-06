@@ -36,6 +36,17 @@ def parse_seeds(spec: str) -> list[int]:
     return seeds
 
 
+def summarize_sorting(results: list[dict]) -> dict:
+    """Aggregate truth-scored sorting outcomes over completed seeds only."""
+    ok = [r for r in results if not r['crashed']]
+    return {'completed': len(ok), 'crashed': len(results) - len(ok),
+            'total': sum(r.get('total') or 0 for r in ok),
+            'correct': sum(r.get('in_correct_bin', 0) for r in ok),
+            'wrong': sum(r.get('in_wrong_bin', 0) for r in ok),
+            'binned': sum(r.get('in_bin', 0) for r in ok),
+            'fell_off': sum(r.get('fell_off', 0) for r in ok)}
+
+
 def run_one(seed: int, args, run_dir: Path) -> dict:
     cmd = [sys.executable, str(HERE / 'run_sim_grasp_test.py'),
            '--seed', str(seed), '--no-vis', '--camera', args.camera,
@@ -93,6 +104,7 @@ def run_one(seed: int, args, run_dir: Path) -> dict:
         out['total'] = pa.get('objects_total')
         if 'in_correct_bin' in pa:
             out['in_correct_bin'] = len(pa['in_correct_bin'])
+            out['in_wrong_bin'] = len(pa.get('in_wrong_bin', []))
         out['fell_off'] = len(pa.get('fell_off_table', []))
         out['rounds'] = len(pa.get('rounds', []))
         out['fail_stages'] = [r['pick'].get('stage')
@@ -165,6 +177,10 @@ def main():
     ok = [r for r in results if not r['crashed']]
     print(f'\n[bench] ===== {len(ok)}/{len(results)} runs completed '
           f'(crashed: {len(results) - len(ok)}) =====')
+    if args.scene == 'props':
+        print(f'[bench] routing={args.routing}, identity='
+              f'{args.identity if args.scene_graph else "none"}; '
+              'correct-bin outcomes use simulator truth for offline scoring')
     if args.mode == 'execute' and ok:
         n_succ = sum(r['pick_success'] for r in ok)
         print(f'[bench] pick success: {n_succ}/{len(ok)} scenes '
@@ -176,9 +192,11 @@ def main():
         print(f'[bench] objects binned: {binned}/{total} '
               f'({100 * binned / max(total, 1):.0f}%), knocked off table: {fell}')
         if any('in_correct_bin' in r for r in ok):
-            corr = sum(r.get('in_correct_bin', 0) for r in ok)
+            sorting = summarize_sorting(results)
+            corr = sorting['correct']
             print(f'[bench] objects in correct bin: {corr}/{total} '
                   f'({100 * corr / max(total, 1):.0f}%)')
+            print(f'[bench] objects in wrong bin: {sorting["wrong"]}/{total}')
         if any('cat_total' in r for r in ok):
             cc = sum(r.get('cat_correct', 0) for r in ok)
             ct = sum(r.get('cat_total', 0) for r in ok)

@@ -37,3 +37,11 @@ def next_failure_count(routing: str, pick_succeeded: bool,
     if routing == 'oracle':
         return old_count if pick_succeeded and landed_bin is not None else old_count + 1
     raise ValueError(f'unknown routing mode {routing!r}')
+
+
+def evaluate_placement(gt_category: str, landed_bin: str | None,
+                       bin_categories: dict[str, str]) -> dict:
+    """Offline truth-labelled outcome; never feed this into a route decision."""
+    return {'gt_category': gt_category, 'landed_bin': landed_bin,
+            'correct_bin': landed_bin is not None and
+                           bin_categories[landed_bin] == gt_category}

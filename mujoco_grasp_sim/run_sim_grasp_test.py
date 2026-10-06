@@ -699,6 +699,7 @@ def main():
         # table empties. GIF frames stream to disk to keep RAM flat.
         from sim_grasp.executor import GraspExecutor
         from sim_grasp.scene_generator import ARM_OBSERVE_QPOS
+        from sim_grasp.sorting_policy import evaluate_placement, next_failure_count
 
         rec_cam = CameraModule(model, data, cam_name=cfg.record_cam_name,
                                width=640, height=480)
@@ -947,6 +948,12 @@ def main():
             entry = {'round': rnd, 'object': int(sid), 'body': body,
                      'score': score, 'recenter_shift_m': round(shift, 4),
                      'gt_offset_grasp_frame': gt_off, 'pick': res}
+            if cfg.scene_mode == 'props':
+                # Why: action provenance must be readable without mistaking
+                # the later simulator evaluation for the chosen category.
+                entry['decision'] = {
+                    'category_source': args.routing,
+                    'category': tb.category, 'target_bin': tb.name}
             if res['success']:
                 if place_pose is not None:
                     release_z = compute_release_z(place_pose, T_world_grasp, footprint)
@@ -961,18 +968,32 @@ def main():
                 if cfg.scene_mode == 'props':
                     entry.update(category=gen.object_categories[body],
                                  target_bin=tb.name, landed_bin=landed)
-                    if landed is not None and landed != tb.name:
-                        print(f'[pick-all]   WRONG BIN: {body} ({entry["category"]}) '
+                    entry['evaluation'] = evaluate_placement(
+                        gen.object_categories[body], landed, bin_categories)
+                    if landed is not None and not entry['evaluation']['correct_bin']:
+                        # Why: graph routing can choose the wrong category yet
+                        # land perfectly in its chosen bin; that is still a miss.
+                        print(f'[pick-all]   WRONG BIN: {body} '
+                              f'(true {entry["category"]}, selected {tb.category}) '
                               f'landed in {landed}, target {tb.name}')
+                old_failures = fail_count.get(body, 0)
+                new_failures = next_failure_count(
+                    args.routing, True,
+                    landed if args.routing == 'oracle' else None, old_failures)
+                if new_failures != old_failures:
+                    fail_count[body] = new_failures
                 if entry['in_bin']:
                     print(f"[pick-all]   pick OK (raised {res['object_raised_m']} m)"
                           f' -> placed in bin')
                 else:
-                    fail_count[body] = fail_count.get(body, 0) + 1
                     print(f'[pick-all]   pick OK but object missed the bin '
                           f'(attempt {fail_count[body]}/3 for {body})')
             else:
-                fail_count[body] = fail_count.get(body, 0) + 1
+                fail_count[body] = next_failure_count(
+                    args.routing, False, None, fail_count.get(body, 0))
+                if cfg.scene_mode == 'props':
+                    entry['evaluation'] = evaluate_placement(
+                        gen.object_categories[body], None, bin_categories)
                 print(f"[pick-all]   pick FAILED ({res.get('stage')}, raised "
                       f"{res.get('object_raised_m', 'n/a')}) — attempt "
                       f'{fail_count[body]}/3 for {body}')

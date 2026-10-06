@@ -3,7 +3,8 @@ import numpy as np
 
 from sim_grasp.scene_generator import BinSpec
 from sim_grasp.scene_graph import Node, SceneGraph
-from sim_grasp.sorting_policy import choose_bin, target_bin, next_failure_count
+from sim_grasp.sorting_policy import (choose_bin, target_bin,
+                                      next_failure_count, evaluate_placement)
 
 
 bins = [BinSpec('A', (0.45, -0.30), 0.1, 'food'),
@@ -55,5 +56,13 @@ assert next_failure_count('oracle', pick_succeeded=True,
                           landed_bin=None, old_count=0) == 1
 assert next_failure_count('scene-graph', pick_succeeded=False,
                           landed_bin=None, old_count=1) == 2
+
+bin_categories = {'A': 'food', 'B': 'non_food'}
+assert evaluate_placement('food', 'A', bin_categories) == {
+    'gt_category': 'food', 'landed_bin': 'A', 'correct_bin': True}
+assert evaluate_placement('food', 'B', bin_categories) == {
+    'gt_category': 'food', 'landed_bin': 'B', 'correct_bin': False}
+assert evaluate_placement('food', None, bin_categories) == {
+    'gt_category': 'food', 'landed_bin': None, 'correct_bin': False}
 
 print('SP3 sorting policy checks passed.')
