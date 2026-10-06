@@ -1,4 +1,31 @@
-# ContactPilot Follow-up Workstreams (2026-10-06)
+# ContactPilot Follow-up Workstreams Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Resolve the five suggestions in a safe sequence, with SP3 first and independently reviewable follow-ups.
+
+**Architecture:** SP3 has its own design and task plan. The environment doctor, test-runner decision, post-SP3 metric audit, and viewer lifecycle each use separate branches/PRs so a failure in one cannot obscure another.
+
+**Tech Stack:** Python 3.10, MuJoCo, NumPy, existing standalone assert scripts, GraspGen, NVIDIA NIM, GitHub PRs.
+
+**Spec:** `docs/superpowers/specs/2026-10-06-semantic-sorting-sp3-perceived-routing-design.md` for SP3; the other items are bounded follow-ups described below.
+
+## Global Constraints
+
+- Preserve all existing user edits until their exact targets are reviewed; never commit directly to `main`.
+- Real benchmark evidence, not one smoke run, is required for grasp/sorting reliability claims.
+- A broken viewer path must not become a public CLI option.
+- Keep the default boxes path and oracle sorting path stable.
+
+## Review Focus
+
+- Missing optional model envs should be reported without printing credentials (workstream 2).
+- Test-runner changes must expose, not hide, missing prop assets and the settled-qpos failure (workstream 3).
+- A vision error that lands in the chosen but wrong category bin must score wrong (workstream 4).
+- Closing the passive viewer mid-motion must not crash execution (workstream 5).
+- Real RGB-D bin overlap in XY must not be assumed equivalent to physical bin containment (real-footage validation below).
+
+---
 
 This is a sequencing plan for five independent suggestions. P10 SP3 has its
 own [design](../specs/2026-10-06-semantic-sorting-sp3-perceived-routing-design.md)
@@ -26,14 +53,14 @@ assert script for its pure checks, `CLAUDE.md`, and
 
 **Steps:**
 
-1. Define required checks for Python, NumPy `<2`, `mujoco`, `imageio`, `cv2`,
+- [ ] Define required checks for Python, NumPy `<2`, `mujoco`, `imageio`, `cv2`,
    `open3d`, the Panda submodule, and default render mode. Report interpreter
    path, import/version result, and exact setup guidance on failure. Report
    `GRASPGEN_PYTHON`, `SAM3_PYTHON`, and `NVIDIA_API_KEY` as optional feature
    readiness without printing the key or importing their heavy packages.
-2. Test the pure check renderer with synthetic pass/fail results, including
+- [ ] Test the pure check renderer with synthetic pass/fail results, including
    a missing `imageio` and NumPy 2.x; confirm nonzero exit on required failure.
-3. Run the command in `cgn_torch` and a deliberately incomplete interpreter.
+- [ ] Run the command in `cgn_torch` and a deliberately incomplete interpreter.
    Document both outputs and the command. Do not claim that an import check
    proves CUDA kernels, rendering, NIM service, or grasping work.
 
@@ -50,31 +77,33 @@ script execution or masking the settled-`qpos` issue.
 
 **Steps:**
 
-1. Inventory all test scripts and their prerequisites (pure, MuJoCo/Panda,
+- [ ] Inventory all test scripts and their prerequisites (pure, MuJoCo/Panda,
    downloaded GSO assets, GPU/network). Run the current loop in `cgn_torch`
    and record the baseline failures.
-2. Prototype pytest collection on a temporary branch without rewriting
+- [ ] Prototype pytest collection on a temporary branch without rewriting
    assertions. Compare collection time, failure diagnostics, and ability to
    run the same scripts directly. If there is no practical gain, record the
    finding and keep the existing runner.
-3. If there is a gain, add minimal collection/configuration and dependency
+- [ ] If there is a gain, add minimal collection/configuration and dependency
    documentation. Keep assertions and direct execution working, and mark
    missing optional assets explicitly instead of silently hiding failures.
-4. Investigate the settled-`qpos` hash against a same-MuJoCo-version pre-P10
+- [ ] Investigate the settled-`qpos` hash against a same-MuJoCo-version pre-P10
    commit before changing that guard. An updated hash from one host is not a
    valid fix. Run both runners and show matching results before the PR.
 
 ## 4. Decision versus evaluation metrics — audit after SP3
 
 SP3's spec establishes `decision` and `evaluation` fields for sorting.
-After its PR, audit every `gen.object_categories`, `gen.object_props`,
-`objects_on_table`, and `objects_in_bins` read in the graph route. Trace
-whether each read affects ranking, retry, placement, termination, or only
-offline scoring. Add a synthetic adversarial case in which simulator truth
-disagrees with the graph and verify the route and retry sequence are
-unchanged. Document metric provenance in `mujoco_grasp_sim/README.md` and
-in the benchmark output. Put a broader metric schema migration in its own
-spec only if the audit finds another consumer needs it.
+
+- [ ] After its PR, audit every `gen.object_categories`, `gen.object_props`,
+  `objects_on_table`, and `objects_in_bins` read in the graph route. Trace
+  whether each read affects ranking, retry, placement, termination, or only
+  offline scoring.
+- [ ] Add an adversarial case where simulator truth disagrees with the graph;
+  verify the route and retry sequence are unchanged.
+- [ ] Document metric provenance in `mujoco_grasp_sim/README.md` and the
+  benchmark output. Create a broader metric schema spec only if another
+  consumer demonstrably needs one.
 
 ## 5. Finish the pending live-viewer edit — separate branch/PR
 
@@ -83,21 +112,28 @@ that accepts a passive viewer and calls `viewer.sync()` each physics step.
 No caller currently passes a viewer to `GraspExecutor`, so that edit alone
 cannot provide live execution viewing.
 
+**2026-10-06 update:** the edit and a real-physics/fake-viewer regression are
+committed in draft PR #33; the main checkout is clean. A direct passive-viewer
+smoke opened and synced, then hung after close and exited 139 under both
+OSMesa and GLFW on WSL. The attempted CLI wiring was removed. This remains
+an investigation, not a shipped live-viewer feature.
+
 **Files:** `mujoco_grasp_sim/sim_grasp/executor.py`,
 `mujoco_grasp_sim/run_sim_grasp_test.py`, and, only if its UI contract needs
 the feature, `interactive_pick.py`; update ROADMAP with observed behavior.
 
 **Steps:**
 
-1. Preserve the existing diff on a feature branch. Inspect `--view-sim`'s
+- [x] Preserve the existing diff on a feature branch and inspect `--view-sim`'s
    viewer lifecycle and decide which run paths own/pass the handle. Add a
    small regression only if it checks an actual lifecycle or sync failure,
    rather than mirroring a one-line `sync()` call.
-2. Wire the handle to the executor, ensure it closes after execution, and
+- [ ] Wire the handle to the executor only after its WSL shutdown behavior is
+   understood; ensure it closes after execution, and
    keep headless runs free of viewer calls. Check that syncing every physics
    step does not cause unacceptable slowdown; cap cadence if measurement
    shows a problem.
-3. Run headless executor tests and a real `--view-sim --execute` smoke with
+- [ ] Run headless executor tests and a real live-viewer `--execute` smoke with
    visual confirmation. Record observed output and any limitation in a dated
    ROADMAP P1/P6 entry, then open its own PR.
 

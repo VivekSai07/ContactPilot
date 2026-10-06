@@ -42,11 +42,11 @@
 - `target_bin(category: str, bins: list[BinSpec]) -> BinSpec` raises `ValueError` for unknown/missing category or ambiguous mapping.
 - `run_sim_grasp_test.py --routing {oracle,scene-graph}` and `benchmark.py --routing {oracle,scene-graph}`.
 
-- [ ] Write synthetic policy assertions: food→A, non_food→B, missing/unknown category raises, duplicate category mapping raises; use a graph node category with a deliberately conflicting truth-category sentinel.
-- [ ] Run `PYTHONPATH=. python sim_grasp/test_sorting_policy.py` from `mujoco_grasp_sim/`; verify red before implementation.
-- [ ] Implement `target_bin` and the CLI guards. In pick-all, after candidate ranking use the current graph node category for scene-graph routing and the existing truth category only in oracle routing. Keep single `--execute` on its existing oracle path.
-- [ ] Re-run the policy test and CLI `--help`/invalid-combination checks; verify green and early rejection.
-- [ ] Commit policy, tests, and CLI wiring.
+- [x] Write synthetic policy assertions: food→A, non_food→B, missing/unknown category raises, duplicate category mapping raises; use a graph node category with a deliberately conflicting truth-category sentinel.
+- [x] Run `PYTHONPATH=. python sim_grasp/test_sorting_policy.py` from `mujoco_grasp_sim/`; verify red before implementation.
+- [x] Implement `target_bin` and the CLI guards. In pick-all, after candidate ranking use the current graph node category for scene-graph routing and the existing truth category only in oracle routing. Keep single `--execute` on its existing oracle path.
+- [x] Re-run the policy test and CLI `--help`/invalid-combination checks; verify green and early rejection.
+- [x] Commit policy, tests, and CLI wiring.
 
 ### Task 2: Graph-only retry control and decision provenance
 
@@ -58,29 +58,31 @@
 - Graph-route per-round `decision = {category_source, category, target_bin}`.
 - Retry helper or inline branch takes `routing`, pick success, and prior failure count; it does not take simulator bin membership for graph routing.
 
-- [ ] Write a failing test for a graph-routed successful pick left on the table: attempt count advances, next graph table node remains pickable until three attempts, and simulator landed-bin value cannot change this decision.
-- [ ] Run the targeted standalone script; confirm red.
-- [ ] Implement graph-route attempt accounting and decision logging. Leave oracle branch behavior unchanged; keep truth-based `landed_bin` only as post-action evaluation.
-- [ ] Re-run targeted tests and inspect `run_sim_grasp_test.py` for reads of `gen.object_categories`/`gen.objects_in_bins()` inside graph-route decisions.
-- [ ] Commit the retry/decision change.
+- [x] Write a failing test for graph-routed attempt accounting that is unchanged whether the simulator reports a landed bin or none.
+- [x] Run the targeted standalone script; confirm red.
+- [x] Implement graph-route attempt accounting and decision logging. Leave oracle branch behavior unchanged; keep truth-based `landed_bin` only as post-action evaluation.
+- [x] Re-run targeted tests and inspect `run_sim_grasp_test.py` for reads of `gen.object_categories`/`gen.objects_in_bins()` inside graph-route decisions.
+- [x] Commit the retry/decision change.
 
 ### Task 3: Offline evaluation and benchmark reporting
 
 **Files:**
 - Modify: `mujoco_grasp_sim/run_sim_grasp_test.py` (per-round `evaluation`, final metrics)
 - Modify: `mujoco_grasp_sim/benchmark.py` (mode label, aggregate counts)
+- Modify: `mujoco_grasp_sim/analyze_failures.py` (wrong-category landed-in-target case)
 - Create or extend: `mujoco_grasp_sim/sim_grasp/test_sorting_metrics.py`
+- Extend: `mujoco_grasp_sim/sim_grasp/test_analyze_failures_wrong_bin.py`
 
 **Interfaces:**
 - Keep `pick_all.in_bin`, `in_correct_bin`, `in_wrong_bin` as existing truth-scored lists.
 - Add per-round `evaluation = {gt_category, landed_bin, correct_bin}`; use `None` when no bin result is available.
 - Benchmark output identifies `routing` and `identity` and retains `crashed` per seed.
 
-- [ ] Write failing synthetic assertions for correct bin, wrong bin, unbinned object, and a crashed seed excluded from numerator but reported in completed/crashed counts.
-- [ ] Run the targeted script; confirm red.
-- [ ] Implement metric grouping and benchmark labels/counts without changing existing JSON list meanings.
-- [ ] Re-run targeted tests and `git diff --check`.
-- [ ] Commit metrics/reporting.
+- [x] Write failing synthetic assertions for correct bin, wrong bin, unbinned object, a wrong graph category that lands in its selected bin, and a crashed seed excluded from numerator but reported in completed/crashed counts.
+- [x] Run the targeted scripts; confirm red.
+- [x] Implement metric grouping, wrong-bin failure taxonomy, and benchmark labels/counts without changing existing JSON list meanings.
+- [x] Re-run targeted tests and `git diff --check`.
+- [x] Commit metrics/reporting.
 
 ### Task 4: End-to-end gate and documentation
 
@@ -91,8 +93,8 @@
 
 **Interfaces:** benchmark command line and `metrics.json` from Tasks 1-3.
 
-- [ ] Run all `sim_grasp/test_*.py` in `cgn_torch` with `MUJOCO_GL=osmesa`; report any pre-existing hash failure separately, and run the prop tests with downloaded assets.
-- [ ] Run one `--scene props --pick-all --scene-graph --routing scene-graph --identity perceived --camera fused --backend graspgen` smoke; inspect `decision` and `evaluation` in `metrics.json`.
+- [x] Run all `sim_grasp/test_*.py` in `cgn_torch` with `MUJOCO_GL=osmesa`; 26 passed, one known settled-qpos hash failure; prop tests ran with local downloaded assets.
+- [x] Run one `--scene props --pick-all --scene-graph --routing scene-graph --identity perceived --camera fused --backend graspgen` smoke; seed 0 sorted 4/4 with matching `decision` and `evaluation` fields.
 - [ ] Run three paired `benchmark.py --seeds 0-9 --mode pick-all --scene props --camera fused --backend graspgen` batches: oracle; graph routing with perceived identity; graph routing with oracle identity. Use distinct tags and preserve summary files.
 - [ ] Record exact aggregate output, per-seed comparison, crashes, wrong-bin and failure stages in ROADMAP. Do not label the gate met unless 10/10 runs finish and no decision reads simulator truth. Document any known performance gap.
 - [ ] Run a boxes-mode regression smoke and `git diff --check`; commit the evidence-backed docs.
