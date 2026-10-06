@@ -132,11 +132,14 @@ SP3's spec establishes `decision` and `evaluation` fields for sorting.
 each physics step. No caller currently passes a viewer to `GraspExecutor`,
 so that edit alone cannot provide live execution viewing.
 
-**2026-10-06 update:** the edit and a real-physics/fake-viewer regression are
-committed in draft PR #33; the main checkout is clean. A direct passive-viewer
-smoke opened and synced, then hung after close and exited 139 under both
-OSMesa and GLFW on WSL. The attempted CLI wiring was removed. This remains
-an investigation, not a shipped live-viewer feature.
+**2026-10-06 update:** the edit and a real-physics/fake-viewer regression were
+committed to `feat/live-viewer-sync` in PR #33. The fake viewer received seven
+successive syncs across a hold and motion, and a closed fake viewer was not
+synced. A direct passive-viewer smoke opened and synced, then hung after close
+and exited 139 under both OSMesa and GLFW on WSL. The attempted CLI wiring
+was removed. PR #33 was **closed unmerged** on 2026-10-06 because its live
+exit-0 acceptance gate was not met; the branch remains preserved. No
+passive-viewer hook or CLI feature from that PR is on `main`.
 
 **Files:** `mujoco_grasp_sim/sim_grasp/executor.py`,
 `mujoco_grasp_sim/run_sim_grasp_test.py`, and, only if its UI contract needs
@@ -155,11 +158,13 @@ the feature, `interactive_pick.py`; update ROADMAP with observed behavior.
    shows a problem.
 - [ ] Run headless executor tests and a real live-viewer `--execute` smoke with
    visual confirmation. Record observed output and any limitation in a dated
-   ROADMAP P1/P6 entry, then open its own PR.
+   ROADMAP P1/P6 entry, then open a fresh PR (or reopen #33) only after the
+   live path meets its acceptance gate.
 - [ ] Measure the live sync overhead against headless execution and keep
-   PR #33 draft until the WSL close/exit path returns cleanly (exit 0, no
-   hang/segfault). Acceptance: fake-viewer regression, headless run, and
-   live pick-and-place all pass; do not merge on fake-viewer evidence alone.
+   the preserved branch unmerged until the WSL close/exit path returns
+   cleanly (exit 0, no hang/segfault). Acceptance: fake-viewer regression,
+   headless run, and live pick-and-place all pass; do not merge on
+   fake-viewer evidence alone.
 
 ## Clarifications from the earlier review
 
