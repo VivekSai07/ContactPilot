@@ -293,8 +293,11 @@ In `metrics.json`, each props round has a `decision` (category source,
 category, target bin) and a separate `evaluation` (true category, landed
 bin, correct-bin result). `pick_all.in_bin` means "in any bin", while
 `in_correct_bin` and `in_wrong_bin` are **offline simulator-truth scores**;
-they are not perception-only metrics. Benchmark summaries likewise score
-correct-bin against truth and report routing and identity modes explicitly.
+they are not perception-only metrics. A round's `evaluation` is a post-action
+snapshot; the final `pick_all` lists score the final scene state and can
+differ if an object later moves. Benchmark summaries use those final lists,
+score correct-bin against truth, and report routing and identity modes
+explicitly.
 Not supported with `--scene props`:
 `--instruction`, `--prompt/--click/--box`, and `interactive_pick.py`.
 
