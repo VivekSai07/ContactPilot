@@ -56,6 +56,8 @@ def run_one(seed: int, args, run_dir: Path) -> dict:
         cmd += ['--scene-graph']
         if args.identity:
             cmd += ['--identity', args.identity]
+    if args.routing != 'oracle':
+        cmd += ['--routing', args.routing]
     if args.mode == 'execute':
         cmd += ['--execute', '--top-k', str(args.top_k)]
     elif args.mode == 'pick-all':
@@ -127,6 +129,8 @@ def main():
                     help='forward --scene-graph (props pick-all only)')
     ap.add_argument('--identity', choices=['perceived', 'oracle'], default=None,
                     help='forward --identity (needs --scene-graph)')
+    ap.add_argument('--routing', choices=['oracle', 'scene-graph'], default='oracle',
+                    help='forward --routing to the run script (P10 SP3)')
     ap.add_argument('--backend', choices=['cgn', 'graspgen'], default='cgn',
                     help='forward --backend to the run script')
     ap.add_argument('--graspgen-python', default=None,
@@ -137,6 +141,9 @@ def main():
     # why: same guard as run_sim_grasp_test.py; fail before any run starts
     if args.identity is not None and not args.scene_graph:
         ap.error('--identity requires --scene-graph')
+    if args.routing == 'scene-graph' and not (args.scene == 'props' and
+                                              args.mode == 'pick-all' and args.scene_graph):
+        ap.error('--routing scene-graph requires --scene props --mode pick-all --scene-graph')
 
     seeds = parse_seeds(args.seeds)
     tag = args.tag or f'{args.mode}_{args.camera}_{time.strftime("%m%d_%H%M")}'

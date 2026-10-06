@@ -304,6 +304,9 @@ def main():
     ap.add_argument('--identity', choices=['perceived', 'oracle'], default=None,
                     help='[P10 SP2] with --scene-graph: perceived = vision model names '
                          'the crop (default); oracle = sim prop name, knowledge-only upper bound')
+    ap.add_argument('--routing', choices=['oracle', 'scene-graph'], default='oracle',
+                    help='[P10 SP3] props pick-all destination source: oracle '
+                         '(default, simulator category) or scene-graph category')
     ap.add_argument('--instruction', type=str, default=None,
                     help='natural-language pick-and-place instruction '
                          '(e.g. "pick the blue cube first and put it on '
@@ -382,6 +385,10 @@ def main():
         sys.exit('[scene-graph] --identity requires --scene-graph')
     if args.scene_graph and args.identity is None:
         args.identity = 'perceived'
+    if args.routing == 'scene-graph' and not (args.scene == 'props' and
+                                              args.pick_all and args.scene_graph):
+        # Why: graph routing must never silently fall back to an oracle-only flow.
+        sys.exit('[routing] --routing requires --scene props --pick-all --scene-graph')
 
     # [P10] set from the Task 4 coverage check (does the calibrated camera see bin B?)
     PROPS_CAMERAS = ('lookat', 'fused')
@@ -648,7 +655,7 @@ def main():
         'camera_K': K.tolist(),
     }
     if cfg.scene_mode == 'props':
-        metrics.update(scene='props', routing='oracle',
+        metrics.update(scene='props', routing=args.routing,
                        props=gen.object_props, categories=gen.object_categories)
     if best is not None:
         seg_id, T_cam_grasp, score = best
@@ -674,14 +681,16 @@ def main():
     bins_by_name = {b.name: b for b in cfg.bins()}
     bin_categories = {b.name: b.category for b in cfg.bins()}
 
-    def target_bin_for(body: str):
-        """Bin this object should go in. P10 SP1 routes by GROUND-TRUTH
-        category on purpose -- it's the upper bound SP3's perceived routing
-        is measured against; boxes mode always uses bin A."""
+    def target_bin_for(body: str, seg_id: int | None = None, graph=None):
+        """Resolve the bin from the selected routing source."""
         if cfg.scene_mode != 'props':
             return bins_by_name['A']
-        cat = gen.object_categories[body]
-        return next(b for b in bins_by_name.values() if b.category == cat)
+        from sim_grasp.sorting_policy import choose_bin
+        # Why: the lazy oracle accessor lets graph routing prove it never
+        # reads simulator category while selecting a destination.
+        chosen, _ = choose_bin(args.routing, seg_id, graph, cfg.bins(),
+                               lambda: gen.object_categories[body])
+        return chosen
 
     if args.pick_all:
         # Sequential pick-and-place of EVERY object: each round re-observes the
@@ -901,7 +910,7 @@ def main():
                           'along the closing axis')
 
             d_o, seg_o, K_o = obs
-            tb = target_bin_for(body)
+            tb = target_bin_for(body, int(sid), graph if graph_on else None)
             footprint = compute_object_footprint(d_o, seg_o, int(sid), K_o, T_wc)
             place_pose = None
             if footprint is not None:
