@@ -304,6 +304,9 @@ def main():
     ap.add_argument('--identity', choices=['perceived', 'oracle'], default=None,
                     help='[P10 SP2] with --scene-graph: perceived = vision model names '
                          'the crop (default); oracle = sim prop name, knowledge-only upper bound')
+    ap.add_argument('--routing', choices=['oracle', 'scene-graph'], default='oracle',
+                    help='[P10 SP3] props pick-all destination source: oracle '
+                         '(default, simulator category) or scene-graph category')
     ap.add_argument('--instruction', type=str, default=None,
                     help='natural-language pick-and-place instruction '
                          '(e.g. "pick the blue cube first and put it on '
@@ -382,6 +385,10 @@ def main():
         sys.exit('[scene-graph] --identity requires --scene-graph')
     if args.scene_graph and args.identity is None:
         args.identity = 'perceived'
+    if args.routing == 'scene-graph' and not (args.scene == 'props' and
+                                              args.pick_all and args.scene_graph):
+        # Why: graph routing must never silently fall back to an oracle-only flow.
+        sys.exit('[routing] --routing requires --scene props --pick-all --scene-graph')
 
     # [P10] set from the Task 4 coverage check (does the calibrated camera see bin B?)
     PROPS_CAMERAS = ('lookat', 'fused')
@@ -648,7 +655,7 @@ def main():
         'camera_K': K.tolist(),
     }
     if cfg.scene_mode == 'props':
-        metrics.update(scene='props', routing='oracle',
+        metrics.update(scene='props', routing=args.routing,
                        props=gen.object_props, categories=gen.object_categories)
     if best is not None:
         seg_id, T_cam_grasp, score = best
@@ -674,14 +681,16 @@ def main():
     bins_by_name = {b.name: b for b in cfg.bins()}
     bin_categories = {b.name: b.category for b in cfg.bins()}
 
-    def target_bin_for(body: str):
-        """Bin this object should go in. P10 SP1 routes by GROUND-TRUTH
-        category on purpose -- it's the upper bound SP3's perceived routing
-        is measured against; boxes mode always uses bin A."""
+    def target_bin_for(body: str, seg_id: int | None = None, graph=None):
+        """Resolve the bin from the selected routing source."""
         if cfg.scene_mode != 'props':
             return bins_by_name['A']
-        cat = gen.object_categories[body]
-        return next(b for b in bins_by_name.values() if b.category == cat)
+        from sim_grasp.sorting_policy import choose_bin
+        # Why: the lazy oracle accessor lets graph routing prove it never
+        # reads simulator category while selecting a destination.
+        chosen, _ = choose_bin(args.routing, seg_id, graph, cfg.bins(),
+                               lambda: gen.object_categories[body])
+        return chosen
 
     if args.pick_all:
         # Sequential pick-and-place of EVERY object: each round re-observes the
@@ -690,6 +699,7 @@ def main():
         # table empties. GIF frames stream to disk to keep RAM flat.
         from sim_grasp.executor import GraspExecutor
         from sim_grasp.scene_generator import ARM_OBSERVE_QPOS
+        from sim_grasp.sorting_policy import evaluate_placement, next_failure_count
 
         rec_cam = CameraModule(model, data, cam_name=cfg.record_cam_name,
                                width=640, height=480)
@@ -901,7 +911,7 @@ def main():
                           'along the closing axis')
 
             d_o, seg_o, K_o = obs
-            tb = target_bin_for(body)
+            tb = target_bin_for(body, int(sid), graph if graph_on else None)
             footprint = compute_object_footprint(d_o, seg_o, int(sid), K_o, T_wc)
             place_pose = None
             if footprint is not None:
@@ -938,6 +948,12 @@ def main():
             entry = {'round': rnd, 'object': int(sid), 'body': body,
                      'score': score, 'recenter_shift_m': round(shift, 4),
                      'gt_offset_grasp_frame': gt_off, 'pick': res}
+            if cfg.scene_mode == 'props':
+                # Why: action provenance must be readable without mistaking
+                # the later simulator evaluation for the chosen category.
+                entry['decision'] = {
+                    'category_source': args.routing,
+                    'category': tb.category, 'target_bin': tb.name}
             if res['success']:
                 if place_pose is not None:
                     release_z = compute_release_z(place_pose, T_world_grasp, footprint)
@@ -952,18 +968,32 @@ def main():
                 if cfg.scene_mode == 'props':
                     entry.update(category=gen.object_categories[body],
                                  target_bin=tb.name, landed_bin=landed)
-                    if landed is not None and landed != tb.name:
-                        print(f'[pick-all]   WRONG BIN: {body} ({entry["category"]}) '
+                    entry['evaluation'] = evaluate_placement(
+                        gen.object_categories[body], landed, bin_categories)
+                    if landed is not None and not entry['evaluation']['correct_bin']:
+                        # Why: graph routing can choose the wrong category yet
+                        # land perfectly in its chosen bin; that is still a miss.
+                        print(f'[pick-all]   WRONG BIN: {body} '
+                              f'(true {entry["category"]}, selected {tb.category}) '
                               f'landed in {landed}, target {tb.name}')
+                old_failures = fail_count.get(body, 0)
+                new_failures = next_failure_count(
+                    args.routing, True,
+                    landed if args.routing == 'oracle' else None, old_failures)
+                if new_failures != old_failures:
+                    fail_count[body] = new_failures
                 if entry['in_bin']:
                     print(f"[pick-all]   pick OK (raised {res['object_raised_m']} m)"
                           f' -> placed in bin')
                 else:
-                    fail_count[body] = fail_count.get(body, 0) + 1
                     print(f'[pick-all]   pick OK but object missed the bin '
                           f'(attempt {fail_count[body]}/3 for {body})')
             else:
-                fail_count[body] = fail_count.get(body, 0) + 1
+                fail_count[body] = next_failure_count(
+                    args.routing, False, None, fail_count.get(body, 0))
+                if cfg.scene_mode == 'props':
+                    entry['evaluation'] = evaluate_placement(
+                        gen.object_categories[body], None, bin_categories)
                 print(f"[pick-all]   pick FAILED ({res.get('stage')}, raised "
                       f"{res.get('object_raised_m', 'n/a')}) — attempt "
                       f'{fail_count[body]}/3 for {body}')

@@ -468,11 +468,11 @@ The latest recorded gates, each on its stated scene/configuration, are:
 | P8, natural-language instructions | Single-step and two-step live smoke tests; the two-step run binned 2/3 objects (2026-08-21) | Phase 1 implemented; Phase 2 deferred |
 | P10 SP1, props with oracle routing, GraspGen/fused, seeds 0-9 | 37/40 in correct bin, 0 knocked off, 0 crashes (2026-10-03) | Gate met |
 | P10 SP2, props with scene graph and perceived identity, same seeds/config | 36/40 in correct bin, 33/40 perceived categories correct, 100% location agreement (2026-10-03) | Gate met; routing still uses simulator truth |
-| P10 SP3, routing by perceived category | No implementation or benchmark yet | Not started |
+| P10 SP3, props, GraspGen/fused, fresh paired seeds 0-9 | Perceived route 29/40 correct, 5 wrong-bin; fresh oracle route 36/40; oracle-identity graph route 33/40 (2026-10-06) | Gate met; boxes seed-0 regression 3/3 |
 
 The P10 SP2 correct-bin score is an oracle-routing outcome; its category score
-measures perception separately. P10 SP3 will join those paths and compare with
-SP1's oracle upper bound. Source results and failure breakdowns are in P7-P10
+measures perception separately. P10 SP3 joins those paths and is compared
+with a fresh oracle upper bound. Source results and failure breakdowns are in P7-P10
 below; this summary does not replace those per-seed records.
 
 ## P8 — Natural-language task instructions (reasoning layer)  [Phase 1 IMPLEMENTED 2026-08-21]
@@ -654,7 +654,7 @@ fundamentally 2-finger-parallel-jaw-specific — a dexterous hand's grasp
 mechanical mounting was ever proven out.
 
 
-## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate MET 2026-10-03 (37/40); SP2 IMPLEMENTED 2026-10-03, gate MET]
+## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate MET 2026-10-03 (37/40); SP2 IMPLEMENTED 2026-10-03, gate MET; SP3 IMPLEMENTED 2026-10-06, gate MET]
 
 Origin + feasibility check: `docs/research/2026-09-29-scene-knowledge-graph.md`.
 Design: `docs/superpowers/specs/2026-09-29-semantic-sorting-scene-graph-design.md`.
@@ -662,7 +662,7 @@ Goal: sort real-looking household props into two bins by category (food →
 bin A, non-food → bin B), ultimately routing from a perceived category rather
 than simulator ground truth. SP2 uses `meta/llama-3.2-11b-vision-instruct` for
 crop identification and name-to-category mapping (the original design's
-`llama-3.1-8b` model was retired); SP3 will consume the perceived category
+`llama-3.1-8b` model was retired); SP3 consumes the perceived category
 for routing. Evaluation keeps the true labels for correct-bin scoring and for
 separating identification from knowledge errors.
 
@@ -732,5 +732,79 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
           [bench] objects binned: 36/40 (90%), knocked off table: 0
           [bench] objects in correct bin: 36/40 (90%)
           [bench] perceived category accuracy: 33/40 (82%), mean location agreement: 100%
-- [ ] **SP3 — perceived sorting consumer + metrics.** Destination bin from
-      the graph's category; correct-bin rate vs SP1's oracle upper bound.
+- [x] **SP3 — perceived sorting consumer + metrics (2026-10-06, gate MET).**
+      `--routing scene-graph` selects A/B from the
+      chosen table node's category, fails closed if the category is missing or
+      unmapped, and never uses simulator category/bin occupancy to route or
+      update retry state. `--routing oracle` remains the default baseline;
+      `--identity oracle --routing scene-graph` supplies a true name to NIM,
+      not a true routing category. Per-round `decision` is separate from
+      simulator-truth `evaluation`; correct-bin totals are offline labelled
+      scores, not perception-only metrics. A GraspGen/fused perceived-routing
+      smoke on seed 0 completed **4/4 correct bin, 0 wrong bin, 8 NIM calls**
+      (`output/sp3_smoke_seed0_v2/metrics.json`). During SP3 metric review,
+      `analyze_failures.py` missed a
+      graph category error when the object landed in its selected bin but
+      the selected category was wrong: the synthetic test reported **1**
+      `wrong_bin` event instead of **2**; after checking
+      `evaluation.correct_bin`, it reports **2**, retaining the legacy
+      target-vs-landed-bin check for older runs.
+      **2026-10-06 review corrections:** An unbinned/failed round previously
+      logged `landed_bin: null, correct_bin: false`, conflating no bin result
+      with a known wrong-bin placement; it now logs `correct_bin: null`.
+      `test_sorting_policy.py` failed with `AssertionError` before the change
+      and prints `SP3 sorting policy checks passed.` after it. Also, a
+      `benchmark.py --scene-graph` call without an explicit `--identity`
+      previously retained `identity: null` in the batch summary even though
+      the child used `perceived`; it now normalizes to `perceived` before
+      launching or reporting runs. `test_sorting_benchmark.py` was red with
+      `ImportError: cannot import name 'effective_identity'` and now prints
+      `SP3 benchmark aggregation checks passed.`
+
+      **Fresh paired benchmark (2026-10-06, GraspGen/fused, props pick-all,
+      seeds 0-9; all three modes 10/10 completed, 0 knocked off, 0 crashes):**
+
+      | Route / identity | Correct bin | Any bin | Wrong bin | Category accuracy | Mean location agreement |
+      |---|---:|---:|---:|---:|---:|
+      | Oracle route / no graph | 36/40 | 36/40 | 0 | n/a | n/a |
+      | Graph route / perceived identity | 29/40 | 34/40 | 5 | 34/40 (85%) | 99.6% |
+      | Graph route / oracle identity | 33/40 | 34/40 | 1 | 38/40 (95%) | 100.0% |
+
+      Per-seed correct-bin counts (seeds 0 through 9, in order): oracle
+      **4,4,4,4,3,4,4,3,3,3**; graph/perceived
+      **3,3,3,4,1,3,4,3,2,3**; graph/oracle-identity
+      **3,4,4,4,1,4,3,3,3,4**. The perceived route is **7/40 below** this
+      fresh oracle run and **4/40 below** the true-name graph run. These are
+      paired scene seeds, but GraspGen inference is stochastic: per-seed
+      score differences are observed, not proof of a single cause. The SP3
+      gate is an implementation/validation gate (10/10 runs, no truth-derived
+      routing/retry, boxes regression), **not** a claim that 29/40 meets
+      SP1's earlier ≥34/40 performance threshold; improving this 7-object
+      gap remains follow-up work.
+      Perceived-route category errors occurred on six objects; five were
+      ultimately placed in the wrong bin and one stayed on the table.
+      The five wrong-bin outcomes are identified by `analyze_failures.py`
+      (seeds 2, 5, 7, 8, 9). The knowledge-only run's two category misses
+      were both the Fondant box, even when given its true name; one was
+      binned incorrectly (seed 8). In perceived seed 7, a missed placement
+      was retried from the next graph observation and then routed to the
+      wrong bin; location agreement there was 95.8%, so the cohort's
+      actual mean is **99.6%**, not a perfect 100%. The benchmark previously
+      printed `100%` after whole-percent rounding; the corrected formatter's
+      regression test returns `99.6%` for the same nine 1.0 and one 0.958
+      seed values.
+      These scores use the final simulator scene state; a round's immediate
+      post-action evaluation can differ if an object later moves (seed 1:
+      its fourth round scored in A, final outcome 3/4).
+      Failed pick stages across the ten runs: oracle `ik_pregrasp` 1,
+      `ik_grasp` 3; graph/perceived `ik_grasp` 1, `done` 1; graph/oracle-identity
+      `ik_pregrasp` 1, `ik_grasp` 3, `done` 1. The perceived failure taxonomy
+      additionally recorded one transient `missed_bin` event before its
+      seed-7 retry.
+
+      The three raw, per-seed summaries and reproduction commands are tracked
+      under `docs/benchmarks/2026-10-06-sp3/`; larger renders and full
+      `metrics.json` files remain ignored local artifacts. Default boxes regression:
+      `run_sim_grasp_test.py --pick-all --backend graspgen --camera fused --seed 0 --no-vis`
+      exited 0 with **3/3 objects in the bin, none left
+      on the table, none knocked off** (`output/sp3_boxes_regression_seed0/metrics.json`).

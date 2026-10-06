@@ -4,7 +4,8 @@ MuJoCo simulation of a Franka Panda, eye-to-hand RGB-D cameras, and tabletop
 objects. It evaluates Contact-GraspNet or GraspGen grasping, bin placement,
 and two-bin sorting of textured household props before robot deployment.
 The P10 scene graph identifies and categorizes props from camera observations;
-sorting still routes by simulator category until SP3 is implemented.
+sorting defaults to simulator-category routing, while P10 SP3 can route from
+the graph category with `--routing scene-graph`.
 
 **Initial geometry smoke test:** seed 42 on a GTX 1650 spawned 4 objects and
 predicted 52 grasps in ~12 s; reconstructed table height was within 1 cm of
@@ -276,26 +277,53 @@ if your scene uses different-shaped objects.
 
 Textured Google Scanned Objects props (6 food, 6 non-food; 4 per scene,
 always 2 + 2) and a second bin: food → bin A at (0.45, −0.30), non-food →
-bin B at (0.45, +0.30). In this first stage each object is routed by its
-**ground-truth** category (`"routing": "oracle"` in `metrics.json`) — the
-upper bound the later perception-based sorting is measured against.
+bin B at (0.45, +0.30). The default `--routing oracle` uses the simulator's
+category as an upper-bound baseline. P10 SP3's `--routing scene-graph` instead
+routes by the selected graph node's perceived category.
 
 ```bash
 python scripts/download_props.py                         # once; idempotent
 python run_sim_grasp_test.py --scene props --pick-all --camera fused --backend graspgen
-python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --tag props_oracle
+python run_sim_grasp_test.py --scene props --pick-all --scene-graph --routing scene-graph --identity perceived --camera fused --backend graspgen
+python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --routing oracle --tag props_oracle
+python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --scene-graph --routing scene-graph --identity perceived --tag props_perceived
+python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --scene-graph --routing scene-graph --identity oracle --tag props_oracle_identity
 ```
 
-`metrics.json` gains `pick_all.in_correct_bin` / `in_wrong_bin`; `in_bin`
-still means "in any bin". Not supported with `--scene props`:
+The 2026-10-06 paired GraspGen/fused props run scored **36/40 correct-bin**
+with oracle routing, **29/40** with graph routing and perceived identity, and
+**33/40** with graph routing and oracle identity (all three 10/10 completed,
+zero crashes). The perceived run had 34/40 categories correct, five wrong-bin
+placements, and 99.6% mean graph/simulator location agreement; the true-name
+graph run had 38/40 categories correct and one wrong-bin placement. See
+`ROADMAP.md` P10 for per-seed counts and failure attribution. GraspGen is
+stochastic, so these paired scene seeds do not by themselves prove the cause
+of every score difference.
+
+In `metrics.json`, each props round has a `decision` (category source,
+category, target bin) and a separate `evaluation` (true category, landed
+bin, correct-bin result). When no bin result exists, `landed_bin` and
+`correct_bin` are both `null`. `pick_all.in_bin` means "in any bin", while
+`in_correct_bin` and `in_wrong_bin` are **offline simulator-truth scores**;
+they are not perception-only metrics. A round's `evaluation` is a post-action
+snapshot; the final `pick_all` lists score the final scene state and can
+differ if an object later moves. Benchmark summaries use those final lists,
+score correct-bin against truth, and report routing and identity modes
+explicitly.
+Not supported with `--scene props`:
 `--instruction`, `--prompt/--click/--box`, and `interactive_pick.py`.
 
 - `--scene-graph` — build a vision-only scene graph each round (nodes, bin
-  locations, NIM identify + categorize); needs `NVIDIA_API_KEY`. Routing
-  still uses ground truth until SP3.
+  locations, NIM identify + categorize); needs `NVIDIA_API_KEY`. With
+  `--routing oracle`, it measures graph quality without changing routing.
+- `--routing {oracle,scene-graph}` — choose simulator-category or graph-category
+  routing. Graph routing requires `--scene props --pick-all --scene-graph`;
+  a missing or unmapped graph category fails rather than falling back to
+  simulator truth.
 - `--identity {perceived,oracle}` — with `--scene-graph`: name objects from
   the camera crop via NIM (`perceived`, default) or use the ground-truth
-  name (`oracle`, upper bound).
+  name (`oracle`, knowledge-only upper bound). Oracle identity does **not**
+  supply the true category to graph routing.
 
 ### Testing
 

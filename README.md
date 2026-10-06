@@ -166,8 +166,10 @@ xychart-beta
 | 2026-08-21 | P8 natural-language instructions: NIM parses ordered picks and spatial placement; live single-step and two-step smoke tests | Two-step run **2/3 binned** with zero crashes or knocked-off-table objects; this is a smoke test, not a reliability benchmark — see `ROADMAP.md` P8 |
 | 2026-10-03 | P10 SP1: textured props, two bins, and ground-truth category routing; GraspGen/fused, seeds 0–9 | **37/40 in the correct bin**, zero knocked off, zero crashes — see `ROADMAP.md` P10 |
 | 2026-10-03 | P10 SP2: vision-only scene graph and NIM object identification/categorization; routing still uses ground truth | **36/40 in the correct bin**, **33/40 perceived categories correct (82%)**, **100% location agreement** on the same 10-seed gate — see `ROADMAP.md` P10 |
+| 2026-10-06 | P10 SP3: graph-category routing, GraspGen/fused props, fresh paired seeds 0–9 | **29/40 correct-bin** with perceived identity vs **36/40** fresh oracle routing; true-name graph comparison **33/40**. All three cohorts completed 10/10 with zero crashes — see `ROADMAP.md` P10 |
 
-P10 SP3, routing by perceived category, has not started. The P7 box-scene
+P10 SP3's correct-bin scores use simulator truth **only for offline evaluation**;
+the graph route itself uses its perceived category. The P7 box-scene
 results and P10 prop-scene results use different object sets and should not
 be read as a direct grasp-backend comparison.
 

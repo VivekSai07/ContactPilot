@@ -14,9 +14,17 @@ m = {'pick_all': {'rounds': [
      'category': 'non_food', 'target_bin': 'B', 'landed_bin': 'B'},
     {'round': 3, 'body': 'obj_2', 'score': 0.7, 'pick': ok_pick,
      'place': {'stage': 'placed'}, 'in_bin': True},        # boxes-mode round
+    {'round': 4, 'body': 'obj_3', 'score': 0.9, 'pick': ok_pick,
+     'place': {'stage': 'placed'}, 'in_bin': True,
+     'decision': {'category_source': 'scene-graph', 'category': 'non_food',
+                  'target_bin': 'B'},
+     'evaluation': {'gt_category': 'food', 'landed_bin': 'B',
+                    'correct_bin': False},
+     'target_bin': 'B', 'landed_bin': 'B'},
 ], 'fell_off_table': []}}
 
 ev = analyze_run(m, 'seed_0')
-assert [e['category'] for e in ev] == ['wrong_bin'], ev
+assert [e['category'] for e in ev] == ['wrong_bin', 'wrong_bin'], ev
 assert ev[0]['body'] == 'obj_0' and 'B' in ev[0]['detail'] and 'A' in ev[0]['detail']
+assert ev[1]['body'] == 'obj_3' and 'food' in ev[1]['detail']
 print('analyze_failures wrong_bin checks passed.')

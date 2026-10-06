@@ -78,6 +78,14 @@ def analyze_run(m: dict, seed) -> list[dict]:
             add('place_unreachable', 'released in place, retried later', **where)
         elif not r.get('in_bin', True):
             add('missed_bin', 'placed but landed outside the bin', **where)
+        elif r.get('evaluation', {}).get('correct_bin') is False and \
+                r['evaluation'].get('landed_bin') is not None:
+            # Why: a wrong graph category can land in its chosen bin yet
+            # still fail the truth-labelled sorting task.
+            ev = r['evaluation']
+            chosen = r.get('decision', {}).get('category', 'unknown')
+            add('wrong_bin', f"landed in bin {ev['landed_bin']}; true category "
+                f"{ev['gt_category']}, selected {chosen}", **where)
         elif r.get('target_bin') and r.get('landed_bin') not in (None, r['target_bin']):
             add('wrong_bin', f"landed in bin {r['landed_bin']}, target bin "
                 f"{r['target_bin']}", **where)
