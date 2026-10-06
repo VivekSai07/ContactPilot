@@ -47,6 +47,12 @@ def summarize_sorting(results: list[dict]) -> dict:
             'fell_off': sum(r.get('fell_off', 0) for r in ok)}
 
 
+def format_location_agreement(values: list[float]) -> str:
+    """Show mean graph location agreement without hiding small mismatches."""
+    # Why: whole-percent rounding made a 99.58% cohort appear perfectly 100%.
+    return f'{100 * sum(values) / max(len(values), 1):.1f}%'
+
+
 def run_one(seed: int, args, run_dir: Path) -> dict:
     cmd = [sys.executable, str(HERE / 'run_sim_grasp_test.py'),
            '--seed', str(seed), '--no-vis', '--camera', args.camera,
@@ -206,7 +212,7 @@ def main():
                               else 'perceived')
             print(f'[bench] {identity_label} category accuracy: {cc}/{ct} '
                   f'({100 * cc / max(ct, 1):.0f}%), mean location agreement: '
-                  f'{100 * sum(la) / max(len(la), 1):.0f}%')
+                  f'{format_location_agreement(la)}')
     if ok:
         cov_have = sum(r.get('objects_with_grasps') or 0 for r in ok)
         cov_all = sum(r.get('objects') or 0 for r in ok)
