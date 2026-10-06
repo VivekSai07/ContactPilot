@@ -289,6 +289,16 @@ python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --b
 python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --scene-graph --routing scene-graph --identity oracle --tag props_oracle_identity
 ```
 
+The 2026-10-06 paired GraspGen/fused props run scored **36/40 correct-bin**
+with oracle routing, **29/40** with graph routing and perceived identity, and
+**33/40** with graph routing and oracle identity (all three 10/10 completed,
+zero crashes). The perceived run had 34/40 categories correct, five wrong-bin
+placements, and 99.6% mean graph/simulator location agreement; the true-name
+graph run had 38/40 categories correct and one wrong-bin placement. See
+`ROADMAP.md` P10 for per-seed counts and failure attribution. GraspGen is
+stochastic, so these paired scene seeds do not by themselves prove the cause
+of every score difference.
+
 In `metrics.json`, each props round has a `decision` (category source,
 category, target bin) and a separate `evaluation` (true category, landed
 bin, correct-bin result). `pick_all.in_bin` means "in any bin", while

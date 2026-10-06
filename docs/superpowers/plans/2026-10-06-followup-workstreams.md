@@ -40,6 +40,12 @@ routing as a baseline, compare paired 10-seed GraspGen/fused batches, and
 keep simulator truth confined to offline evaluation. This work also addresses
 suggestion 4's immediate leakage risk in the sorting pipeline.
 
+**2026-10-06 status:** implemented and validated on the SP3 branch; paired
+correct-bin scores are oracle 36/40, graph/perceived 29/40, and
+graph/oracle-identity 33/40, with 10/10 completed in each cohort. The
+29/40 result leaves a real performance gap; the post-SP3 metrics audit and
+identification improvements remain follow-up work.
+
 ## 2. Reproducible environment check — after SP3
 
 **Goal:** A single fast command reports whether the main `cgn_torch` runner
