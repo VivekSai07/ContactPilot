@@ -201,7 +201,10 @@ def main():
             cc = sum(r.get('cat_correct', 0) for r in ok)
             ct = sum(r.get('cat_total', 0) for r in ok)
             la = [r['loc_agreement'] for r in ok if r.get('loc_agreement') is not None]
-            print(f'[bench] perceived category accuracy: {cc}/{ct} '
+            # Why: oracle identity tests knowledge from true names, not visual identification.
+            identity_label = ('oracle-identity' if args.identity == 'oracle'
+                              else 'perceived')
+            print(f'[bench] {identity_label} category accuracy: {cc}/{ct} '
                   f'({100 * cc / max(ct, 1):.0f}%), mean location agreement: '
                   f'{100 * sum(la) / max(len(la), 1):.0f}%')
     if ok:

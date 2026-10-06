@@ -104,8 +104,3 @@ SP2's bin membership uses XY votes without a height cutoff. Its measured
 with real RGB-D/segmentation footage before hardware use. Model availability
 is hosted NIM dependent. A local VLM fallback, pytest migration, general
 environment doctor, and the pending viewer integration are separate tasks.
-
-## Implementation notes
-
-Record any divergence from this design here with the reason and observed
-behavior; keep the original design statements intact.

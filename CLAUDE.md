@@ -22,8 +22,8 @@ independently runnable pieces:
    RGB-D camera + default 3-box scene or textured household props) that drives
    either grasp backend end to end: scene → perception → grasp prediction →
    feasibility filter → ranked diff-IK execution → pick-and-place-in-bin.
-   The props scene has two bins and an optional scene graph; perceived-category
-   routing is planned in P10 SP3.
+   The props scene has two bins and an optional scene graph; P10 SP3 can route
+   from the graph's perceived category with `--routing scene-graph`.
 
 `mujoco_menagerie/franka_emika_panda/` is a sparse-checked-out git submodule
 (pinned commit, `franka_emika_panda/` only) providing the Panda robot model,
@@ -108,6 +108,7 @@ python run_sim_grasp_test.py --execute --prompt "the red box"  # SAM 3 text-prom
 python run_sim_grasp_test.py --pick-all --instruction "blue cube first, on the left"  # NL pick order/placement
 python run_sim_grasp_test.py --scene props --pick-all --camera fused --backend graspgen  # P10 two-bin oracle routing
 python run_sim_grasp_test.py --scene props --pick-all --camera fused --backend graspgen --scene-graph  # P10 SP2 perception; routing remains oracle
+python run_sim_grasp_test.py --scene props --pick-all --camera fused --backend graspgen --scene-graph --routing scene-graph --identity perceived  # P10 SP3 perceived routing
 python run_sim_grasp_test.py --pick-all --verbose              # show worker-subprocess output (quiet by default)
 python interactive_pick.py --seed 5 --backend graspgen        # click an object in a live window, SAM 3 + pick
 
@@ -181,7 +182,7 @@ MuJoCo (Menagerie Panda + table + default boxes or textured props + one/two bins
                     │
                     ▼
     [props + --scene-graph] scene graph + NIM identify/categorize
-                    │        (SP2: loop control/metrics; routing still oracle)
+                    │        (SP2: loop control; SP3: optional graph-category routing)
                     ▼
     ranked execution (diff-IK) → pick → place-in-bin → re-observe loop
                     │
@@ -218,6 +219,8 @@ Key modules in `sim_grasp/`:
 - `scene_graph.py` / `object_knowledge.py` / `scene_graph_viz.py` — P10 SP2:
   vision-only per-round scene graph (`--scene-graph`), NIM identify →
   categorize with per-object caching (`--identity oracle` = upper bound), overlay.
+- `sorting_policy.py` — P10 SP3: explicit oracle/scene-graph category-to-bin
+  routing and retry decisions, separate from offline truth-labelled scoring.
 - `fusion.py` — multi-camera point-cloud fusion (world frame, voxel dedup) for `--camera fused`.
 - `executor.py` — differential IK (damped least squares, multi-seed restarts)
   + joint-space ctrl interpolation + the pick/place state machine; also

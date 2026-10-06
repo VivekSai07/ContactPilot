@@ -167,7 +167,8 @@ xychart-beta
 | 2026-10-03 | P10 SP1: textured props, two bins, and ground-truth category routing; GraspGen/fused, seeds 0–9 | **37/40 in the correct bin**, zero knocked off, zero crashes — see `ROADMAP.md` P10 |
 | 2026-10-03 | P10 SP2: vision-only scene graph and NIM object identification/categorization; routing still uses ground truth | **36/40 in the correct bin**, **33/40 perceived categories correct (82%)**, **100% location agreement** on the same 10-seed gate — see `ROADMAP.md` P10 |
 
-P10 SP3, routing by perceived category, has not started. The P7 box-scene
+P10 SP3, routing by perceived category, is implemented and its paired
+10-seed oracle/perceived benchmark is underway. The P7 box-scene
 results and P10 prop-scene results use different object sets and should not
 be read as a direct grasp-backend comparison.
 

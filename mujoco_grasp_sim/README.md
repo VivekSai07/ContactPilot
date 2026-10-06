@@ -276,26 +276,39 @@ if your scene uses different-shaped objects.
 
 Textured Google Scanned Objects props (6 food, 6 non-food; 4 per scene,
 always 2 + 2) and a second bin: food → bin A at (0.45, −0.30), non-food →
-bin B at (0.45, +0.30). In this first stage each object is routed by its
-**ground-truth** category (`"routing": "oracle"` in `metrics.json`) — the
-upper bound the later perception-based sorting is measured against.
+bin B at (0.45, +0.30). The default `--routing oracle` uses the simulator's
+category as an upper-bound baseline. P10 SP3's `--routing scene-graph` instead
+routes by the selected graph node's perceived category.
 
 ```bash
 python scripts/download_props.py                         # once; idempotent
 python run_sim_grasp_test.py --scene props --pick-all --camera fused --backend graspgen
-python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --tag props_oracle
+python run_sim_grasp_test.py --scene props --pick-all --scene-graph --routing scene-graph --identity perceived --camera fused --backend graspgen
+python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --routing oracle --tag props_oracle
+python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --scene-graph --routing scene-graph --identity perceived --tag props_perceived
+python benchmark.py --scene props --seeds 0-9 --mode pick-all --camera fused --backend graspgen --scene-graph --routing scene-graph --identity oracle --tag props_oracle_identity
 ```
 
-`metrics.json` gains `pick_all.in_correct_bin` / `in_wrong_bin`; `in_bin`
-still means "in any bin". Not supported with `--scene props`:
+In `metrics.json`, each props round has a `decision` (category source,
+category, target bin) and a separate `evaluation` (true category, landed
+bin, correct-bin result). `pick_all.in_bin` means "in any bin", while
+`in_correct_bin` and `in_wrong_bin` are **offline simulator-truth scores**;
+they are not perception-only metrics. Benchmark summaries likewise score
+correct-bin against truth and report routing and identity modes explicitly.
+Not supported with `--scene props`:
 `--instruction`, `--prompt/--click/--box`, and `interactive_pick.py`.
 
 - `--scene-graph` — build a vision-only scene graph each round (nodes, bin
-  locations, NIM identify + categorize); needs `NVIDIA_API_KEY`. Routing
-  still uses ground truth until SP3.
+  locations, NIM identify + categorize); needs `NVIDIA_API_KEY`. With
+  `--routing oracle`, it measures graph quality without changing routing.
+- `--routing {oracle,scene-graph}` — choose simulator-category or graph-category
+  routing. Graph routing requires `--scene props --pick-all --scene-graph`;
+  a missing or unmapped graph category fails rather than falling back to
+  simulator truth.
 - `--identity {perceived,oracle}` — with `--scene-graph`: name objects from
   the camera crop via NIM (`perceived`, default) or use the ground-truth
-  name (`oracle`, upper bound).
+  name (`oracle`, knowledge-only upper bound). Oracle identity does **not**
+  supply the true category to graph routing.
 
 ### Testing
 

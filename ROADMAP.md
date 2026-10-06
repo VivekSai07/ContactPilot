@@ -468,11 +468,11 @@ The latest recorded gates, each on its stated scene/configuration, are:
 | P8, natural-language instructions | Single-step and two-step live smoke tests; the two-step run binned 2/3 objects (2026-08-21) | Phase 1 implemented; Phase 2 deferred |
 | P10 SP1, props with oracle routing, GraspGen/fused, seeds 0-9 | 37/40 in correct bin, 0 knocked off, 0 crashes (2026-10-03) | Gate met |
 | P10 SP2, props with scene graph and perceived identity, same seeds/config | 36/40 in correct bin, 33/40 perceived categories correct, 100% location agreement (2026-10-03) | Gate met; routing still uses simulator truth |
-| P10 SP3, routing by perceived category | No implementation or benchmark yet | Not started |
+| P10 SP3, routing by perceived category | Implementation and seed-0 GraspGen/fused smoke: 4/4 correct bin, 0 wrong; paired seeds 0-9 benchmark underway (2026-10-06) | Gate pending |
 
 The P10 SP2 correct-bin score is an oracle-routing outcome; its category score
-measures perception separately. P10 SP3 will join those paths and compare with
-SP1's oracle upper bound. Source results and failure breakdowns are in P7-P10
+measures perception separately. P10 SP3 joins those paths and is being compared
+with a fresh oracle upper bound. Source results and failure breakdowns are in P7-P10
 below; this summary does not replace those per-seed records.
 
 ## P8 — Natural-language task instructions (reasoning layer)  [Phase 1 IMPLEMENTED 2026-08-21]
@@ -654,7 +654,7 @@ fundamentally 2-finger-parallel-jaw-specific — a dexterous hand's grasp
 mechanical mounting was ever proven out.
 
 
-## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate MET 2026-10-03 (37/40); SP2 IMPLEMENTED 2026-10-03, gate MET]
+## P10 — Semantic sorting with a scene/knowledge graph  [SP1 IMPLEMENTED 2026-10-02, gate MET 2026-10-03 (37/40); SP2 IMPLEMENTED 2026-10-03, gate MET; SP3 IMPLEMENTED 2026-10-06, benchmark pending]
 
 Origin + feasibility check: `docs/research/2026-09-29-scene-knowledge-graph.md`.
 Design: `docs/superpowers/specs/2026-09-29-semantic-sorting-scene-graph-design.md`.
@@ -662,7 +662,7 @@ Goal: sort real-looking household props into two bins by category (food →
 bin A, non-food → bin B), ultimately routing from a perceived category rather
 than simulator ground truth. SP2 uses `meta/llama-3.2-11b-vision-instruct` for
 crop identification and name-to-category mapping (the original design's
-`llama-3.1-8b` model was retired); SP3 will consume the perceived category
+`llama-3.1-8b` model was retired); SP3 consumes the perceived category
 for routing. Evaluation keeps the true labels for correct-bin scoring and for
 separating identification from knowledge errors.
 
@@ -732,5 +732,21 @@ Three strictly sequential sub-projects, each its own spec/plan/PR:
           [bench] objects binned: 36/40 (90%), knocked off table: 0
           [bench] objects in correct bin: 36/40 (90%)
           [bench] perceived category accuracy: 33/40 (82%), mean location agreement: 100%
-- [ ] **SP3 — perceived sorting consumer + metrics.** Destination bin from
-      the graph's category; correct-bin rate vs SP1's oracle upper bound.
+- [ ] **SP3 — perceived sorting consumer + metrics (2026-10-06 implementation;
+      paired gate pending).** `--routing scene-graph` selects A/B from the
+      chosen table node's category, fails closed if the category is missing or
+      unmapped, and never uses simulator category/bin occupancy to route or
+      update retry state. `--routing oracle` remains the default baseline;
+      `--identity oracle --routing scene-graph` supplies a true name to NIM,
+      not a true routing category. Per-round `decision` is separate from
+      simulator-truth `evaluation`; correct-bin totals are offline labelled
+      scores, not perception-only metrics. A GraspGen/fused perceived-routing
+      smoke on seed 0 completed **4/4 correct bin, 0 wrong bin, 8 NIM calls**
+      (`output/sp3_smoke_seed0_v2/metrics.json`). The full paired seeds 0-9
+      oracle/perceived/oracle-identity batches are required before calling
+      the gate met. During SP3 metric review, `analyze_failures.py` missed a
+      graph category error when the object landed in its selected bin but
+      the selected category was wrong: the synthetic test reported **1**
+      `wrong_bin` event instead of **2**; after checking
+      `evaluation.correct_bin`, it reports **2**, retaining the legacy
+      target-vs-landed-bin check for older runs.
