@@ -19,9 +19,11 @@ independently runnable pieces:
    + test scenes. Runs standalone against saved `.npy`/`.npz` frames (real
    camera captures or synthetic scenes) — no robot or sim required.
 2. `mujoco_grasp_sim/` — a MuJoCo tabletop simulation (Panda + eye-to-hand
-   RGB-D camera + random box objects) that drives the CGN pipeline end to end:
-   scene → perception → grasp prediction → feasibility filter → ranked
-   diff-IK execution → pick-and-place-in-bin.
+   RGB-D camera + default 3-box scene or textured household props) that drives
+   either grasp backend end to end: scene → perception → grasp prediction →
+   feasibility filter → ranked diff-IK execution → pick-and-place-in-bin.
+   The props scene has two bins and an optional scene graph; perceived-category
+   routing is planned in P10 SP3.
 
 `mujoco_menagerie/franka_emika_panda/` is a sparse-checked-out git submodule
 (pinned commit, `franka_emika_panda/` only) providing the Panda robot model,
@@ -43,7 +45,7 @@ work first if they do.
 The sim and CGN run in the main conda env, **`cgn_torch`** (Python 3.10,
 PyTorch 2.12.0+cu126, **numpy must stay < 2**):
 
-```powershell
+```bash
 conda activate cgn_torch
 ```
 
@@ -68,7 +70,7 @@ rendering needs `export MUJOCO_GL=osmesa`.
 
 ### CGN inference on saved/test frames (`contact_graspnet_pytorch/`)
 
-```powershell
+```bash
 cd contact_graspnet_pytorch
 
 # Headless (no blocking GUI windows) — prints grasp counts/scores/timing/VRAM,
@@ -76,13 +78,14 @@ cd contact_graspnet_pytorch
 python test_inference_headless.py --np_path=test_data/7.npy
 
 # Visualize a saved result (Open3D window; close it to exit)
-python contact_graspnet_pytorch\visualize_saved_scene.py --results_path=results/predictions_7.npz
+python contact_graspnet_pytorch/visualize_saved_scene.py --results_path=results/predictions_7.npz
 
 # Original upstream interactive inference (GUI, blocking, one window per scene)
-python contact_graspnet_pytorch\inference.py --np_path=test_data/7.npy
+python contact_graspnet_pytorch/inference.py --np_path=test_data/7.npy
 
-# Training (lab PC only, needs ACRONYM dataset — see docs/acronym_setup.md, >=24GB VRAM)
-python contact_graspnet_pytorch\train.py --data_path acronym/
+# Training (lab PC only, needs ACRONYM dataset — see
+# contact_graspnet_pytorch/docs/acronym_setup.md from the repo root, >=24GB VRAM)
+python contact_graspnet_pytorch/train.py --data_path acronym/
 ```
 
 Common flags: `--arg_configs KEY:VALUE` overrides any `config.yaml` entry
@@ -92,7 +95,7 @@ or `TEST.first_thres:0.19 TEST.second_thres:0.19` to tune grasp count).
 
 ### MuJoCo sim pipeline (`mujoco_grasp_sim/`)
 
-```powershell
+```bash
 cd mujoco_grasp_sim
 
 python run_sim_grasp_test.py --seed 5 --execute --top-k 5     # single grasp attempt, reproducible seed
@@ -103,13 +106,15 @@ python run_sim_grasp_test.py --no-vis                          # headless
 python run_sim_grasp_test.py --backend graspgen --execute      # GraspGen instead of CGN
 python run_sim_grasp_test.py --execute --prompt "the red box"  # SAM 3 text-prompted target selection
 python run_sim_grasp_test.py --pick-all --instruction "blue cube first, on the left"  # NL pick order/placement
+python run_sim_grasp_test.py --scene props --pick-all --camera fused --backend graspgen  # P10 two-bin oracle routing
+python run_sim_grasp_test.py --scene props --pick-all --camera fused --backend graspgen --scene-graph  # P10 SP2 perception; routing remains oracle
 python run_sim_grasp_test.py --pick-all --verbose              # show worker-subprocess output (quiet by default)
 python interactive_pick.py --seed 5 --backend graspgen        # click an object in a live window, SAM 3 + pick
 
 # Batch evaluation — the ONLY basis for judging a reliability change, since
 # CGN inference is stochastic (never trust a single run):
 python benchmark.py --seeds 0-4 --mode pick-all --camera lookat --tag baseline
-python analyze_failures.py output\bench_baseline    # classifies failures into taxonomy.json
+python analyze_failures.py output/bench_baseline    # classifies failures into taxonomy.json
 ```
 
 Every run writes `output/<run>/`: `metrics.json`, `execution.gif`,
@@ -118,8 +123,9 @@ Every run writes `output/<run>/`: `metrics.json`, `execution.gif`,
 ### Tests
 
 There is no pytest suite/runner. `mujoco_grasp_sim/sim_grasp/test_*.py` are
-standalone assert-based scripts for pure functions (no MuJoCo/GPU/model
-needed); each passes silently or raises. Run one, or all, from
+standalone assert-based scripts; most test pure functions without GPU/model
+inference, but scene tests load MuJoCo and the Panda model. They print a
+summary on success or raise on failure. Run one, or all, from
 `mujoco_grasp_sim/` — `PYTHONPATH=.` is required because they import
 `sim_grasp.*`:
 
@@ -128,6 +134,21 @@ cd mujoco_grasp_sim
 PYTHONPATH=. python sim_grasp/test_reachability.py
 for t in sim_grasp/test_*.py; do PYTHONPATH=. python "$t" || echo "FAIL $t"; done
 ```
+
+`test_props_assets.py` and `test_scene_props.py` also need the downloaded
+Google Scanned Objects assets (`python scripts/download_props.py`); a fresh
+checkout without them raises `FileNotFoundError: prop asset missing`.
+
+Known environment-sensitive test (observed 2026-10-06):
+`test_scene_default_unchanged.py` checks hashes of generated XML and settled
+`qpos` for seeds 0 and 3. Under `cgn_torch` with MuJoCo 3.11.0 and NumPy
+1.26.4, seed 0's XML hash matches the stored value, but the settled `qpos`
+hash differs (`e0bd1a92…` observed vs `daf8c592…` expected). The script
+raises `AssertionError: seed 0: default settled qpos changed (rng order?)`.
+This does not establish a scene-generation regression: the exact hash of a
+physics-settled state may vary with the MuJoCo build/version. Keep the stored
+hash until a same-version baseline comparison establishes whether behavior
+changed; do not replace it with this machine's hash alone.
 
 New tests follow the same style (top-level asserts, no pytest). End-to-end
 correctness is checked by real runs: `test_inference_headless.py` for CGN,
@@ -138,7 +159,7 @@ in `README.md` and `ROADMAP.md`.
 ## Architecture — `mujoco_grasp_sim`
 
 ```
-MuJoCo (Menagerie Panda + table + random box objects)
+MuJoCo (Menagerie Panda + table + default boxes or textured props + one/two bins)
                     │  physics settle
                     ▼
     CameraModule (eye-to-hand RGB/Depth[m]/Segmap/K/T_world_cam)
@@ -158,6 +179,9 @@ MuJoCo (Menagerie Panda + table + random box objects)
     GraspFeasibilityChecker (table-collision + underhand filter;
                     │        + neighbor-collision/reachability with --filter-neighbors)
                     │
+                    ▼
+    [props + --scene-graph] scene graph + NIM identify/categorize
+                    │        (SP2: loop control/metrics; routing still oracle)
                     ▼
     ranked execution (diff-IK) → pick → place-in-bin → re-observe loop
                     │
