@@ -63,6 +63,10 @@ assert script for its pure checks, `CLAUDE.md`, and
 - [ ] Run the command in `cgn_torch` and a deliberately incomplete interpreter.
    Document both outputs and the command. Do not claim that an import check
    proves CUDA kernels, rendering, NIM service, or grasping work.
+- [ ] Commit on a new branch and open a PR with the exact passing and failing
+   check outputs. Acceptance: one command identifies each required missing
+   dependency with a nonzero exit, never reveals the NVIDIA key, and does
+   not start a model worker or network request.
 
 The earlier `imageio` import failure came from invoking system Python, not
 proof of a missing dependency in `cgn_torch`.
@@ -90,6 +94,12 @@ script execution or masking the settled-`qpos` issue.
 - [ ] Investigate the settled-`qpos` hash against a same-MuJoCo-version pre-P10
    commit before changing that guard. An updated hash from one host is not a
    valid fix. Run both runners and show matching results before the PR.
+- [ ] If migration proceeds, commit its config/docs/tests on a separate
+   branch and open a PR. Acceptance: `python -m pytest sim_grasp` and a loop
+   invoking each `test_*.py` directly cover the same cases;
+   the known seed-0 hash failure remains visible until independently fixed.
+   If migration is rejected, record the comparison and reason in the PR
+   instead of adding a pytest dependency for its own sake.
 
 ## 4. Decision versus evaluation metrics — audit after SP3
 
@@ -104,13 +114,17 @@ SP3's spec establishes `decision` and `evaluation` fields for sorting.
 - [ ] Document metric provenance in `mujoco_grasp_sim/README.md` and the
   benchmark output. Create a broader metric schema spec only if another
   consumer demonstrably needs one.
+- [ ] Commit the audit/tests on a new branch and open a PR. Acceptance:
+  changing oracle truth while holding the graph observation fixed changes
+  only truth-labelled evaluation, not chosen bin, retry budget, or next
+  candidate; summarize any remaining simulator ID association explicitly.
 
 ## 5. Finish the pending live-viewer edit — separate branch/PR
 
-**Starting state:** the main checkout has an uncommitted `executor.py` edit
-that accepts a passive viewer and calls `viewer.sync()` each physics step.
-No caller currently passes a viewer to `GraspExecutor`, so that edit alone
-cannot provide live execution viewing.
+**Original starting state:** the main checkout had an uncommitted
+`executor.py` edit that accepts a passive viewer and calls `viewer.sync()`
+each physics step. No caller currently passes a viewer to `GraspExecutor`,
+so that edit alone cannot provide live execution viewing.
 
 **2026-10-06 update:** the edit and a real-physics/fake-viewer regression are
 committed in draft PR #33; the main checkout is clean. A direct passive-viewer
@@ -136,6 +150,10 @@ the feature, `interactive_pick.py`; update ROADMAP with observed behavior.
 - [ ] Run headless executor tests and a real live-viewer `--execute` smoke with
    visual confirmation. Record observed output and any limitation in a dated
    ROADMAP P1/P6 entry, then open its own PR.
+- [ ] Measure the live sync overhead against headless execution and keep
+   PR #33 draft until the WSL close/exit path returns cleanly (exit 0, no
+   hang/segfault). Acceptance: fake-viewer regression, headless run, and
+   live pick-and-place all pass; do not merge on fake-viewer evidence alone.
 
 ## Clarifications from the earlier review
 
