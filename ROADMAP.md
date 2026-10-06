@@ -363,6 +363,17 @@ deployable. No novelty for novelty's sake.
       `SceneGenerator.objects_in_bin()` (already proven by `--pick-all`),
       reported the same way (`res['place']`, `res['in_bin']`). Live-verified:
       click → pick → carry to bin → release, human-confirmed.
+- [ ] **Separate MuJoCo passive 3D viewer for execution (2026-10-06,
+      deferred):** PR #33 preserved an optional `GraspExecutor(viewer=...)`
+      sync hook and a real-physics/fake-viewer test: seven increasing-time
+      syncs across hold/motion, with a closed fake viewer skipped. No current
+      caller passes that handle. A direct WSL passive-viewer smoke opened
+      and synced, but hung after `viewer.close()` and exited **139** under
+      both OSMesa and GLFW. PR #33 was closed **unmerged**; its branch is
+      preserved. Do not present the hook as a working live-viewer feature or
+      merge it until a real `--execute` pick-and-place and clean exit 0 are
+      demonstrated. The existing `interactive_pick.py` camera window above
+      is unaffected.
 
 ## P7 — Intelligent bin placement (vision-only)  [DONE 2026-08-21]
 - [x] Problem: `--pick-all`/`--execute`/`interactive_pick.py` all released
