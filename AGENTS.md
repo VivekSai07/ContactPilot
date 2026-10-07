@@ -40,6 +40,25 @@ This is an agent-judgment workflow (deciding *which* doc needs updating,
 writing the actual content), not something a deterministic hook can do —
 it lives here as a standing instruction, not a `.github/hooks/*.json`.
 
+## Graphify snapshot workflow (mandatory)
+
+`graphify-out/` is a tracked architecture snapshot, not disposable local
+state. Before every commit that changes project files, run the local,
+credential-free extraction from the repository root:
+
+```bash
+graphify . --code-only
+graphify cluster-only .
+```
+
+Stage the refreshed `graphify-out/` contents in the same commit as the source
+changes. Before pushing, verify that the commit includes the current snapshot;
+the graph must travel with the source revision it describes. Do not create a
+separate graph-only commit. If Graphify fails, stop before committing and
+report the failure unless the user explicitly authorizes an exception. The
+snapshot is intentionally regenerated on every commit so Claude, Codex, and
+Copilot agents can query the graph at the checked-out revision.
+
 ## Branch/commit hygiene
 
 Every change — including docs-only changes — goes on a feature branch +

@@ -1,0 +1,1586 @@
+{
+  "GraspGen/client-server/graspgen_client.py": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.009321,
+    "ast_hash": "24663805859f90c7c1a39d3b6f750698",
+    "semantic_hash": "24663805859f90c7c1a39d3b6f750698"
+  },
+  "GraspGen/client-server/graspgen_server.py": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.009329,
+    "ast_hash": "ceb1c921da3a2989d00aefe4fe452bd0",
+    "semantic_hash": "ceb1c921da3a2989d00aefe4fe452bd0"
+  },
+  "GraspGen/config/grippers/franka_panda.py": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.0093322,
+    "ast_hash": "0f669efdfe24903aa26b89d8bc8dc7a0",
+    "semantic_hash": "0f669efdfe24903aa26b89d8bc8dc7a0"
+  },
+  "GraspGen/config/grippers/robotiq_2f_140.py": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.0093336,
+    "ast_hash": "57cc0ddbb0a850fdba069b95f5fea8d6",
+    "semantic_hash": "57cc0ddbb0a850fdba069b95f5fea8d6"
+  },
+  "GraspGen/config/grippers/single_suction_cup_30mm.py": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.009335,
+    "ast_hash": "ce84c10edd97651c38a0dabe2fb3bdb1",
+    "semantic_hash": "ce84c10edd97651c38a0dabe2fb3bdb1"
+  },
+  "GraspGen/docker/build.sh": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.0093358,
+    "ast_hash": "51c678ab5ca15d998b1adc044e47b7b2",
+    "semantic_hash": "51c678ab5ca15d998b1adc044e47b7b2"
+  },
+  "GraspGen/docker/run.sh": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.0093372,
+    "ast_hash": "69d2d76ad322d1d6e7ae21f0718b8c7a",
+    "semantic_hash": "69d2d76ad322d1d6e7ae21f0718b8c7a"
+  },
+  "GraspGen/docker/run_meshcat.sh": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.0093381,
+    "ast_hash": "785d773cb875f0cf799a954b15dd20a0",
+    "semantic_hash": "785d773cb875f0cf799a954b15dd20a0"
+  },
+  "GraspGen/docker/run_server.sh": {
+    "mtime": 1787236391.3519378,
+    "seen": 1791370477.009339,
+    "ast_hash": "efeb233faec602def2a72e5f5357560c",
+    "semantic_hash": "efeb233faec602def2a72e5f5357560c"
+  },
+  "GraspGen/grasp_gen/__init__.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093398,
+    "ast_hash": "f5c7d2c82d6cc4e898df7b1bec18ef7b",
+    "semantic_hash": "f5c7d2c82d6cc4e898df7b1bec18ef7b"
+  },
+  "GraspGen/grasp_gen/dataset/dataset.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009341,
+    "ast_hash": "f8efa02f64bb166963bbad00596f86e6",
+    "semantic_hash": "f8efa02f64bb166963bbad00596f86e6"
+  },
+  "GraspGen/grasp_gen/dataset/dataset_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093422,
+    "ast_hash": "731ae8ea29a00e10c7a77946d8d7fdf5",
+    "semantic_hash": "731ae8ea29a00e10c7a77946d8d7fdf5"
+  },
+  "GraspGen/grasp_gen/dataset/eval_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093431,
+    "ast_hash": "71483b33b8d5beb86b1d494218167445",
+    "semantic_hash": "71483b33b8d5beb86b1d494218167445"
+  },
+  "GraspGen/grasp_gen/dataset/exceptions.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009344,
+    "ast_hash": "7cdf7e9c28bdb6e70d9d5d3d4ab33f59",
+    "semantic_hash": "7cdf7e9c28bdb6e70d9d5d3d4ab33f59"
+  },
+  "GraspGen/grasp_gen/dataset/image_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093453,
+    "ast_hash": "453fd5ea3b82d99096fa63af4a8f55a1",
+    "semantic_hash": "453fd5ea3b82d99096fa63af4a8f55a1"
+  },
+  "GraspGen/grasp_gen/dataset/renderer.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009346,
+    "ast_hash": "9eb41fb81e0553616e4fcf8b39c7c5bd",
+    "semantic_hash": "9eb41fb81e0553616e4fcf8b39c7c5bd"
+  },
+  "GraspGen/grasp_gen/dataset/suction.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009347,
+    "ast_hash": "4f4355026b7c32d975833ce48af0d0e9",
+    "semantic_hash": "4f4355026b7c32d975833ce48af0d0e9"
+  },
+  "GraspGen/grasp_gen/dataset/visualize_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093477,
+    "ast_hash": "ee45cd0dad0647870c7fc6489fb7400a",
+    "semantic_hash": "ee45cd0dad0647870c7fc6489fb7400a"
+  },
+  "GraspGen/grasp_gen/dataset/webdataset_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093486,
+    "ast_hash": "2e1e3ef49551361ea9e0cc6e8a6fa796",
+    "semantic_hash": "2e1e3ef49551361ea9e0cc6e8a6fa796"
+  },
+  "GraspGen/grasp_gen/grasp_server.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093496,
+    "ast_hash": "ca93ccd7af6e4724392889951bdaa3e3",
+    "semantic_hash": "ca93ccd7af6e4724392889951bdaa3e3"
+  },
+  "GraspGen/grasp_gen/metrics.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093503,
+    "ast_hash": "dc203fbb2ec7c8223e1a5972f50c024e",
+    "semantic_hash": "dc203fbb2ec7c8223e1a5972f50c024e"
+  },
+  "GraspGen/grasp_gen/models/action_decoder.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093515,
+    "ast_hash": "5fe4c70913513229c69cff6ac4103f6b",
+    "semantic_hash": "5fe4c70913513229c69cff6ac4103f6b"
+  },
+  "GraspGen/grasp_gen/models/contact_decoder.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093527,
+    "ast_hash": "15dd29683f69681ca1cedda86ba7c5d0",
+    "semantic_hash": "15dd29683f69681ca1cedda86ba7c5d0"
+  },
+  "GraspGen/grasp_gen/models/criterion.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093536,
+    "ast_hash": "237ca897e01c49618862c24baee5e55e",
+    "semantic_hash": "237ca897e01c49618862c24baee5e55e"
+  },
+  "GraspGen/grasp_gen/models/discriminator.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093548,
+    "ast_hash": "1746562a86b44a4adf5cd3047c033de8",
+    "semantic_hash": "1746562a86b44a4adf5cd3047c033de8"
+  },
+  "GraspGen/grasp_gen/models/generator.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093555,
+    "ast_hash": "b61ab6f4042f8804aa46a11845140ac5",
+    "semantic_hash": "b61ab6f4042f8804aa46a11845140ac5"
+  },
+  "GraspGen/grasp_gen/models/grasp_gen.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093565,
+    "ast_hash": "edd5b20d1f755ccd12ef43c98e53caed",
+    "semantic_hash": "edd5b20d1f755ccd12ef43c98e53caed"
+  },
+  "GraspGen/grasp_gen/models/m2t2.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093575,
+    "ast_hash": "ce53c1515f3a82a294adfd84277e8a49",
+    "semantic_hash": "ce53c1515f3a82a294adfd84277e8a49"
+  },
+  "GraspGen/grasp_gen/models/matcher.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093584,
+    "ast_hash": "5d778b98562203c73b15ef55fb18b118",
+    "semantic_hash": "5d778b98562203c73b15ef55fb18b118"
+  },
+  "GraspGen/grasp_gen/models/model_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093594,
+    "ast_hash": "20f374eea98dd6eb17e53baf3f2369e8",
+    "semantic_hash": "20f374eea98dd6eb17e53baf3f2369e8"
+  },
+  "GraspGen/grasp_gen/models/pointnet/pointnet2.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093603,
+    "ast_hash": "584e8cfeee4cd7dc34bf7d00c1fb8e8d",
+    "semantic_hash": "584e8cfeee4cd7dc34bf7d00c1fb8e8d"
+  },
+  "GraspGen/grasp_gen/models/pointnet/pointnet2_modules.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093615,
+    "ast_hash": "e6eb276b76f64719afa383043c969b66",
+    "semantic_hash": "e6eb276b76f64719afa383043c969b66"
+  },
+  "GraspGen/grasp_gen/models/pointnet/pointnet2_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093622,
+    "ast_hash": "f007568ec480e554933be79a0531f3f8",
+    "semantic_hash": "f007568ec480e554933be79a0531f3f8"
+  },
+  "GraspGen/grasp_gen/models/ptv3/ptv3.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093632,
+    "ast_hash": "f09e11f3d13341315ffce34e3d1943c5",
+    "semantic_hash": "f09e11f3d13341315ffce34e3d1943c5"
+  },
+  "GraspGen/grasp_gen/models/ptv3/serialization/__init__.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009364,
+    "ast_hash": "d289d5cc26c6c5b5908a97391b5986fd",
+    "semantic_hash": "d289d5cc26c6c5b5908a97391b5986fd"
+  },
+  "GraspGen/grasp_gen/models/ptv3/serialization/default.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009365,
+    "ast_hash": "1b512a14a811479523a6d34361397369",
+    "semantic_hash": "1b512a14a811479523a6d34361397369"
+  },
+  "GraspGen/grasp_gen/models/ptv3/serialization/hilbert.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093658,
+    "ast_hash": "fc97971ab316414259d67c55225fea49",
+    "semantic_hash": "fc97971ab316414259d67c55225fea49"
+  },
+  "GraspGen/grasp_gen/models/ptv3/serialization/z_order.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093665,
+    "ast_hash": "859ad7b5baebce8d67a43854296e4ac5",
+    "semantic_hash": "859ad7b5baebce8d67a43854296e4ac5"
+  },
+  "GraspGen/grasp_gen/models/vit.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093675,
+    "ast_hash": "b9e35c6ebcef5f525a548d014c3cc726",
+    "semantic_hash": "b9e35c6ebcef5f525a548d014c3cc726"
+  },
+  "GraspGen/grasp_gen/robot.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093684,
+    "ast_hash": "4969e91e16c9d471f728b636febe3868",
+    "semantic_hash": "4969e91e16c9d471f728b636febe3868"
+  },
+  "GraspGen/grasp_gen/samplers/__init__.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093696,
+    "ast_hash": "ec3cab9c2401092254e4196dd300783a",
+    "semantic_hash": "ec3cab9c2401092254e4196dd300783a"
+  },
+  "GraspGen/grasp_gen/samplers/graspmoe.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093703,
+    "ast_hash": "41e582586c445d36e719c12928838ed3",
+    "semantic_hash": "41e582586c445d36e719c12928838ed3"
+  },
+  "GraspGen/grasp_gen/samplers/planner.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093713,
+    "ast_hash": "614d53474ab1cb1bc00f742d0acfd511",
+    "semantic_hash": "614d53474ab1cb1bc00f742d0acfd511"
+  },
+  "GraspGen/grasp_gen/serving/__init__.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009374,
+    "ast_hash": "6ca567df737c9cfe03e4a72a3304133a",
+    "semantic_hash": "6ca567df737c9cfe03e4a72a3304133a"
+  },
+  "GraspGen/grasp_gen/serving/zmq_client.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093749,
+    "ast_hash": "a7de845926d40568f18046e2636d5aa9",
+    "semantic_hash": "a7de845926d40568f18046e2636d5aa9"
+  },
+  "GraspGen/grasp_gen/serving/zmq_server.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093758,
+    "ast_hash": "97a044a10d8951986cc5f79a41c5bfba",
+    "semantic_hash": "97a044a10d8951986cc5f79a41c5bfba"
+  },
+  "GraspGen/grasp_gen/utils/logging_config.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093768,
+    "ast_hash": "dd52dfaf81aad26acb2a65174915b1a8",
+    "semantic_hash": "dd52dfaf81aad26acb2a65174915b1a8"
+  },
+  "GraspGen/grasp_gen/utils/math_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093777,
+    "ast_hash": "bcb88f9af5a328474542bff79c4c4c5e",
+    "semantic_hash": "bcb88f9af5a328474542bff79c4c4c5e"
+  },
+  "GraspGen/grasp_gen/utils/meshcat_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093787,
+    "ast_hash": "26a00062688abeaba889f8fc0f492ef8",
+    "semantic_hash": "26a00062688abeaba889f8fc0f492ef8"
+  },
+  "GraspGen/grasp_gen/utils/plot_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093794,
+    "ast_hash": "48e49536822dbb9a4b86ad53cfc2408f",
+    "semantic_hash": "48e49536822dbb9a4b86ad53cfc2408f"
+  },
+  "GraspGen/grasp_gen/utils/point_cloud_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093803,
+    "ast_hash": "f01fc79cfe3be768d5375916cb2a753b",
+    "semantic_hash": "f01fc79cfe3be768d5375916cb2a753b"
+  },
+  "GraspGen/grasp_gen/utils/rotation_conversions.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009381,
+    "ast_hash": "f4477aca6b17751bbf8fab7292838e4b",
+    "semantic_hash": "f4477aca6b17751bbf8fab7292838e4b"
+  },
+  "GraspGen/grasp_gen/utils/scene_loaders.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093818,
+    "ast_hash": "2b0707563b6d95fccd4e6e725fd12227",
+    "semantic_hash": "2b0707563b6d95fccd4e6e725fd12227"
+  },
+  "GraspGen/grasp_gen/utils/so3.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093827,
+    "ast_hash": "dda5445afe539057f188243357f64453",
+    "semantic_hash": "dda5445afe539057f188243357f64453"
+  },
+  "GraspGen/grasp_gen/utils/train_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093837,
+    "ast_hash": "d2e349739559523f232f4af3debc0b0f",
+    "semantic_hash": "d2e349739559523f232f4af3debc0b0f"
+  },
+  "GraspGen/grasp_gen/utils/viser_utils.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093844,
+    "ast_hash": "7b4b673e88d2fb301713da64a4fbbd04",
+    "semantic_hash": "7b4b673e88d2fb301713da64a4fbbd04"
+  },
+  "GraspGen/install_pointnet.sh": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009385,
+    "ast_hash": "7f8ce93cb0468ac111a6c98d4fe74729",
+    "semantic_hash": "7f8ce93cb0468ac111a6c98d4fe74729"
+  },
+  "GraspGen/install_uv_pointnet.sh": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093863,
+    "ast_hash": "3cec91db7d29fdf7f73bcaeca2cb69d6",
+    "semantic_hash": "3cec91db7d29fdf7f73bcaeca2cb69d6"
+  },
+  "GraspGen/mcp/pyproject.toml": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093873,
+    "ast_hash": "112dd3d021961dac2c4ce48050c3739c",
+    "semantic_hash": "112dd3d021961dac2c4ce48050c3739c"
+  },
+  "GraspGen/mcp/src/mcp_server_graspgen/__init__.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.009388,
+    "ast_hash": "eff738f14127153f7d01d0ed725a702c",
+    "semantic_hash": "eff738f14127153f7d01d0ed725a702c"
+  },
+  "GraspGen/mcp/src/mcp_server_graspgen/__main__.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093887,
+    "ast_hash": "532e74ab8a5bd0c100ce27eeb71bfa2b",
+    "semantic_hash": "532e74ab8a5bd0c100ce27eeb71bfa2b"
+  },
+  "GraspGen/mcp/src/mcp_server_graspgen/server.py": {
+    "mtime": 1787236391.40782,
+    "seen": 1791370477.0093899,
+    "ast_hash": "f4c6b9d1c7286d367141b41e60b2c11e",
+    "semantic_hash": "f4c6b9d1c7286d367141b41e60b2c11e"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/__init__.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093908,
+    "ast_hash": "71571917fe9eca50f4b587bfdb52c4f7",
+    "semantic_hash": "71571917fe9eca50f4b587bfdb52c4f7"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/include/ball_query.h": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093915,
+    "ast_hash": "f486bf3cc3c9fae682f7f33be288efb2",
+    "semantic_hash": "f486bf3cc3c9fae682f7f33be288efb2"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/include/cuda_utils.h": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093927,
+    "ast_hash": "b555a4b7b393704c101bfcd59d2bae0b",
+    "semantic_hash": "b555a4b7b393704c101bfcd59d2bae0b"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/include/group_points.h": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093935,
+    "ast_hash": "6356613263ca0f92cd36c00de1f63ebd",
+    "semantic_hash": "6356613263ca0f92cd36c00de1f63ebd"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/include/interpolate.h": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093944,
+    "ast_hash": "4ee2018e420ebd2711eff35e40b57e70",
+    "semantic_hash": "4ee2018e420ebd2711eff35e40b57e70"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/include/sampling.h": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093951,
+    "ast_hash": "aa4be912a61e26817f2791a76e0ef1f1",
+    "semantic_hash": "aa4be912a61e26817f2791a76e0ef1f1"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/include/utils.h": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009396,
+    "ast_hash": "105f0bbd31147d7b58e2734cab098f4a",
+    "semantic_hash": "105f0bbd31147d7b58e2734cab098f4a"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/ball_query.cpp": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093968,
+    "ast_hash": "2bfe3b3232b6254113db74aac9d2b7b8",
+    "semantic_hash": "2bfe3b3232b6254113db74aac9d2b7b8"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/ball_query_gpu.cu": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093975,
+    "ast_hash": "4ee8c73d249d81c40df988b07fbe71be",
+    "semantic_hash": "4ee8c73d249d81c40df988b07fbe71be"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/bindings.cpp": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093985,
+    "ast_hash": "21632f00fa076977c39865c0649fbaeb",
+    "semantic_hash": "21632f00fa076977c39865c0649fbaeb"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/group_points.cpp": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0093997,
+    "ast_hash": "6975997597818e10e76c80f1bad72137",
+    "semantic_hash": "6975997597818e10e76c80f1bad72137"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/group_points_gpu.cu": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094004,
+    "ast_hash": "501ae9552fb412d0d986675c328affeb",
+    "semantic_hash": "501ae9552fb412d0d986675c328affeb"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/interpolate.cpp": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094013,
+    "ast_hash": "9cf085b49be74c0715a8724b0b7cbbc2",
+    "semantic_hash": "9cf085b49be74c0715a8724b0b7cbbc2"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/interpolate_gpu.cu": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009402,
+    "ast_hash": "6cefdd25e356862103a1e4e94cb27149",
+    "semantic_hash": "6cefdd25e356862103a1e4e94cb27149"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/sampling.cpp": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009403,
+    "ast_hash": "1b40c1768636babb5ec642f66510c327",
+    "semantic_hash": "1b40c1768636babb5ec642f66510c327"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_ext-src/src/sampling_gpu.cu": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009404,
+    "ast_hash": "0741addc84151051147e4aecfcda2a10",
+    "semantic_hash": "0741addc84151051147e4aecfcda2a10"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/_version.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009405,
+    "ast_hash": "3ba21c3e0301d5604924318a9c1f011e",
+    "semantic_hash": "3ba21c3e0301d5604924318a9c1f011e"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/pointnet2_modules.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094059,
+    "ast_hash": "5bbbcd88941e0e598c9c7735767abeeb",
+    "semantic_hash": "5bbbcd88941e0e598c9c7735767abeeb"
+  },
+  "GraspGen/pointnet2_ops/pointnet2_ops/pointnet2_utils.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094068,
+    "ast_hash": "dbf2123041a62744dd66907084b910b3",
+    "semantic_hash": "dbf2123041a62744dd66907084b910b3"
+  },
+  "GraspGen/pointnet2_ops/setup.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094075,
+    "ast_hash": "91b03a1ad6dec11d2546eb97fc0a1599",
+    "semantic_hash": "91b03a1ad6dec11d2546eb97fc0a1599"
+  },
+  "GraspGen/pyproject.toml": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094082,
+    "ast_hash": "8b5054e26489867d5d56ca8eaac993a2",
+    "semantic_hash": "8b5054e26489867d5d56ca8eaac993a2"
+  },
+  "GraspGen/runs/train_graspgen_franka_panda_dis.sh": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094092,
+    "ast_hash": "22f2dcebd95c1f406e122506e241d61f",
+    "semantic_hash": "22f2dcebd95c1f406e122506e241d61f"
+  },
+  "GraspGen/runs/train_graspgen_franka_panda_gen.sh": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094104,
+    "ast_hash": "418a575e47a137756f9cb75706313e02",
+    "semantic_hash": "418a575e47a137756f9cb75706313e02"
+  },
+  "GraspGen/runs/train_graspgen_robotiq_2f_140_dis.sh": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009411,
+    "ast_hash": "05f924bb0715dc7ae2f97d5550f61e1c",
+    "semantic_hash": "05f924bb0715dc7ae2f97d5550f61e1c"
+  },
+  "GraspGen/runs/train_graspgen_robotiq_2f_140_gen.sh": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094128,
+    "ast_hash": "0ca50e84ee545cb8ae30c562401d2a36",
+    "semantic_hash": "0ca50e84ee545cb8ae30c562401d2a36"
+  },
+  "GraspGen/scripts/convert_obj_to_usd.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009414,
+    "ast_hash": "f531cbfb1bf584d3b1685fe4cdab5e53",
+    "semantic_hash": "f531cbfb1bf584d3b1685fe4cdab5e53"
+  },
+  "GraspGen/scripts/create_grasp_sim_usd.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094147,
+    "ast_hash": "eb05f5241fccc262b0d0d2106581e3d0",
+    "semantic_hash": "eb05f5241fccc262b0d0d2106581e3d0"
+  },
+  "GraspGen/scripts/demo_collision_free_grasps.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094154,
+    "ast_hash": "d64ded516af7da20e01b25920b5f315b",
+    "semantic_hash": "d64ded516af7da20e01b25920b5f315b"
+  },
+  "GraspGen/scripts/demo_object_mesh.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009416,
+    "ast_hash": "787970d10e02e16e4de27a5f613f61a6",
+    "semantic_hash": "787970d10e02e16e4de27a5f613f61a6"
+  },
+  "GraspGen/scripts/demo_object_pc.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094173,
+    "ast_hash": "171a6de1c6f40062ae81c38937ce3b1b",
+    "semantic_hash": "171a6de1c6f40062ae81c38937ce3b1b"
+  },
+  "GraspGen/scripts/demo_scene_pc.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094182,
+    "ast_hash": "b64e9986a619fe5e4050adc68f572ed6",
+    "semantic_hash": "b64e9986a619fe5e4050adc68f572ed6"
+  },
+  "GraspGen/scripts/download_objects.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009419,
+    "ast_hash": "5429790176c3c4f19c00b6ada0e2414d",
+    "semantic_hash": "5429790176c3c4f19c00b6ada0e2414d"
+  },
+  "GraspGen/scripts/inference_graspgen.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094197,
+    "ast_hash": "319d50cdbe50d72819b808bd48833509",
+    "semantic_hash": "319d50cdbe50d72819b808bd48833509"
+  },
+  "GraspGen/scripts/inference_m2t2.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094209,
+    "ast_hash": "177b119ba956e78af59aa5b6314b89e7",
+    "semantic_hash": "177b119ba956e78af59aa5b6314b89e7"
+  },
+  "GraspGen/scripts/run_grasp_sim_omniverse.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094218,
+    "ast_hash": "017195556589b6dab150f40fbacbe607",
+    "semantic_hash": "017195556589b6dab150f40fbacbe607"
+  },
+  "GraspGen/scripts/save_grasps_to_usd.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.0094228,
+    "ast_hash": "955670c56ac2df6d19a4eccdaab5febc",
+    "semantic_hash": "955670c56ac2df6d19a4eccdaab5febc"
+  },
+  "GraspGen/scripts/train_graspgen.py": {
+    "mtime": 1787236391.4115453,
+    "seen": 1791370477.009424,
+    "ast_hash": "869f1255494b90e6dfd737b7fe65dda1",
+    "semantic_hash": "869f1255494b90e6dfd737b7fe65dda1"
+  },
+  "GraspGen/scripts/train_m2t2.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094247,
+    "ast_hash": "48fb494d74604ff12121786940816814",
+    "semantic_hash": "48fb494d74604ff12121786940816814"
+  },
+  "GraspGen/setup.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094254,
+    "ast_hash": "619852133b65053932a70bb92e8d7012",
+    "semantic_hash": "619852133b65053932a70bb92e8d7012"
+  },
+  "GraspGen/tests/conftest.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.009426,
+    "ast_hash": "61cf0a82c92d1950dcff11efc26a7c79",
+    "semantic_hash": "61cf0a82c92d1950dcff11efc26a7c79"
+  },
+  "GraspGen/tests/test_dataset_format.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094273,
+    "ast_hash": "62a2dc111199aa0df2e8cdb14e3189ec",
+    "semantic_hash": "62a2dc111199aa0df2e8cdb14e3189ec"
+  },
+  "GraspGen/tests/test_grasp_server.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.009428,
+    "ast_hash": "71fb3534db3b4ba352f7d99dc0df70ad",
+    "semantic_hash": "71fb3534db3b4ba352f7d99dc0df70ad"
+  },
+  "GraspGen/tests/test_inference_installation.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094287,
+    "ast_hash": "de88f5d4f6c1d7c1c2c44bd304bd4498",
+    "semantic_hash": "de88f5d4f6c1d7c1c2c44bd304bd4498"
+  },
+  "GraspGen/tests/test_inference_perf.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094295,
+    "ast_hash": "1124dea9444bc79404514beaadd076bf",
+    "semantic_hash": "1124dea9444bc79404514beaadd076bf"
+  },
+  "GraspGen/tests/test_math_utils.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094302,
+    "ast_hash": "a19d651589959801e82b702374b842c0",
+    "semantic_hash": "a19d651589959801e82b702374b842c0"
+  },
+  "GraspGen/tests/test_obb_planner.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094311,
+    "ast_hash": "a87d93f2f7a22737259b6445b01e3021",
+    "semantic_hash": "a87d93f2f7a22737259b6445b01e3021"
+  },
+  "GraspGen/tests/test_point_cloud_utils.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094318,
+    "ast_hash": "e4be48674e314a0b2d81f55aa1b458b6",
+    "semantic_hash": "e4be48674e314a0b2d81f55aa1b458b6"
+  },
+  "GraspGen/tests/test_robot.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094328,
+    "ast_hash": "3c45e115a86634599cbeb4c019d2cda1",
+    "semantic_hash": "3c45e115a86634599cbeb4c019d2cda1"
+  },
+  "GraspGen/tests/test_rotation_conversions.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094335,
+    "ast_hash": "e22b0a94adf67e56f3099e51a394a34c",
+    "semantic_hash": "e22b0a94adf67e56f3099e51a394a34c"
+  },
+  "GraspGen/tests/test_scene_loaders.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094345,
+    "ast_hash": "6e2cc1374331501e1fac5ec06e4f51aa",
+    "semantic_hash": "6e2cc1374331501e1fac5ec06e4f51aa"
+  },
+  "GraspGen/tests/test_serving.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094352,
+    "ast_hash": "0dc34d0f39de1370e4fd89b5d610295f",
+    "semantic_hash": "0dc34d0f39de1370e4fd89b5d610295f"
+  },
+  "GraspGen/tests/test_usd_grasp_pipeline.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094364,
+    "ast_hash": "88884078c48b49b22985ea7c660389da",
+    "semantic_hash": "88884078c48b49b22985ea7c660389da"
+  },
+  "GraspGen/tutorials/generate_dataset_suction_single_object.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094373,
+    "ast_hash": "d890fc6bdccd0b6600fea736dc9f1e6e",
+    "semantic_hash": "d890fc6bdccd0b6600fea736dc9f1e6e"
+  },
+  "GraspGen/tutorials/generate_model_inference_config.py": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094383,
+    "ast_hash": "6cf5730f9b391a6443288a475db8f3ac",
+    "semantic_hash": "6cf5730f9b391a6443288a475db8f3ac"
+  },
+  "GraspGen/tutorials/tutorial_train_dis.sh": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.0094392,
+    "ast_hash": "e3524de3cefd04a732cd6d966fa3ed34",
+    "semantic_hash": "e3524de3cefd04a732cd6d966fa3ed34"
+  },
+  "GraspGen/tutorials/tutorial_train_gen.sh": {
+    "mtime": 1787236391.4152708,
+    "seen": 1791370477.00944,
+    "ast_hash": "f8c89ac861b06a3cfeda443d9be82ea2",
+    "semantic_hash": "f8c89ac861b06a3cfeda443d9be82ea2"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/data_utils/ModelNetDataLoader.py": {
+    "mtime": 1786562773.6777604,
+    "seen": 1791370477.0094411,
+    "ast_hash": "f2ca0bb5d4fd8fb6871d15fc4148324b",
+    "semantic_hash": "f2ca0bb5d4fd8fb6871d15fc4148324b"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/data_utils/S3DISDataLoader.py": {
+    "mtime": 1786562773.6777604,
+    "seen": 1791370477.009442,
+    "ast_hash": "76ca28845a0cbf773cb036a97c05d331",
+    "semantic_hash": "76ca28845a0cbf773cb036a97c05d331"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/data_utils/ShapeNetDataLoader.py": {
+    "mtime": 1786562773.6777604,
+    "seen": 1791370477.0094433,
+    "ast_hash": "c405141572de39b730c0ba5b4b0e96ca",
+    "semantic_hash": "c405141572de39b730c0ba5b4b0e96ca"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/data_utils/collect_indoor3d_data.py": {
+    "mtime": 1786562773.6777604,
+    "seen": 1791370477.0094442,
+    "ast_hash": "9f1098f21c8bf48b818c1a339b043518",
+    "semantic_hash": "9f1098f21c8bf48b818c1a339b043518"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/data_utils/indoor3d_util.py": {
+    "mtime": 1786562773.6777604,
+    "seen": 1791370477.0094454,
+    "ast_hash": "db0b8aed581c46a190dc60db3769ea12",
+    "semantic_hash": "db0b8aed581c46a190dc60db3769ea12"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet2_cls_msg.py": {
+    "mtime": 1786562774.2193058,
+    "seen": 1791370477.0094461,
+    "ast_hash": "48adcd56674c78f81e95766d14777291",
+    "semantic_hash": "48adcd56674c78f81e95766d14777291"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet2_cls_ssg.py": {
+    "mtime": 1786562774.2193058,
+    "seen": 1791370477.009447,
+    "ast_hash": "f0dff242577695e8bcf300270176e06d",
+    "semantic_hash": "f0dff242577695e8bcf300270176e06d"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet2_part_seg_msg.py": {
+    "mtime": 1786562774.2193058,
+    "seen": 1791370477.0094483,
+    "ast_hash": "50926b2080492fd368a0d2661d29cc3f",
+    "semantic_hash": "50926b2080492fd368a0d2661d29cc3f"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet2_part_seg_ssg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.009449,
+    "ast_hash": "4ef20fbc9456d26f40e0a21689f14ddc",
+    "semantic_hash": "4ef20fbc9456d26f40e0a21689f14ddc"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet2_sem_seg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094502,
+    "ast_hash": "3c6885e41df16ac90d10c68c876e72d8",
+    "semantic_hash": "3c6885e41df16ac90d10c68c876e72d8"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet2_sem_seg_msg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.009451,
+    "ast_hash": "ebe66961fd1814b098a674fdaa1195c5",
+    "semantic_hash": "ebe66961fd1814b098a674fdaa1195c5"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet2_utils.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094519,
+    "ast_hash": "0812d3e6afc1fef73231d6776a846120",
+    "semantic_hash": "0812d3e6afc1fef73231d6776a846120"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet_cls.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094528,
+    "ast_hash": "1c345b05fcc798551a8829420a71a17f",
+    "semantic_hash": "1c345b05fcc798551a8829420a71a17f"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet_part_seg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094535,
+    "ast_hash": "0b2bdda659075de697738b1cdcad4efd",
+    "semantic_hash": "0b2bdda659075de697738b1cdcad4efd"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet_sem_seg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094545,
+    "ast_hash": "3fcc2124ae577ee79cd0a46bca0202a3",
+    "semantic_hash": "3fcc2124ae577ee79cd0a46bca0202a3"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/models/pointnet_utils.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094554,
+    "ast_hash": "a285506f887ccd8067c776d650758846",
+    "semantic_hash": "a285506f887ccd8067c776d650758846"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/provider.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094566,
+    "ast_hash": "3091b9cec67edcbfc2f089ad06484a52",
+    "semantic_hash": "3091b9cec67edcbfc2f089ad06484a52"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/test_classification.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094573,
+    "ast_hash": "e6011ca02f564f7f53aeede479d655fc",
+    "semantic_hash": "e6011ca02f564f7f53aeede479d655fc"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/test_partseg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094585,
+    "ast_hash": "b649034d28a8e6b5494356e1c005988d",
+    "semantic_hash": "b649034d28a8e6b5494356e1c005988d"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/test_semseg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094593,
+    "ast_hash": "daa7cf34e9ae3ddd44ba7ec5af5fd5d3",
+    "semantic_hash": "daa7cf34e9ae3ddd44ba7ec5af5fd5d3"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/train_classification.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094602,
+    "ast_hash": "1f6c1fc61d3a4795ae7578637d3fcf57",
+    "semantic_hash": "1f6c1fc61d3a4795ae7578637d3fcf57"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/train_partseg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.009461,
+    "ast_hash": "7fda0ddfb942a97c57621ad5a7b19768",
+    "semantic_hash": "7fda0ddfb942a97c57621ad5a7b19768"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/train_semseg.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.009462,
+    "ast_hash": "de3c9fa43c179520cb926114a71b4267",
+    "semantic_hash": "de3c9fa43c179520cb926114a71b4267"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/visualizer/build.sh": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094628,
+    "ast_hash": "c275227aec8c18bd69050c9d6ccaaba7",
+    "semantic_hash": "c275227aec8c18bd69050c9d6ccaaba7"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/visualizer/eulerangles.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094638,
+    "ast_hash": "3d43bc6ced18f7733e26fe16812c75ab",
+    "semantic_hash": "3d43bc6ced18f7733e26fe16812c75ab"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/visualizer/pc_utils.py": {
+    "mtime": 1786562774.2232182,
+    "seen": 1791370477.0094645,
+    "ast_hash": "93402fbc3401d5b9bb311186bc6213a4",
+    "semantic_hash": "93402fbc3401d5b9bb311186bc6213a4"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/visualizer/plyfile.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094657,
+    "ast_hash": "1ababe27c01debbe3315cb12b52b19a0",
+    "semantic_hash": "1ababe27c01debbe3315cb12b52b19a0"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/visualizer/render_balls_so.cpp": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094664,
+    "ast_hash": "df8b0dd3643276a46971717ff609845d",
+    "semantic_hash": "df8b0dd3643276a46971717ff609845d"
+  },
+  "contact_graspnet_pytorch/Pointnet_Pointnet2_pytorch/visualizer/show3d_balls.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094674,
+    "ast_hash": "242831025fbf9f152ee9d659deb46c7e",
+    "semantic_hash": "242831025fbf9f152ee9d659deb46c7e"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/__init__.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.009468,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/acronym_dataloader.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094693,
+    "ast_hash": "2e249925ece29a5870e7ed08902d3d4e",
+    "semantic_hash": "2e249925ece29a5870e7ed08902d3d4e"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/checkpoints.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094702,
+    "ast_hash": "bf579617669d3c04e0bd4a638701e499",
+    "semantic_hash": "bf579617669d3c04e0bd4a638701e499"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/config_utils.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.009471,
+    "ast_hash": "79b2afe574308abfa7e8719d83a7fc3b",
+    "semantic_hash": "79b2afe574308abfa7e8719d83a7fc3b"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/contact_grasp_estimator.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.009472,
+    "ast_hash": "516cd8bc768f57a676a5ad9ab6599a12",
+    "semantic_hash": "516cd8bc768f57a676a5ad9ab6599a12"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/contact_graspnet.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.009473,
+    "ast_hash": "4ddd00b654c5a2c3f09095fbcde70aab",
+    "semantic_hash": "4ddd00b654c5a2c3f09095fbcde70aab"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/data.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094738,
+    "ast_hash": "f801df046d672a9a5ccd74f5e932030b",
+    "semantic_hash": "f801df046d672a9a5ccd74f5e932030b"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/datagen_scene_renderer.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094745,
+    "ast_hash": "6ef029076c5fdd6872c265ca55e449e2",
+    "semantic_hash": "6ef029076c5fdd6872c265ca55e449e2"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/inference.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094755,
+    "ast_hash": "5797f0d436778d11307e326b65500e1a",
+    "semantic_hash": "5797f0d436778d11307e326b65500e1a"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/mesh_utils.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094764,
+    "ast_hash": "d72ecbcb218a4d8dbd75b111f16b2bd9",
+    "semantic_hash": "d72ecbcb218a4d8dbd75b111f16b2bd9"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/render_acronym.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094774,
+    "ast_hash": "39dea743556d6a87f3d38ec22e20b073",
+    "semantic_hash": "39dea743556d6a87f3d38ec22e20b073"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/render_acronym_multicore.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.009478,
+    "ast_hash": "3cdc17a8662dab16332df5688088f230",
+    "semantic_hash": "3cdc17a8662dab16332df5688088f230"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/scene_renderer.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094788,
+    "ast_hash": "07cb9706247701d0929983930b29758b",
+    "semantic_hash": "07cb9706247701d0929983930b29758b"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/summaries.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.00948,
+    "ast_hash": "f559399da0e761af42d3f3aa574d55f1",
+    "semantic_hash": "f559399da0e761af42d3f3aa574d55f1"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/testers/__init__.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094807,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/testers/test_acronym.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094817,
+    "ast_hash": "5e0a5dbb16b967d222acf2906049ac5b",
+    "semantic_hash": "5e0a5dbb16b967d222acf2906049ac5b"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/testers/test_contact_graspnet_pytorch.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094829,
+    "ast_hash": "7aa1317b55312fe33f6aa41504ec28d6",
+    "semantic_hash": "7aa1317b55312fe33f6aa41504ec28d6"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/train.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094836,
+    "ast_hash": "813dac45b62607946f82fb8809e49d1d",
+    "semantic_hash": "813dac45b62607946f82fb8809e49d1d"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/utils.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094843,
+    "ast_hash": "8ad53d16b5983f1c32453f3a390b37c2",
+    "semantic_hash": "8ad53d16b5983f1c32453f3a390b37c2"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/visualization_utils_o3d.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094852,
+    "ast_hash": "6935e9a20f4617f3a96cd980cdbc98f8",
+    "semantic_hash": "6935e9a20f4617f3a96cd980cdbc98f8"
+  },
+  "contact_graspnet_pytorch/contact_graspnet_pytorch/visualize_saved_scene.py": {
+    "mtime": 1786562774.2271307,
+    "seen": 1791370477.0094862,
+    "ast_hash": "e9f2be0c3f0f0797548edc52db5039ee",
+    "semantic_hash": "e9f2be0c3f0f0797548edc52db5039ee"
+  },
+  "contact_graspnet_pytorch/scripts/download_assets.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094872,
+    "ast_hash": "90cfabc9a940b499808f70cb0795538f",
+    "semantic_hash": "90cfabc9a940b499808f70cb0795538f"
+  },
+  "contact_graspnet_pytorch/setup.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094879,
+    "ast_hash": "8c58625c4666c9706d5f4fc420390669",
+    "semantic_hash": "8c58625c4666c9706d5f4fc420390669"
+  },
+  "contact_graspnet_pytorch/test_inference_headless.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094888,
+    "ast_hash": "e273ac509d160a06751517e400cb4664",
+    "semantic_hash": "e273ac509d160a06751517e400cb4664"
+  },
+  "contact_graspnet_pytorch/tools/benchmark_query_kd_np_tf.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094917,
+    "ast_hash": "a5a6e6e95cfc6d3495df47f2c671f190",
+    "semantic_hash": "a5a6e6e95cfc6d3495df47f2c671f190"
+  },
+  "contact_graspnet_pytorch/tools/color.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094926,
+    "ast_hash": "cba088c4208aad8b7ea96a845468d57d",
+    "semantic_hash": "cba088c4208aad8b7ea96a845468d57d"
+  },
+  "contact_graspnet_pytorch/tools/create_contact_infos.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094938,
+    "ast_hash": "955ca64e59e9fa22b59d976a7d60abb2",
+    "semantic_hash": "955ca64e59e9fa22b59d976a7d60abb2"
+  },
+  "contact_graspnet_pytorch/tools/create_table_top_scenes.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094945,
+    "ast_hash": "e236630f5e7aa90cb99635f41259e2e9",
+    "semantic_hash": "e236630f5e7aa90cb99635f41259e2e9"
+  },
+  "contact_graspnet_pytorch/tools/dict_diff.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094953,
+    "ast_hash": "6e5f8fbb994aa6046780957200901ecd",
+    "semantic_hash": "6e5f8fbb994aa6046780957200901ecd"
+  },
+  "contact_graspnet_pytorch/tools/plot_pr.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094962,
+    "ast_hash": "4890a0a7591d9d2f9bdf609c1736f2ca",
+    "semantic_hash": "4890a0a7591d9d2f9bdf609c1736f2ca"
+  },
+  "contact_graspnet_pytorch/tools/ply_to_npz.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094972,
+    "ast_hash": "1a592dd2fb44861292fb255d863b969b",
+    "semantic_hash": "1a592dd2fb44861292fb255d863b969b"
+  },
+  "contact_graspnet_pytorch/tools/realsense_capture.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.009498,
+    "ast_hash": "92c8d2e97c63a74dd609f7efa276040b",
+    "semantic_hash": "92c8d2e97c63a74dd609f7efa276040b"
+  },
+  "contact_graspnet_pytorch/tools/refactor_mesh_dir.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094986,
+    "ast_hash": "65cbc6cd3a8faaa9492c30d9f154ab6f",
+    "semantic_hash": "65cbc6cd3a8faaa9492c30d9f154ab6f"
+  },
+  "contact_graspnet_pytorch/tools/waterproof_meshes.py": {
+    "mtime": 1786562774.2740805,
+    "seen": 1791370477.0094993,
+    "ast_hash": "6fbb3da67c6133eb8b1a730bcd1c74f6",
+    "semantic_hash": "6fbb3da67c6133eb8b1a730bcd1c74f6"
+  },
+  "docs/benchmarks/2026-10-06-sp3/sp3_graph_oracle_identity_20261006.json": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095005,
+    "ast_hash": "c2e00f09cadcf02bd4c9a3d2c960f50e",
+    "semantic_hash": "c2e00f09cadcf02bd4c9a3d2c960f50e"
+  },
+  "docs/benchmarks/2026-10-06-sp3/sp3_graph_perceived_20261006.json": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095012,
+    "ast_hash": "dc4613aa664b1a9fd2f0720556de49b5",
+    "semantic_hash": "dc4613aa664b1a9fd2f0720556de49b5"
+  },
+  "docs/benchmarks/2026-10-06-sp3/sp3_oracle_20261006.json": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.009502,
+    "ast_hash": "2085fd689a1fba5aa60be04f60b244d6",
+    "semantic_hash": "2085fd689a1fba5aa60be04f60b244d6"
+  },
+  "docs/research/bakeoff_instruction_parser.py": {
+    "mtime": 1787318217.1925793,
+    "seen": 1791370477.0095026,
+    "ast_hash": "a6b71071dbb1caa88b5e0b4b02654d19",
+    "semantic_hash": "a6b71071dbb1caa88b5e0b4b02654d19"
+  },
+  "mujoco_grasp_sim/analyze_failures.py": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095036,
+    "ast_hash": "bd3d506e6a24374e228a0e59eb672d66",
+    "semantic_hash": "bd3d506e6a24374e228a0e59eb672d66"
+  },
+  "mujoco_grasp_sim/assets/props/manifest.json": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095043,
+    "ast_hash": "63d48f2a74d64b3bcea710a60f80de3d",
+    "semantic_hash": "63d48f2a74d64b3bcea710a60f80de3d"
+  },
+  "mujoco_grasp_sim/benchmark.py": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095053,
+    "ast_hash": "787f89bea7aa580c1591b4681e14b34c",
+    "semantic_hash": "787f89bea7aa580c1591b4681e14b34c"
+  },
+  "mujoco_grasp_sim/benchmark_prompt_selection.py": {
+    "mtime": 1786787267.2428322,
+    "seen": 1791370477.009506,
+    "ast_hash": "961c522dab9c77ca68c7be02ec352665",
+    "semantic_hash": "961c522dab9c77ca68c7be02ec352665"
+  },
+  "mujoco_grasp_sim/debug_execute.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.0095067,
+    "ast_hash": "ec23cb4d3658ad2675ccf4c479c19705",
+    "semantic_hash": "ec23cb4d3658ad2675ccf4c479c19705"
+  },
+  "mujoco_grasp_sim/debug_geometry.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.009508,
+    "ast_hash": "4c9cdbd35561b4e045afc9e954630cbf",
+    "semantic_hash": "4c9cdbd35561b4e045afc9e954630cbf"
+  },
+  "mujoco_grasp_sim/interactive_pick.py": {
+    "mtime": 1787318463.9617226,
+    "seen": 1791370477.0095084,
+    "ast_hash": "e1952d3802e35e048bab59ddda29e6f3",
+    "semantic_hash": "e1952d3802e35e048bab59ddda29e6f3"
+  },
+  "mujoco_grasp_sim/run_sim_grasp_test.py": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095093,
+    "ast_hash": "bd8d028d7e80a89413b3f1b1c4bd8460",
+    "semantic_hash": "bd8d028d7e80a89413b3f1b1c4bd8460"
+  },
+  "mujoco_grasp_sim/scripts/download_graspgen_checkpoint.py": {
+    "mtime": 1786640908.4558592,
+    "seen": 1791370477.00951,
+    "ast_hash": "9fd6d8bc19e9a1349a6eb0abef9333e6",
+    "semantic_hash": "9fd6d8bc19e9a1349a6eb0abef9333e6"
+  },
+  "mujoco_grasp_sim/scripts/download_props.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095112,
+    "ast_hash": "fa809999f9f2957679d8d50f688e7ebe",
+    "semantic_hash": "fa809999f9f2957679d8d50f688e7ebe"
+  },
+  "mujoco_grasp_sim/sim_grasp/__init__.py": {
+    "mtime": 1786640908.4558592,
+    "seen": 1791370477.009512,
+    "ast_hash": "3ad68425b9e485d29f8411b372f36607",
+    "semantic_hash": "3ad68425b9e485d29f8411b372f36607"
+  },
+  "mujoco_grasp_sim/sim_grasp/calibration.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.0095127,
+    "ast_hash": "7a3e6664743e4dd55e9279fcaacfdb6d",
+    "semantic_hash": "7a3e6664743e4dd55e9279fcaacfdb6d"
+  },
+  "mujoco_grasp_sim/sim_grasp/camera.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095136,
+    "ast_hash": "4b78e3152a7f3e024851a85c9f7b90e2",
+    "semantic_hash": "4b78e3152a7f3e024851a85c9f7b90e2"
+  },
+  "mujoco_grasp_sim/sim_grasp/cgn_worker.py": {
+    "mtime": 1787331564.5788636,
+    "seen": 1791370477.0095146,
+    "ast_hash": "cc3d3f215eb23580b2d02601433c13a1",
+    "semantic_hash": "cc3d3f215eb23580b2d02601433c13a1"
+  },
+  "mujoco_grasp_sim/sim_grasp/color_utils.py": {
+    "mtime": 1787329083.8006008,
+    "seen": 1791370477.0095153,
+    "ast_hash": "3c4342066b928c754600541c184d9075",
+    "semantic_hash": "3c4342066b928c754600541c184d9075"
+  },
+  "mujoco_grasp_sim/sim_grasp/executor.py": {
+    "mtime": 1791318532.6445732,
+    "seen": 1791370477.0095162,
+    "ast_hash": "387728062887b2f2e80dc3ec6301bc3a",
+    "semantic_hash": "387728062887b2f2e80dc3ec6301bc3a"
+  },
+  "mujoco_grasp_sim/sim_grasp/feasibility.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.009517,
+    "ast_hash": "cd5dba1bc11629dcaeaaa7c9a7a0f2af",
+    "semantic_hash": "cd5dba1bc11629dcaeaaa7c9a7a0f2af"
+  },
+  "mujoco_grasp_sim/sim_grasp/frames.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.009518,
+    "ast_hash": "6ed98404dc97ccb23a91082ae6f4175f",
+    "semantic_hash": "6ed98404dc97ccb23a91082ae6f4175f"
+  },
+  "mujoco_grasp_sim/sim_grasp/fusion.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.0095186,
+    "ast_hash": "5f00767d5d3ec64415b794c8bc454faf",
+    "semantic_hash": "5f00767d5d3ec64415b794c8bc454faf"
+  },
+  "mujoco_grasp_sim/sim_grasp/grasp_predictor.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.0095196,
+    "ast_hash": "a9e17fb8a11a261887452fa493190c91",
+    "semantic_hash": "a9e17fb8a11a261887452fa493190c91"
+  },
+  "mujoco_grasp_sim/sim_grasp/graspgen_predictor.py": {
+    "mtime": 1787331564.5788636,
+    "seen": 1791370477.0095203,
+    "ast_hash": "bec747022cdcc2a175b25a4e0a39f426",
+    "semantic_hash": "bec747022cdcc2a175b25a4e0a39f426"
+  },
+  "mujoco_grasp_sim/sim_grasp/graspgen_worker.py": {
+    "mtime": 1787331564.5788636,
+    "seen": 1791370477.0095212,
+    "ast_hash": "afda8697db1368e7ebecd2f4b7773072",
+    "semantic_hash": "afda8697db1368e7ebecd2f4b7773072"
+  },
+  "mujoco_grasp_sim/sim_grasp/instruction_parser.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.009522,
+    "ast_hash": "7a4b7ba076a4a6732d85896920e9e027",
+    "semantic_hash": "7a4b7ba076a4a6732d85896920e9e027"
+  },
+  "mujoco_grasp_sim/sim_grasp/live_viewer.py": {
+    "mtime": 1786875616.4792695,
+    "seen": 1791370477.0095227,
+    "ast_hash": "ac894a094fefe774d89242a2644bf937",
+    "semantic_hash": "ac894a094fefe774d89242a2644bf937"
+  },
+  "mujoco_grasp_sim/sim_grasp/object_knowledge.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095236,
+    "ast_hash": "0959c618543398e926d598567ab33211",
+    "semantic_hash": "0959c618543398e926d598567ab33211"
+  },
+  "mujoco_grasp_sim/sim_grasp/perception.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.0095246,
+    "ast_hash": "cddc6cd5c5ea8a34eb6beddd06f951fb",
+    "semantic_hash": "cddc6cd5c5ea8a34eb6beddd06f951fb"
+  },
+  "mujoco_grasp_sim/sim_grasp/placement_planner.py": {
+    "mtime": 1787318463.9617226,
+    "seen": 1791370477.0095255,
+    "ast_hash": "f252555f08609f54fb6189beb17f4dfb",
+    "semantic_hash": "f252555f08609f54fb6189beb17f4dfb"
+  },
+  "mujoco_grasp_sim/sim_grasp/pointcloud.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.0095263,
+    "ast_hash": "fcb97a096f9d4da6f0d2f491633317f7",
+    "semantic_hash": "fcb97a096f9d4da6f0d2f491633317f7"
+  },
+  "mujoco_grasp_sim/sim_grasp/prompt_selector.py": {
+    "mtime": 1787331564.5788636,
+    "seen": 1791370477.009527,
+    "ast_hash": "b9ebcb34f84491ef3bcb6585b304c2cd",
+    "semantic_hash": "b9ebcb34f84491ef3bcb6585b304c2cd"
+  },
+  "mujoco_grasp_sim/sim_grasp/props.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095282,
+    "ast_hash": "37d48be1d032850a1640f1a605aa2358",
+    "semantic_hash": "37d48be1d032850a1640f1a605aa2358"
+  },
+  "mujoco_grasp_sim/sim_grasp/reachability.py": {
+    "mtime": 1789913706.9099145,
+    "seen": 1791370477.0095289,
+    "ast_hash": "fa2d5b21904bb137ad819d1c4be99055",
+    "semantic_hash": "fa2d5b21904bb137ad819d1c4be99055"
+  },
+  "mujoco_grasp_sim/sim_grasp/sam3_worker.py": {
+    "mtime": 1787331564.5788636,
+    "seen": 1791370477.0095296,
+    "ast_hash": "96a84f7a578fb787861a0e121faba8dc",
+    "semantic_hash": "96a84f7a578fb787861a0e121faba8dc"
+  },
+  "mujoco_grasp_sim/sim_grasp/scene_generator.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095303,
+    "ast_hash": "5f89cc8144630123a15e5df5ee65c60c",
+    "semantic_hash": "5f89cc8144630123a15e5df5ee65c60c"
+  },
+  "mujoco_grasp_sim/sim_grasp/scene_graph.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095315,
+    "ast_hash": "24d9e79062c78cc6a6623a704c2b4e65",
+    "semantic_hash": "24d9e79062c78cc6a6623a704c2b4e65"
+  },
+  "mujoco_grasp_sim/sim_grasp/scene_graph_viz.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095325,
+    "ast_hash": "a601cfe4722381ba30928ee6c86bff4b",
+    "semantic_hash": "a601cfe4722381ba30928ee6c86bff4b"
+  },
+  "mujoco_grasp_sim/sim_grasp/sorting_policy.py": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095332,
+    "ast_hash": "5ddce18f1c37a1ae1a33f798b6e41b26",
+    "semantic_hash": "5ddce18f1c37a1ae1a33f798b6e41b26"
+  },
+  "mujoco_grasp_sim/sim_grasp/spatial_relation_resolver.py": {
+    "mtime": 1787329083.8006008,
+    "seen": 1791370477.009534,
+    "ast_hash": "b7e07f507f8c9cb35da818fae8b5b19e",
+    "semantic_hash": "b7e07f507f8c9cb35da818fae8b5b19e"
+  },
+  "mujoco_grasp_sim/sim_grasp/subprocess_utils.py": {
+    "mtime": 1787331564.5788636,
+    "seen": 1791370477.0095348,
+    "ast_hash": "e1d6a89538ebe8f68c3aec00ac16690d",
+    "semantic_hash": "e1d6a89538ebe8f68c3aec00ac16690d"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_analyze_failures_wrong_bin.py": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095358,
+    "ast_hash": "01ded54df2b1ac267476995509a9ef75",
+    "semantic_hash": "01ded54df2b1ac267476995509a9ef75"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_color_utils.py": {
+    "mtime": 1787329083.8006008,
+    "seen": 1791370477.0095365,
+    "ast_hash": "b458640d4a8e945a2c912417c47f4632",
+    "semantic_hash": "b458640d4a8e945a2c912417c47f4632"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_executor_ease.py": {
+    "mtime": 1787318463.9617226,
+    "seen": 1791370477.0095372,
+    "ast_hash": "61e302bf035fa9aebf4c56883a35df35",
+    "semantic_hash": "61e302bf035fa9aebf4c56883a35df35"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_executor_place_orientation.py": {
+    "mtime": 1787318463.9617226,
+    "seen": 1791370477.009538,
+    "ast_hash": "56330a9a54f1d8634070f52886ffd00c",
+    "semantic_hash": "56330a9a54f1d8634070f52886ffd00c"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_executor_seed_selection.py": {
+    "mtime": 1787343878.6305954,
+    "seen": 1791370477.0095391,
+    "ast_hash": "4eac5f673b8a0751b9f537b71a077e3f",
+    "semantic_hash": "4eac5f673b8a0751b9f537b71a077e3f"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_feasibility.py": {
+    "mtime": 1787321468.3597147,
+    "seen": 1791370477.0095398,
+    "ast_hash": "c3d7deb3ad3eae6e0b62ed78d963f3f0",
+    "semantic_hash": "c3d7deb3ad3eae6e0b62ed78d963f3f0"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_filter_selection_by_click.py": {
+    "mtime": 1787086179.423259,
+    "seen": 1791370477.0095406,
+    "ast_hash": "ba9af910ecb3f3125f263f87c08ff110",
+    "semantic_hash": "ba9af910ecb3f3125f263f87c08ff110"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_instruction_parser.py": {
+    "mtime": 1787329083.8006008,
+    "seen": 1791370477.0095417,
+    "ast_hash": "dcbddfdf8b88bb901a2722a2bb677656",
+    "semantic_hash": "dcbddfdf8b88bb901a2722a2bb677656"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_live_viewer_overlay.py": {
+    "mtime": 1786822585.0581691,
+    "seen": 1791370477.0095425,
+    "ast_hash": "65ff398b4c8fbdbbee3e65daa3fa6bda",
+    "semantic_hash": "65ff398b4c8fbdbbee3e65daa3fa6bda"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_object_knowledge.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095432,
+    "ast_hash": "1fc3492399ca3024d4b019778fbbc873",
+    "semantic_hash": "1fc3492399ca3024d4b019778fbbc873"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_placement_planner.py": {
+    "mtime": 1787318463.9617226,
+    "seen": 1791370477.009544,
+    "ast_hash": "f08b84654bf881a84adc36b55f324946",
+    "semantic_hash": "f08b84654bf881a84adc36b55f324946"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_props.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095448,
+    "ast_hash": "0f3057c8efdf5a608a8dac5c51b93a39",
+    "semantic_hash": "0f3057c8efdf5a608a8dac5c51b93a39"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_props_assets.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095458,
+    "ast_hash": "d22fba4304bebc19cf287d10a4e398b2",
+    "semantic_hash": "d22fba4304bebc19cf287d10a4e398b2"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_reachability.py": {
+    "mtime": 1789913706.9099145,
+    "seen": 1791370477.0095465,
+    "ast_hash": "4780f37bd02055e29823cb12cb77dd6d",
+    "semantic_hash": "4780f37bd02055e29823cb12cb77dd6d"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_resolve_real_label.py": {
+    "mtime": 1786822585.0581691,
+    "seen": 1791370477.0095472,
+    "ast_hash": "64f2f97b41c86fd3e9025eff7532a28a",
+    "semantic_hash": "64f2f97b41c86fd3e9025eff7532a28a"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_scene_default_unchanged.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095482,
+    "ast_hash": "cc7b8f6af3d9ef3a6e9b8ac841864eff",
+    "semantic_hash": "cc7b8f6af3d9ef3a6e9b8ac841864eff"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_scene_generator_bins.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095491,
+    "ast_hash": "bead735bf765ad9cfcaa10136df4c0d9",
+    "semantic_hash": "bead735bf765ad9cfcaa10136df4c0d9"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_scene_generator_paths.py": {
+    "mtime": 1787318217.1999454,
+    "seen": 1791370477.0095499,
+    "ast_hash": "92e9ddf53c7521d3d6f814fa05d64df2",
+    "semantic_hash": "92e9ddf53c7521d3d6f814fa05d64df2"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_scene_graph.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095506,
+    "ast_hash": "ec2dea45b15e36666f5eece6aa01478d",
+    "semantic_hash": "ec2dea45b15e36666f5eece6aa01478d"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_scene_graph_viz.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095513,
+    "ast_hash": "5ec6fb4f370686a6d577f19ee6292db7",
+    "semantic_hash": "5ec6fb4f370686a6d577f19ee6292db7"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_scene_props.py": {
+    "mtime": 1791025549.6956117,
+    "seen": 1791370477.0095522,
+    "ast_hash": "6a76425585961bf4443ba9333083f017",
+    "semantic_hash": "6a76425585961bf4443ba9333083f017"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_sorting_benchmark.py": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.009553,
+    "ast_hash": "3f73d5dee964cf1bb180f6538e74901b",
+    "semantic_hash": "3f73d5dee964cf1bb180f6538e74901b"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_sorting_cli.py": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095537,
+    "ast_hash": "ae5d15aee8c5781c4db019a53ee35bc1",
+    "semantic_hash": "ae5d15aee8c5781c4db019a53ee35bc1"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_sorting_policy.py": {
+    "mtime": 1791318494.9245102,
+    "seen": 1791370477.0095544,
+    "ast_hash": "87ff3e93794162319e95e94ab08f94f3",
+    "semantic_hash": "87ff3e93794162319e95e94ab08f94f3"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_spatial_relation_resolver.py": {
+    "mtime": 1787329083.8006008,
+    "seen": 1791370477.009555,
+    "ast_hash": "cb0d0f79c1b24fc4b05ff91961cc0132",
+    "semantic_hash": "cb0d0f79c1b24fc4b05ff91961cc0132"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_subprocess_utils.py": {
+    "mtime": 1787331564.5788636,
+    "seen": 1791370477.0095563,
+    "ast_hash": "f7c140e1c73d10100fd67a44c9a1c15e",
+    "semantic_hash": "f7c140e1c73d10100fd67a44c9a1c15e"
+  },
+  "mujoco_grasp_sim/sim_grasp/test_workspace_occupancy.py": {
+    "mtime": 1789913706.9099145,
+    "seen": 1791370477.009557,
+    "ast_hash": "5cdebcba34ec6f002f35045cf41b9209",
+    "semantic_hash": "5cdebcba34ec6f002f35045cf41b9209"
+  },
+  "mujoco_grasp_sim/sim_grasp/visualizer.py": {
+    "mtime": 1786562744.9142764,
+    "seen": 1791370477.0095577,
+    "ast_hash": "766a1424f2b41f5a017fd73f752ded7a",
+    "semantic_hash": "766a1424f2b41f5a017fd73f752ded7a"
+  },
+  "mujoco_grasp_sim/sim_grasp/workspace_occupancy.py": {
+    "mtime": 1789913706.9099145,
+    "seen": 1791370477.0095587,
+    "ast_hash": "85d6a210085003e35edf35f0a44ba08e",
+    "semantic_hash": "85d6a210085003e35edf35f0a44ba08e"
+  },
+  "mujoco_menagerie/format_xml.py": {
+    "mtime": 1787318239.216361,
+    "seen": 1791370477.0095596,
+    "ast_hash": "0cf12cb709db437f582129b94dd4d9d0",
+    "semantic_hash": "0cf12cb709db437f582129b94dd4d9d0"
+  },
+  "mujoco_menagerie/generate_gallery.py": {
+    "mtime": 1787318239.3231728,
+    "seen": 1791370477.0095603,
+    "ast_hash": "3a3d21e4a82a9af0c1109e8ff91010ac",
+    "semantic_hash": "3a3d21e4a82a9af0c1109e8ff91010ac"
+  },
+  "mujoco_menagerie/regenerate_license.py": {
+    "mtime": 1787318239.3231728,
+    "seen": 1791370477.009561,
+    "ast_hash": "3efe92b87ab77257883cd71534f44ac5",
+    "semantic_hash": "3efe92b87ab77257883cd71534f44ac5"
+  },
+  "docs/media/cgn-pick-all.mp4": {
+    "mtime": 1787168019.1159935,
+    "seen": 1791370477.0095618,
+    "ast_hash": "03d1c9b5bc3433bec9b9dba80fe5d8c6",
+    "semantic_hash": "03d1c9b5bc3433bec9b9dba80fe5d8c6"
+  },
+  "docs/media/cgn-single-pick.mp4": {
+    "mtime": 1787168019.1159935,
+    "seen": 1791370477.0095627,
+    "ast_hash": "b4fba9cf91895640a17c098e4f5d6464",
+    "semantic_hash": "b4fba9cf91895640a17c098e4f5d6464"
+  },
+  "docs/media/demo-grid.mp4": {
+    "mtime": 1787169856.356334,
+    "seen": 1791370477.0095634,
+    "ast_hash": "64e11a39740e69fe0bf3cf26d9ef514b",
+    "semantic_hash": "64e11a39740e69fe0bf3cf26d9ef514b"
+  },
+  "docs/media/graspgen-pick-all.mp4": {
+    "mtime": 1787168019.1159935,
+    "seen": 1791370477.0095642,
+    "ast_hash": "2687fb2fe964567b770a846e816e72fa",
+    "semantic_hash": "2687fb2fe964567b770a846e816e72fa"
+  },
+  "docs/media/graspgen-single-pick.mp4": {
+    "mtime": 1787168019.1159935,
+    "seen": 1791370477.0095649,
+    "ast_hash": "79e6a25b68926211546f006279f03f72",
+    "semantic_hash": "79e6a25b68926211546f006279f03f72"
+  },
+  "docs/media/interactive-pick-live.mp4": {
+    "mtime": 1787168019.1159935,
+    "seen": 1791370477.0095656,
+    "ast_hash": "71f0970bb0f078a13a9cb8ffb4e71bb3",
+    "semantic_hash": "71f0970bb0f078a13a9cb8ffb4e71bb3"
+  },
+  "docs/media/sam3-click-after-fix.mp4": {
+    "mtime": 1787168019.1159935,
+    "seen": 1791370477.0095668,
+    "ast_hash": "cea69a2245e434c5541d2776ac8f3592",
+    "semantic_hash": "cea69a2245e434c5541d2776ac8f3592"
+  },
+  "docs/media/sam3-click-before-fix.mp4": {
+    "mtime": 1787168019.1159935,
+    "seen": 1791370477.0095675,
+    "ast_hash": "efa812caa7a6fc04210ae32958313dee",
+    "semantic_hash": "efa812caa7a6fc04210ae32958313dee"
+  },
+  "docs/media/sam3-prompt-selection.mp4": {
+    "mtime": 1787168019.1159935,
+    "seen": 1791370477.0095685,
+    "ast_hash": "5073807adcaff80854ff879ef6d86837",
+    "semantic_hash": "5073807adcaff80854ff879ef6d86837"
+  }
+}
